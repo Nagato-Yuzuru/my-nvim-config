@@ -5,6 +5,7 @@ vim.cmd("language messages en_US.UTF-8")
 vim.opt.mouse = ""
 vim.opt.cursorline = true
 vim.opt.number = true
+vim.opt.termguicolors = true
 
 vim.o.expandtab = true     -- 将 Tab 键转换为空格
 vim.o.shiftwidth = 4       -- 设置缩进宽度为 4
