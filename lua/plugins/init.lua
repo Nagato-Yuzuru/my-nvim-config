@@ -21,6 +21,21 @@ require("lazy").setup({
       require("plugins.cmp")
     end
   },
+  {"lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    ---@module "ibl"
+    ---@type ibl.config
+    opts = {},
+    config = function()
+      require("plugins.ibl")
+    end
+},
+  {
+    "kylechui/nvim-surround",
+    config = function()
+        require("nvim-surround").setup({})
+        end
+  },
   { "hrsh7th/cmp-buffer" },
   { "hrsh7th/cmp-path" },
   { "hrsh7th/cmp-nvim-lsp" },
