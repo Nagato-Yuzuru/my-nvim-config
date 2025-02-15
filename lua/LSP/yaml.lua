@@ -9,7 +9,6 @@ lspconfig.yamlls.setup({
         -- Kubernetes YAML 文件的 schema
         ["https://raw.githubusercontent.com/instrumenta/kubernetes-json-schema/master/v1.18.0-standalone-strict/all.json"] = "*.k8s.yaml",
         ["https://raw.githubusercontent.com/instrumenta/kubernetes-json-schema/master/v1.20.0-standalone-strict/all.json"] = "*.k8s.yaml",
-        ["https://json.schemastore.org/kubernetes.json"] = "*.yaml",
       },
     },
   },
