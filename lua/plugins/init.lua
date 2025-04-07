@@ -1,7 +1,19 @@
 -- 管理插件列表
 require("lazy").setup({ { "nvim-treesitter/nvim-treesitter", build =
     ":TSUpdate", config = function() require("plugins.treesitter") end },
-  
+    -- fzf
+    { "junegunn/fzf", build = "./install --all", config = function()
+        require("plugins.fzf") end }, { "junegunn/fzf.vim", },
+    
+    -- vim-indent-object
+    { "michaeljsmith/vim-indent-object", },
+
+    -- matchup.vim (增强 % 匹配)
+    { "andymass/vim-matchup", event = "BufRead", },
+
+    -- vim-cool (关闭高亮后增强搜索体验)
+    { "romainl/vim-cool", event = "VeryLazy", },
+ 
     { "machakann/vim-highlightedyank" }, { "easymotion/vim-easymotion" },
     {'numToStr/Comment.nvim', config = function() require('Comment').setup()
     end },
@@ -29,5 +41,11 @@ require("lazy").setup({ { "nvim-treesitter/nvim-treesitter", build =
         "L3MON4D3/LuaSnip" }, { "onsails/lspkind.nvim" },
   
     { 'neovim/nvim-lspconfig', config = function() require("LSP.init") end, },
+    { 'tpope/vim-fugitive', config = function() 
+	    vim.api.nvim_set_keymap('n', 'gD', ':G<CR>', { noremap = true }) 
+    end }, 
+    { 'windwp/nvim-autopairs',     config = function()
+      require('nvim-autopairs').setup{}
+    end }
 })
 
