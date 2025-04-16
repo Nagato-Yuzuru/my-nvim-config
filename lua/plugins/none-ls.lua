@@ -23,10 +23,7 @@ return function()
         -- extras_ok and extras.code_actions and extras.code_actions.ruff or nil,
         -- extras_ok and extras.diagnostics and extras.diagnostics.ruff or nil,
         null_ls.builtins.diagnostics.mypy,
-        -- Shell 格式化和诊断
-        -- null_ls.builtins.formatting.shfmt.with({
-        --     -- 如果需要自定义 shfmt 的参数，可添加 extra_args
-        --     extra_args = { "--indent=4", "--case-indent" },
+        null_ls.builtins.diagnostics.pydoclint,
         null_ls.builtins.diagnostics.zsh, -- }),
         -- null_ls.builtins.diagnostics.shellcheck.with({
         --     filetypes = {

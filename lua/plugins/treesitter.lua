@@ -11,6 +11,7 @@ require("nvim-treesitter.configs").setup({
 		"cpp",
 		"lua",
 		"toml",
+        "rst",
 		-- "gitcommit",
 		-- "gitconfig",
 		-- "gitignore",
