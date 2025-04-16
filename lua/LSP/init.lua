@@ -2,6 +2,7 @@
 -- ~/.config/nvim/lua/LSP/init.lua
 local lspconfig = require("lspconfig")
 local cmp_nvim_lsp = require("cmp_nvim_lsp")
+
 local capabilities = cmp_nvim_lsp.default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
 -- 通用 on_attach 函数，包含常用快捷键和诊断配置
@@ -70,6 +71,7 @@ local on_attach = function(client, bufnr)
     -- end
 end
 
+require("LSP.ruff")
 -- 使用 mason-lspconfig 来获取已安装的服务器并自动设置
 require("mason-lspconfig").setup_handlers({
     -- 默认处理器，为每个安装的服务器调用 lspconfig.setup
@@ -103,6 +105,9 @@ require("mason-lspconfig").setup_handlers({
                         -- typeCheckingMode = "basic" -- 或 "strict"
                     },
                 },
+                pyright = {
+                    disableOrganizeImports = true,
+                }
             }
         elseif server_name == "gopls" then
             opts.settings = {
@@ -152,7 +157,6 @@ require("mason-lspconfig").setup_handlers({
         lspconfig[server_name].setup(opts)
     end,
 })
-
 -- (可选) 添加 schemastore.nvim 插件依赖 (如果使用 JSON/YAML schemas)
 -- 在 init.lua 的 lazy.setup 中添加: { "b0o/schemastore.nvim" }
 
