@@ -16,6 +16,7 @@ set keep-english-in-normal
 set easymotion
 set commentary
 set exchange
+set argtextobj
 
 " Don't use Ex mode, use Q for formatting.
 
@@ -26,6 +27,7 @@ set exchange
 " Highlight copied text
 Plug 'machakann/vim-highlightedyank'
 Plug 'romainl/vim-cool'
+Plug 'terryma/vim-multiple-cursors'
 "" -- Emacs C-x prefix keymap
 nnoremap <C-S-A> <C-x>
 map <C-x> <Nop>
@@ -35,16 +37,21 @@ map <Leader><leader>h <Plug>(easymotion-linebackward)
 map <Leader><leader>l <Plug>(easymotion-lineforward)
 map <Leader><leader>. <Plug>(easymotion-repeat)
 
-" -- mutiple-cursors
-" map <A-j> <Plug>NextOccurence
-" map <A-x> <Plug>SkipOccurrence
-" map <A-p> <Plug>RemoveOccurrence
-" map <A-J> <Plug>AllWholeOccurrence
+map <A-n> <Action>(SelectNextOccurrence)
+map <A-S-n> <Action>(SelectAllOccurrences)
+map <A-x> <Action>(FindNextOccurrence)
+map <A-p> <Action>(UnselectPreviousOccurrence)
+
+Plug "terryma/vim-multiple-cursors"
+
+map mc <A-n>
+map mp <A-p>
 
 
 
 
-"" -- Map IDE actions to IdeaVim -- https://jb.gg/abva3t
+
+"" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t
 "" Map \r to the Reformat Code action
 "map \r <Action>(ReformatCode)
 "" Map <leader>d to start debug
@@ -117,6 +124,7 @@ map <leader>gs <Action>(GoGenerateForStruct)
 "" Map \b to toggle the breakpoint on the current line
 "map \b <Action>(ToggleLineBreakpoint)
 " 5)  Debug
+nnoremap <leader>DD <Action>(
 nnoremap <leader>db <Action>(ToggleLineBreakpoint)
 map <leader>dB <Action>(BreakpointActionsGroup)
 
@@ -132,7 +140,8 @@ nmap <leader>mM <Action>(ToggleBookmarkWithMnemonic)
 nmap <leader>mn <Action>(GotoNextBookmarkInEditor)
 nmap <leader>mN <Action>(GotoNextBookmark)
 
-
+" AI
+map <leader>A <Action>(AIIntentionsActionGroup)
 
 nnoremap <leader>y "+y
 vnoremap <leader>y "+y
@@ -145,3 +154,6 @@ vnoremap <A-d> "_d
 
 vnoremap J :move '>+1<CR>gv=gv
 vnoremap K :move '<-2<CR>gv=gv
+
+nnoremap ]d <Action>(GotoNextError)
+nnoremap [d <Action>(GotoPreviousError)
