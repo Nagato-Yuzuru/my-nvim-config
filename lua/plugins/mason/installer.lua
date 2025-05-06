@@ -13,7 +13,6 @@ require("mason-tool-installer").setup({
 		"ruff",
 		"debugpy",
 		"mypy",
-		"pydoclint",
 
 		-- YAML
 		"yaml-language-server",
