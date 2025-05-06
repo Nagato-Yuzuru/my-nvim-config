@@ -46,7 +46,7 @@ Plug "terryma/vim-multiple-cursors"
 
 map mc <A-n>
 map mp <A-p>
-
+map mx <A-x>
 
 
 
@@ -155,5 +155,5 @@ vnoremap <A-d> "_d
 vnoremap J :move '>+1<CR>gv=gv
 vnoremap K :move '<-2<CR>gv=gv
 
-nnoremap ]d <Action>(GotoNextError)
-nnoremap [d <Action>(GotoPreviousError)
+nmap ]d <Action>(GotoNextError)
+nmap [d <Action>(GotoPreviousError)
