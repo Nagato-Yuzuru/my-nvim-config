@@ -30,8 +30,10 @@ Plug 'romainl/vim-cool'
 Plug 'terryma/vim-multiple-cursors'
 "" -- Emacs C-x prefix keymap
 nnoremap <C-S-A> <C-x>
-map <C-x> <Nop>
+noremap <C-x> <Nop>
 " -- easymotion
+
+
 
 map <Leader><leader>h <Plug>(easymotion-linebackward)
 map <Leader><leader>l <Plug>(easymotion-lineforward)
@@ -44,9 +46,16 @@ map <A-p> <Action>(UnselectPreviousOccurrence)
 
 Plug "terryma/vim-multiple-cursors"
 
+<<<<<<< HEAD
 map mc <A-n>
 map mp <A-p>
 map mx <A-x>
+=======
+" map mc <A-n>
+" map ms <A-x>
+" map mp <A-p>
+
+>>>>>>> restore-toggleterm
 
 
 
@@ -124,8 +133,8 @@ map <leader>gs <Action>(GoGenerateForStruct)
 "" Map \b to toggle the breakpoint on the current line
 "map \b <Action>(ToggleLineBreakpoint)
 " 5)  Debug
-nnoremap <leader>DD <Action>(
-nnoremap <leader>db <Action>(ToggleLineBreakpoint)
+nmap <leader>D <Action>(DebugMainMenu)
+nmap <leader>db <Action>(ToggleLineBreakpoint)
 map <leader>dB <Action>(BreakpointActionsGroup)
 
 " 6) Reformat
