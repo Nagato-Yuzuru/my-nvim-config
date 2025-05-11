@@ -1,6 +1,4 @@
 -- plugins/mason/installer.lua
-print("--- Mason Tool Installer Setup Called ---") -- 添加这行
-
 require("mason-tool-installer").setup({
 	ensure_installed = {
 		-- Lua
