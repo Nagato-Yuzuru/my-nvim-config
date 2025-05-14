@@ -1,19 +1,20 @@
 -- Key mappings
 local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
-
 -- 使用 vim.keymap.set 设置映射
-for _, mode in ipairs({'v', 'n'}) do
-  map(mode, '<C-x>', '<Nop>', { noremap = true, silent = true })
-  map(mode, '<C-S-A>', '<C-x>', { noremap = true, silent = true })
-  
-  -- 系统剪切板
-  map(mode, '<Leader>y', '"+y', {noremap = true, silent = true})
-  map(mode, '<Leader>p', '"+p', {noremap = true, silent = true})
+for _, mode in ipairs({ 'v', 'n' }) do
+    map(mode, '<C-x>', '<Nop>', { noremap = true, silent = true })
+    
+    map(mode, '<C-S-A>', '<C-x>', { noremap = true, silent = true })
 
-  map(mode, '<A>-d', '"_d', {noremap = true, silent = true})
+    -- 系统剪切板
+    map(mode, '<Leader>y', '"+y', { noremap = true, silent = true })
+    map(mode, '<Leader>p', '"+p', { noremap = true, silent = true })
+
+    map(mode, '<A>-d', '"_d', { noremap = true, silent = true })
 end
 
+map("", "<C-q>", "<Nop>")
 map('v', 'g<C-x>', '<Nop>', { noremap = true, silent = true })
 map('v', 'g<C-S-A>', 'g<C-x>', { noremap = true, silent = true })
 

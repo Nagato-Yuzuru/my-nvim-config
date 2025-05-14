@@ -1,9 +1,9 @@
 -- ./init.lua 或 Lazynvim 主配置文件
 -- ~/.config/nvim/lua/LSP/init.lua
 local lspconfig = require("lspconfig")
-local cmp_nvim_lsp = require("cmp_nvim_lsp")
+--local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
-local capabilities = cmp_nvim_lsp.default_capabilities(vim.lsp.protocol.make_client_capabilities())
+local capabilities = vim.lsp.protocol.make_client_capabilities()
 
 -- 通用 on_attach 函数，包含常用快捷键和诊断配置
 local on_attach = function(client, bufnr)
@@ -72,8 +72,7 @@ local on_attach = function(client, bufnr)
 end
 
 require("LSP.ruff")
--- 使用 mason-lspconfig 来获取已安装的服务器并自动设置
-require("mason-lspconfig").setup_handlers({
+--[[ require("mason-lspconfig").setup_handlers({
     -- 默认处理器，为每个安装的服务器调用 lspconfig.setup
     function(server_name)
         local opts = {
@@ -156,11 +155,13 @@ require("mason-lspconfig").setup_handlers({
         -- 使用 lspconfig 启动服务器
         lspconfig[server_name].setup(opts)
     end,
-})
+}) ]]
+
 -- (可选) 添加 schemastore.nvim 插件依赖 (如果使用 JSON/YAML schemas)
 -- 在 init.lua 的 lazy.setup 中添加: { "b0o/schemastore.nvim" }
 
 -- 配置诊断信息的显示样式
+-- 使用 mason-lspconfig 来获取已安装的服务器并自动设置
 vim.diagnostic.config({
     virtual_text = true, -- 在行尾显示诊断信息（简洁）
     signs = true,
