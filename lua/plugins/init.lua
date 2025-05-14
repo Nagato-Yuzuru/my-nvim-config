@@ -33,7 +33,7 @@ require("lazy").setup({
 	{
 		"akinsho/bufferline.nvim",
 		config = function()
-			require("bufferline").setup()
+            require("plugins.bufferline")
 		end,
 	},
 	{
