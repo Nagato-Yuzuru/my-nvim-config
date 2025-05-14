@@ -1,7 +1,7 @@
 local term = require("toggleterm")
 
 term.setup({
-	open_mapping = [[<C-`>]],
+	open_mapping = [[<C-x>`]],
 	size = 17,
 	start_in_insert = true,
 	shell = vim.o.shell, -- 使用默认 shell

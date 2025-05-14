@@ -12,7 +12,7 @@ local keymaps = {
 
 return {
     'saghen/blink.cmp',
-    event = { 'BufReadPost', 'BufNewFile' },
+    event = { 'BufReadPost', 'BufNewFile', "VimEnter" },
     version = '1.*',
     dependencies = { 'xzbdmw/colorful-menu.nvim', opts = {} },
     opts = {
