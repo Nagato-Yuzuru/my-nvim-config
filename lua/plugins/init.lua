@@ -1,4 +1,6 @@
 -- 管理插件列表
+local cmp = require("plugins.cmp.config")
+
 require("lazy").setup({
 	{
 		"nvim-treesitter/nvim-treesitter",
@@ -27,12 +29,7 @@ require("lazy").setup({
 	{ "romainl/vim-cool", event = "VeryLazy" },
 
 	{ "machakann/vim-highlightedyank" },
-	-- {
-	--  "ggandor/leap.nvim",
-	-- config = function()
-	--         require("plugins.leap")
-	--     end
-	-- },
+
 	{
 		"akinsho/bufferline.nvim",
 		config = function()
@@ -105,12 +102,8 @@ require("lazy").setup({
 	},
 
 	-- Completion plugins
-	{
-		"hrsh7th/nvim-cmp",
-		config = function()
-			require("plugins.cmp")
-		end,
-	},
+	cmp,
+
 	{
 		"lukas-reineke/indent-blankline.nvim",
 		main = "ibl",
@@ -121,24 +114,15 @@ require("lazy").setup({
 		end,
 	},
 	{
-		"hrsh7th/cmp-buffer",
-	},
-	{ "hrsh7th/cmp-path" },
-	{
-		"hrsh7th/cmp-nvim-lsp",
-	},
-	{ "hrsh7th/cmp-nvim-lua" },
-	{
-		"hrsh7th/cmp-cmdline",
-	},
-	{ "saadparwaiz1/cmp_luasnip" },
-	{
 		"L3MON4D3/LuaSnip",
 	},
 	{ "onsails/lspkind.nvim" },
 
 	{
 		"neovim/nvim-lspconfig",
+        dependencies = {
+            "williamboman/mason-lspconfig.nvim"
+        },
 		config = function()
 			require("LSP.init")
 		end,
@@ -184,16 +168,10 @@ require("lazy").setup({
 	},
 	{
 		"williamboman/mason-lspconfig.nvim",
+        lazy=false,
 		dependencies = { "williamboman/mason.nvim" },
 		config = function()
-			require("mason-lspconfig").setup({
-				-- 你的 mason-lspconfig 配置
-				-- 例如: automatic_installation = true  (如果你想让它配合 lspconfig 自动安装 LSP)
-				automatic_installation = true,
-				handlers = {
-					-- 可以在这里为特定 LSP 设置自定义处理程序
-				},
-			})
+            require("plugins.mason.lspconfig")
 		end,
 	},
 	{
