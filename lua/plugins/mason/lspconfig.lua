@@ -7,6 +7,7 @@ require("mason-lspconfig").setup({
 				on_attach = on_attach,
 				capabilities = capabilities,
 			}
+            local lspconfig = require("lspconfig")
 
 			-- == 特定服务器的配置 ==
 
