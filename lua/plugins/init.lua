@@ -109,7 +109,6 @@ require("lazy").setup({
 	},
 
 	-- Tmux navigation
-	{ "christoomey/vim-tmux-navigator" },
 	{
 		"aserowy/tmux.nvim",
 		config = function()
