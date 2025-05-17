@@ -7,7 +7,7 @@ require("mason-lspconfig").setup({
 				on_attach = on_attach,
 				capabilities = capabilities,
 			}
-            local lspconfig = require("lspconfig")
+			local lspconfig = require("lspconfig")
 
 			-- == 特定服务器的配置 ==
 
@@ -27,10 +27,7 @@ require("mason-lspconfig").setup({
 				opts.settings = {
 					python = {
 						analysis = {
-							autoSearchPaths = true,
-							useLibraryCodeForTypes = true,
-							diagnosticMode = "workspace", -- 分析整个工作区
-							-- typeCheckingMode = "basic" -- 或 "strict"
+							ignore = { "*" },
 						},
 					},
 					pyright = {

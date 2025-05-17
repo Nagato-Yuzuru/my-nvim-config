@@ -9,7 +9,23 @@ require("lazy").setup({
 			require("plugins.treesitter")
 		end,
 	},
-	-- fzf
+	{
+		"mhinz/vim-signify",
+		event = "BufRead",
+		config = function()
+			vim.g.signify_sign_add = "+"
+			vim.g.signify_sign_change = "~"
+			vim.g.signify_sign_delete = "-"
+			vim.g.signify_sign_show_count = 1
+		end,
+	},
+	{
+		"folke/which-key.nvim",
+		event = "VeryLazy",
+		config = function()
+			require("which-key").setup({})
+		end,
+	},
 	{
 		"junegunn/fzf",
 		build = "./install --all",
@@ -33,7 +49,7 @@ require("lazy").setup({
 	{
 		"akinsho/bufferline.nvim",
 		config = function()
-            require("plugins.bufferline")
+			require("plugins.bufferline")
 		end,
 	},
 	{
@@ -120,9 +136,9 @@ require("lazy").setup({
 
 	{
 		"neovim/nvim-lspconfig",
-        dependencies = {
-            "williamboman/mason-lspconfig.nvim"
-        },
+		dependencies = {
+			"williamboman/mason-lspconfig.nvim",
+		},
 		config = function()
 			require("LSP.init")
 		end,
@@ -168,10 +184,10 @@ require("lazy").setup({
 	},
 	{
 		"williamboman/mason-lspconfig.nvim",
-        lazy=false,
+		lazy = false,
 		dependencies = { "williamboman/mason.nvim" },
 		config = function()
-            require("plugins.mason.lspconfig")
+			require("plugins.mason.lspconfig")
 		end,
 	},
 	{
