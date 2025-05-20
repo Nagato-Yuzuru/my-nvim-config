@@ -1,6 +1,7 @@
 local keymaps = {
 	["<C-u>"] = { "scroll_documentation_up", "fallback" },
 	["<C-d>"] = { "scroll_documentation_down", "fallback" },
+	["<C-c>"] = { "cancel", "fallback" },
 	["<Tab>"] = { "select_and_accept", "fallback" },
 	["<Enter>"] = { "select_and_accept", "fallback" },
 	["<C-Esc>"] = { "hide", "fallback" },
@@ -50,6 +51,7 @@ return {
 					copy[k] = v
 				end
 				copy["<Enter>"] = { "select_accept_and_enter", "fallback" }
+
 				return copy
 			end)(),
 
