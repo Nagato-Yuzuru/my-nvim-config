@@ -44,18 +44,10 @@ map <A-S-n> <Action>(SelectAllOccurrences)
 map <A-x> <Action>(FindNextOccurrence)
 map <A-p> <Action>(UnselectPreviousOccurrence)
 
-Plug "terryma/vim-multiple-cursors"
 
-<<<<<<< HEAD
 map mc <A-n>
 map mp <A-p>
 map mx <A-x>
-=======
-" map mc <A-n>
-" map ms <A-x>
-" map mp <A-p>
-
->>>>>>> restore-toggleterm
 
 
 
@@ -114,23 +106,23 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 
 " 4)  Generate
 
-nmap <leader>G <Action>(Generate)
-nmap <leader>go <Action>(OverrideMethods)
-nmap <leader>gi <Action>(ImplementMethods)
-nmap <leader>gc <Action>(GoGenerateConstructorAction)
-nmap <leader>gG <Action>(GoGenerateGetterAction)
-nmap <leader>gS <Action>(GoGenerateSetterAction)
-nmap <leader>gA <Action>(GoGenerateGetterSetterAction)
-nmap <leader>gt <Action>(GenerateToString)
-nmap <leader>gd <Action>(GenerateDelegate)
-nmap <leader>gt <Action>(SurroundWith)
-nmap <leader>gT <Action>(SurroundWithLiveTemplate)
-nmap <leader>gu <Action>(Unwrap)
-nmap <leader>gJ <Action>(GoGenerateTypeFromJsonAction)
-nmap <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
-nmap <leader>gf <Action>(GoGenerateFileAction)
-nmap <leader>gm <Action>(GoGenerateMethodAction)
-nmap <leader>gs <Action>(GoGenerateForStruct)
+map <leader>G <Action>(Generate)
+map <leader>go <Action>(OverrideMethods)
+map <leader>gi <Action>(ImplementMethods)
+map <leader>gc <Action>(GoGenerateConstructorAction)
+map <leader>gG <Action>(GoGenerateGetterAction)
+map <leader>gS <Action>(GoGenerateSetterAction)
+map <leader>gA <Action>(GoGenerateGetterSetterAction)
+" map <leader>gt <Action>(GenerateToString)
+map <leader>gd <Action>(GenerateDelegate)
+map <leader>gt <Action>(SurroundWith)
+map <leader>gT <Action>(SurroundWithLiveTemplate)
+map <leader>gu <Action>(Unwrap)
+map <leader>gJ <Action>(GoGenerateTypeFromJsonAction)
+map <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
+map <leader>gf <Action>(GoGenerateFileAction)
+map <leader>gm <Action>(GoGenerateMethodAction)
+map <leader>gs <Action>(GoGenerateForStruct)
 "" Map \b to toggle the breakpoint on the current line
 "map \b <Action>(ToggleLineBreakpoint)
 " 5)  Debug
@@ -161,6 +153,8 @@ vnoremap <leader>p "+p
 nnoremap <A-d> "_d
 vnoremap <A-d> "_d
 " 视觉模式下，J 和 K 移动选区
+nmap zj <Action>(NextFoldingSection)
+nmap zk <Action>(PreviousFoldingSection)
 
 vnoremap J :move '>+1<CR>gv=gv
 vnoremap K :move '<-2<CR>gv=gv

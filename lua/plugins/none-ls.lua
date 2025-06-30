@@ -59,6 +59,7 @@ return function()
 	null_ls.setup({
 		debug = true,
 		sources = filtered_sources,
+		temp_dir = "/tmp",
 	})
 
 	local custom_format = function()

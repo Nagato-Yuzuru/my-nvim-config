@@ -191,7 +191,7 @@ require("lazy").setup({
 	},
 	{
 		"jay-babu/mason-null-ls.nvim",
-		dependencies = { "williamboman/mason.nvim", "nvimtools/none-ls.nvim" }, -- 假设你用 none-ls
+		dependencies = { "williamboman/mason.nvim", "nvimtools/none-ls.nvim" },
 		config = function()
 			require("mason-null-ls").setup({
 				-- 你的 mason-null-ls 配置
