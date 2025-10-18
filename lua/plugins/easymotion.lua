@@ -16,4 +16,3 @@ vim.g.EasyMotion_startofline = 0
 
 map(mod, "f", "<Plug>(easymotion-bd-f)", { noremap = false })
 map(mod, "t", "<Plug>(easymotion-bd-t)", { noremap = false })
-map(mod, "s", "<Plug>(easymotion-s2)", { noremap = false })
