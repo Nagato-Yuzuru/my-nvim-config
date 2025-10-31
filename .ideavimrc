@@ -79,7 +79,7 @@ map <leader>rM <Action>(Move)
 
 
 " 2) Navigation
-map <leader>nd <Action>(GotoDeclaration)  " 和`gd`/`gD`一致
+map <leader>nd <Action>(GotoDeclaration)  
 map <leader>nD <Action>(GotoTypeDeclaration)
 map <leader>ni <Action>(GotoImplementation)
 map <leader>ns <Action>(GotoSuperMethod)
