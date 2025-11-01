@@ -39,6 +39,8 @@ map <Leader><leader>h <Plug>(easymotion-linebackward)
 map <Leader><leader>l <Plug>(easymotion-lineforward)
 map <Leader><leader>. <Plug>(easymotion-repeat)
 
+nmap <Plug>(easymotion-prefix) <Nop>
+
 map <A-n> <Action>(SelectNextOccurrence)
 map <A-S-n> <Action>(SelectAllOccurrences)
 map <A-x> <Action>(FindNextOccurrence)
@@ -79,7 +81,8 @@ map <leader>rM <Action>(Move)
 
 
 " 2) Navigation
-map <leader>nd <Action>(GotoDeclaration)  
+" 和`gd`/`gD`一致
+map <leader>nd <Action>(GotoDeclaration)
 map <leader>nD <Action>(GotoTypeDeclaration)
 map <leader>ni <Action>(GotoImplementation)
 map <leader>ns <Action>(GotoSuperMethod)
