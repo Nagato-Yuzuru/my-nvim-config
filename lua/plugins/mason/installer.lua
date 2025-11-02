@@ -25,6 +25,7 @@ require("mason-tool-installer").setup({
 
 		-- Shell
 		"bash-language-server",
+		"zls",
 		"shfmt",
 		"shellcheck",
 
@@ -32,6 +33,8 @@ require("mason-tool-installer").setup({
 		"json-lsp",
 		"clangd",
 		"codelldb",
+		"marksman",
+		"taplo",
 	},
 	auto_update = false,
 	run_on_start = true,
@@ -40,5 +43,5 @@ require("mason-tool-installer").setup({
 })
 
 vim.schedule(function()
-     vim.env.PATH = vim.env.PATH .. ":" .. vim.fn.stdpath("data") .. "/mason/bin"
- end)
+	vim.env.PATH = vim.env.PATH .. ":" .. vim.fn.stdpath("data") .. "/mason/bin"
+end)

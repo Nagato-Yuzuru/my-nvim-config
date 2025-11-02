@@ -52,12 +52,15 @@ require("mason-lspconfig").setup({
 				-- opts.filetypes = { "sh", "bash", "zsh" }
 				-- 注意：Zsh 支持可能不完美
 				-- 检查 shellcheck 是否已安装
-				opts.filetypes = { "sh", "bash", "zsh" }
+				opts.filetypes = { "sh", "bash" }
 				opts.settings = {
 					bashIde = {
 						shellcheckPath = vim.fn.exepath("shellcheck") or "", -- 显式告知 shellcheck 路径
 					},
 				}
+			elseif server_name == "zls" then
+				opts.filetypes = { "zsh" }
+				opts.siingle_file_support = true
 			elseif server_name == "yamlls" then
 				opts.settings = {
 					yaml = {
@@ -76,6 +79,24 @@ require("mason-lspconfig").setup({
 				}
 				-- elseif server_name == "marksman" then -- Markdown LSP 示例
 				--   -- marksman 配置
+			elseif server_name == "marksman" then
+				opts.filetypes = { "markdown" }
+			elseif server_name == "taplo" then
+				opts.settings = {
+					schema = {
+						repositoryEnabled = true,
+						associations = {
+							{
+								files = { "pyproject.toml" },
+								url = "https://json.schemastore.org/pyproject-toml",
+							},
+						},
+					},
+				}
+				opts.formatter = {
+					alignEntries = true,
+					reorderKeys = true,
+				}
 			end
 
 			-- 使用 lspconfig 启动服务器

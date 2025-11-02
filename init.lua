@@ -1,4 +1,5 @@
-vim.g.mapleader = ' '
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
 
 vim.opt.clipboard = "unnamedplus"
 
@@ -10,4 +11,3 @@ require("core.keymaps")
 
 -- LSP
 require("LSP.init")
-
