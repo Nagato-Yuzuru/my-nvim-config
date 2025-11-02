@@ -1,4 +1,3 @@
--- 管理插件列表
 local cmp = require("plugins.cmp.config")
 
 require("lazy").setup({
@@ -213,4 +212,5 @@ require("lazy").setup({
 			})
 		end,
 	},
+	require("plugins.ft.markdown"),
 })
