@@ -44,11 +44,23 @@ end
 -- 自定义 formatexpr
 vim.o.formatexpr = "v:lua.lsp_format()"
 map("n", "<leader>ff", "<cmd>lua lsp_format()<CR>")
--- docu
-map("n", "<A-P>", vim.lsp.buf.signature_help)
-map("n", "<C-q>", vim.lsp.buf.hover)
 
 map("n", "<C-h>", "<C-w>h", opts)
 map("n", "<C-j>", "<C-w>j", opts)
 map("n", "<C-k>", "<C-w>k", opts)
 map("n", "<C-l>", "<C-w>l", opts)
+
+-- C-x
+
+map("n", "<C-x>t", ":enew<CR>", { desc = "New buffer" })
+map("n", "<C-x>T", ":tabnew<CR>", { desc = "New tabpage (workspace)" })
+map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
+map("n", "<C-x><S-Tab>", ":tabprevious<CR>", { desc = "Prev tabpage" })
+
+map("n", "<C-x>3", function()
+  vim.cmd.vsplit()
+end, { desc = "Split right" })
+
+map("n", "<C-x>2", function()
+  vim.cmd.split()
+end, { desc = "Split below" })
