@@ -11,10 +11,12 @@ for _, mode in ipairs({ "v", "n" }) do
 	map(mode, "<Leader>y", '"+y', opts)
 	map(mode, "<Leader>p", '"+p', opts)
 
-	map(mode, "<A>-d", '"_d', opts)
+	map(mode, "<A-d>", '"_d', opts)
 end
 
-map("", "<C-q>", "<Nop>")
+
+-- 不需要禁用，会自动覆盖
+-- map("", "<C-q>", "<Nop>")
 map("v", "g<C-x>", "<Nop>", opts)
 map("v", "g<C-S-A>", "g<C-x>", opts)
 
@@ -45,3 +47,8 @@ map("n", "<leader>ff", "<cmd>lua lsp_format()<CR>")
 -- docu
 map("n", "<A-P>", vim.lsp.buf.signature_help)
 map("n", "<C-q>", vim.lsp.buf.hover)
+
+map("n", "<C-h>", "<C-w>h", opts)
+map("n", "<C-j>", "<C-w>j", opts)
+map("n", "<C-k>", "<C-w>k", opts)
+map("n", "<C-l>", "<C-w>l", opts)
