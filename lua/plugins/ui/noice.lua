@@ -11,7 +11,8 @@ return {
             cmdline = { enabled = true, view = "cmdline_popup" },
             messages = { enabled = false },
             notify = { enabled = false },
-            popupmenu = { enabled = true, backend = "nui", },
+            --popupmenu = { enabled = true, backend = "nui", },
+            popupmenu = { enabled = false },
             lsp = {
                 progress = { enabled = false },  -- 交给现有 UI/状态栏
                 hover = { enabled = false },     -- 我们用 <C-q>/K 自己的 hover
@@ -19,6 +20,15 @@ return {
             },
             presets = {
                 command_palette = true, -- 类 IDE 命令面板布局
+                bottom_search = false
+            },
+            views = {
+                cmdline_popup = {
+                    position = { row = "17%", col = "50%" },
+                    size = { width = 60, height = "auto" },
+                    border = { style = "rounded", padding = { 1, 2 } },
+                    win_options = { winhighlight = "NormalFloat:NormalFloat,FloatBorder:FloatBorder" },
+                },
             },
         },
         dependencies = {
