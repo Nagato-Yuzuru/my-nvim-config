@@ -3,15 +3,15 @@ local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
 -- 使用 vim.keymap.set 设置映射
 for _, mode in ipairs({ "v", "n" }) do
-	map(mode, "<C-x>", "<Nop>", opts)
+    map(mode, "<C-x>", "<Nop>", opts)
 
-	map(mode, "<C-S-A>", "<C-x>", opts)
+    map(mode, "<C-S-A>", "<C-x>", opts)
 
-	-- 系统剪切板
-	map(mode, "<Leader>y", '"+y', opts)
-	map(mode, "<Leader>p", '"+p', opts)
+    -- 系统剪切板
+    map(mode, "<Leader>y", '"+y', opts)
+    map(mode, "<Leader>p", '"+p', opts)
 
-	map(mode, "<A-d>", '"_d', opts)
+    map(mode, "<A-d>", '"_d', opts)
 end
 
 
@@ -28,22 +28,19 @@ map("v", "K", ":move '<-2<CR>gv=gv", opts)
 
 -- format
 -- -- 使用 LSP 的格式化
-_G.lsp_format = function()
-	vim.lsp.buf.format({
-		filter = function(client)
-			-- 如果是 null-ls，则调用
-			if client.name == "null-ls" then
-				return true
-			end
-			return client.supports_method("textDocument/formatting")
-		end,
-		async = true,
-	})
-end
+--_G.lsp_format = function()
+--    vim.lsp.buf.format({
+--        filter = function(client)
+--            -- 如果是 null-ls，则调用
+--            if client.name == "null-ls" then
+--                return true
+--            end
+--            return client.supports_method("textDocument/formatting")
+--        end,
+--        async = true,
+--    })
+--end
 
--- 自定义 formatexpr
-vim.o.formatexpr = "v:lua.lsp_format()"
-map("n", "<leader>ff", "<cmd>lua lsp_format()<CR>")
 
 map("n", "<C-h>", "<C-w>h", opts)
 map("n", "<C-j>", "<C-w>j", opts)
@@ -58,9 +55,9 @@ map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
 map("n", "<C-x><S-Tab>", ":tabprevious<CR>", { desc = "Prev tabpage" })
 
 map("n", "<C-x>3", function()
-  vim.cmd.vsplit()
+    vim.cmd.vsplit()
 end, { desc = "Split right" })
 
 map("n", "<C-x>2", function()
-  vim.cmd.split()
+    vim.cmd.split()
 end, { desc = "Split below" })

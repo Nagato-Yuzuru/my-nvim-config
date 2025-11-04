@@ -59,10 +59,14 @@ end
 --      ✱ 与具体语言无关的 server 初始化统一放此层。
 --
 --  { import = "plugins.diagnostics" }
---      ▶ 非 LSP 诊断与格式化层
+--      ▶ 非 LSP 诊断层
 --        - none-ls.nvim / mason-null-ls.nvim / none-ls-extras.nvim
---        - 或 conform.nvim + nvim-lint 组合
+--        -  nvim-lint 组合
 --        - 代码格式化、静态检查、Linter 桥接
+--      ✱ 设计目标：工具层与 LSP 解耦；切换实现不影响上层逻辑。
+--  { import = "plugins.format" }
+--      ▶ 非 LSP 格式化
+--        - 使用conform.nvim 做统一格式化
 --      ✱ 设计目标：工具层与 LSP 解耦；切换实现不影响上层逻辑。
 --
 --  { import = "plugins.completion" }
@@ -119,6 +123,7 @@ require("lazy").setup({
     spec = {
         --{ import = "plugins" },
         { import = "plugins.lsp" },
+        { import = "plugins.format" },
         --{ import = "plugins.diagnostics" },
         { import = "plugins.completion" },
         --{ import = "plugins.dap" },
