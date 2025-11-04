@@ -123,6 +123,7 @@ require("lazy").setup({
     spec = {
         --{ import = "plugins" },
         { import = "plugins.lsp" },
+        { import = "plugins.edit" },
         { import = "plugins.format" },
         --{ import = "plugins.diagnostics" },
         { import = "plugins.completion" },
