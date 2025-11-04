@@ -8,11 +8,11 @@ return {
         lazy = false,
         priority = 1000, -- 先于其他 UI 加载
         opts = {
-            style = "night",
+            style = "moon",
             transparent = false,
             styles = {
-                sidebars = "dark",
-                floats = "dark",
+                sidebars = "normal",
+                floats = "normal",
             },
             on_highlights = function(hl, c)
                 -- 覆盖行号
