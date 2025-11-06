@@ -26,6 +26,7 @@ return {
     {
         "neovim/nvim-lspconfig", -- 仅为了 util/根目录工具；不再调用 .setup()
         event = { "BufReadPre", "BufNewFile" },
+        cmd = { "LspInfo", "LspLog" },
         dependencies = { "b0o/SchemaStore.nvim" },
         config = function()
             -- 绑定补全能力（blink.cmp 可选）
@@ -41,8 +42,8 @@ return {
                         vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, noremap = true, silent = true, desc = desc })
                     end
 
-                    map("n", "<C-q>", vim.lsp.buf.hover, "LSP: Hover")       -- 你的习惯
-                    map("n", "<A-P>", vim.lsp.buf.signature_help, "LSP: Signature Help")
+                    map("n", "<C-q>", vim.lsp.buf.hover, "LSP: Hover") -- 你的习惯
+                    map({ "n", "i", "s" }, "<A-P>", vim.lsp.buf.signature_help, "LSP: Signature Help")
                     map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
                     map("n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
                     map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
