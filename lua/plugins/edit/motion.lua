@@ -176,7 +176,7 @@ return {
 
 			-- 双字符跳
 			{
-				"s",
+				"S",
 				function()
 					require("hop").hint_char2()
 				end,

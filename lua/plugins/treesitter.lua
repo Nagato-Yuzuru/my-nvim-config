@@ -1,38 +1,34 @@
-require("nvim-treesitter.configs").setup({
-	ensure_installed = {
-		"python",
-		"go",
-		"html",
-		"json",
-		"yaml",
-		"bash",
-		"sql",
-		"c",
-		"cpp",
-		"lua",
-		"toml",
-		"rst",
-		-- "gitcommit",
-		-- "gitconfig",
-		-- "gitignore",
-	},
-	highlight = {
-		enable = true,
-		additional_vim_regex_highlighting = false,
-	},
-	incremental_selection = {
-		enable = true,
-		keymaps = {
-			init_selection = "gnn",
-			node_incremental = "grna",
-			scope_incremental = "grc",
-			node_decremental = "grm",
+return {
+	{
+		"nvim-treesitter/nvim-treesitter",
+		build = ":TSUpdate",
+		event = "BufReadPost",
+		dependencies = {
+			{
+				import = "plugins.ft.d2",
+			},
 		},
+		config = function()
+			require("nvim-treesitter.configs").setup({
+				ensure_installed = {
+					"lua",
+					"python",
+					"go",
+					"json",
+					"yaml",
+					"bash",
+					"markdown",
+					"html",
+					"javascript",
+					"toml",
+					"typescript",
+					"markdown_inline",
+					"html",
+					"latex",
+					"d2",
+				},
+				highligh = { enable = true },
+			})
+		end,
 	},
-	indent = { enable = true },
-	sync_install = false,
-	auto_install = true,
-	matchup = {
-		enable = true,
-	},
-})
+}

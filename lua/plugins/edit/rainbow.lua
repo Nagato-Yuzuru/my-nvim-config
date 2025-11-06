@@ -8,11 +8,6 @@ return {
         event = { "BufReadPost", "BufNewFile" },
         config = function()
             local rainbow = require("rainbow-delimiters")
-            local treesitter = require("nvim-treesitter.configs")
-            treesitter.setup {
-                ensure_installed = { "lua", "python", "go", "json", "yaml", "bash", "markdown", "html", "javascript", "toml" },
-                highlight = { enable = true },
-            }
 
             vim.g.rainbow_delimiters = {
                 strategy = {
