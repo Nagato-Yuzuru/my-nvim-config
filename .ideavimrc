@@ -35,9 +35,9 @@ noremap <C-x> <Nop>
 
 
 
-map <Leader><leader>h <Plug>(easymotion-linebackward)
-map <Leader><leader>l <Plug>(easymotion-lineforward)
-map <Leader><leader>. <Plug>(easymotion-repeat)
+map <leader><leader>h <Plug>(easymotion-linebackward)
+map <leader><leader>l <Plug>(easymotion-lineforward)
+map <leader><leader>. <Plug>(easymotion-repeat)
 
 nmap <Plug>(easymotion-prefix) <Nop>
 
@@ -51,7 +51,9 @@ map mc <A-n>
 map mp <A-p>
 map mx <A-x>
 
-
+nmap <leader>/ <Action>(FindInPath)
+nmap <leader>, <Action>(RecentFiles)
+nmap <C-x>o <Action>(Switcher)
 
 
 "" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t

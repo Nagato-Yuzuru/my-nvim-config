@@ -49,6 +49,9 @@ map("n", "<C-l>", "<C-w>l", opts)
 
 -- C-x
 
+map('n', '`', function()
+    vim.cmd [[Switch]]
+end, { desc = 'Switch strings' })
 map("n", "<C-x>t", ":enew<CR>", { desc = "New buffer" })
 map("n", "<C-x>T", ":tabnew<CR>", { desc = "New tabpage (workspace)" })
 map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
