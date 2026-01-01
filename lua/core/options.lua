@@ -14,5 +14,9 @@ vim.opt.softtabstop = 4 -- 设置 Tab 键行为为 4 个空格
 vim.opt.tabstop = 4 -- 设置显示 Tab 的宽度为 4
 --vim.opt.clipboard = "unnamedplus"
 
-vim.api.nvim_set_hl(0, "LineNr",        { fg = "#dddddd" })
-vim.api.nvim_set_hl(0, "CursorLineNr",  { fg = "#ff996c" })
+vim.api.nvim_set_hl(0, "LineNr", { fg = "#dddddd" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#ff996c" })
+
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+

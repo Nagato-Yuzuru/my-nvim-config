@@ -8,7 +8,7 @@ return {
 				enabled = true,
 				layout = { preset = "default" },
 			},
-			explorer = { enabled = true }, -- 替代 NeoTree/NvimTree
+			explorer = { enabled = false }, -- 替代 NeoTree/NvimTree
 			dashboard = { enabled = true }, -- 启动页
 		},
 		-- 这是一个自动按键映射的示例，按需添加
