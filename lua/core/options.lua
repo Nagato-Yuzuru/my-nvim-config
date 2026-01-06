@@ -20,3 +20,12 @@ vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#ff996c" })
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+-- diff
+vim.opt.diffopt = {
+	"internal",
+	"filler", -- 显示空行以对齐
+	"closeoff", -- 如果一个窗口关闭，同时也关闭 diff 模式
+	"hiddenoff",
+	"algorithm:histogram",
+	"indent-heuristic", -- 优化缩进显示的逻辑
+}
