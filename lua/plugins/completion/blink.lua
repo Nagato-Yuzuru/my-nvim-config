@@ -52,6 +52,7 @@ return {
 					preset = "inherit",
 					-- 可选：让 <Tab> 弹出菜单但不自动“下一项”
 
+					["<C-f>"] = { "accept", "fallback" },
 					["<cr>"] = { "fallback" },
 					["<Tab>"] = { "show", "accept" },
 				},
