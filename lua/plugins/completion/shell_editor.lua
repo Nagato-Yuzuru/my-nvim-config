@@ -15,12 +15,13 @@ return {
 		},
 		init = function()
 			vim.env.NVIM_ZSH_COMPLETION = "1"
-			vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-				group = vim.api.nvim_create_augroup("zsh_edit_proxy", { clear = true }),
-				pattern = { "/tmp/zsh*", "/private/var/folders/*", "/var/folders/*" },
-				callback = function()
-					vim.bo.filetype = "zsh"
-				end,
+
+			vim.filetype.add({
+				pattern = {
+					["^/tmp/zsh.*"] = "zsh",
+					["^/private/var/folders/.*"] = "zsh",
+					["^/var/folders/.*"] = "zsh",
+				},
 			})
 		end,
 		config = function()
