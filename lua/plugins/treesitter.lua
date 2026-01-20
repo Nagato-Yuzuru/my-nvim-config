@@ -8,8 +8,15 @@ return {
 				import = "plugins.ft.d2",
 			},
 		},
+		branch = "main",
 		config = function()
-			require("nvim-treesitter.configs").setup({
+			local status_ok, configs = pcall(require, "nvim-treesitter.config")
+
+			if not status_ok then
+				vim.notify("Treesitter uncompleted, skip...", vim.log.levels.WARN)
+				return
+			end
+			configs.setup({
 				ensure_installed = {
 					"lua",
 					"python",
@@ -28,6 +35,7 @@ return {
 					"d2",
 				},
 				highligh = { enable = true },
+				auto_install = true,
 			})
 		end,
 	},

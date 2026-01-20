@@ -26,6 +26,16 @@ return {
 	{
 		"keaising/im-select.nvim",
 		event = "VeryLazy",
+		cond = function()
+			local function binary_exists(name)
+				return vim.fn.executable(name) == 1
+			end
+
+			return binary_exists("im-select")
+				or binary_exists("macism")
+				or binary_exists("fcitx5-remote")
+				or binary_exists("fcitx-remote")
+		end,
 		opts = {
 			default_im_select = "com.apple.keylayout.ABC",
 			set_previous_events = { "InsertLeave", "CmdlineLeave" },
