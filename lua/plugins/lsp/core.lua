@@ -12,19 +12,27 @@ return {
 		"williamboman/mason-lspconfig.nvim",
 		dependencies = { "williamboman/mason.nvim" },
 		config = function()
+			local servers = {
+				lua_ls = "lua-language-server",
+				pyright = "pyright",
+				gopls = "gopls",
+				jsonls = "vscode-json-language-server",
+				yamlls = "yaml-language-server",
+				bashls = "bash-language-server",
+				taplo = "taplo",
+				marksman = "marksman",
+				clangd = "clangd",
+			}
+			local ensure_installed = {}
+			for lsp_name, binary_name in pairs(servers) do
+				if vim.fn.executable(binary_name) ~= 1 then
+					table.insert(ensure_installed, lsp_name)
+				end
+			end
+
 			require("mason").setup()
 			require("mason-lspconfig").setup({
-				ensure_installed = {
-					"lua_ls",
-					"pyright",
-					"gopls",
-					"jsonls",
-					"yamlls",
-					"bashls",
-					"taplo",
-					"marksman",
-					"clangd",
-				},
+				ensure_installed = ensure_installed,
 				automatic_installation = true,
 			})
 		end,
