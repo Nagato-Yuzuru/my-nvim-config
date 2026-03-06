@@ -1,27 +1,64 @@
 ---
 --- Created by colas.
 --- DateTime: 2025/11/4 19:25
+--- 键位对齐 .ideavimrc multiple-cursors 配置
+--- 使用 multicursor.nvim（纯 Lua，性能优于 vim-visual-multi）
 ---
 return {
-    {
-        "mg979/vim-visual-multi",
-        branch = "master",
-        keys = { "<C-n>", "<C-Down>", "<C-Up>" },
-        init = function()
-            -- 贴近 IdeaVim 手感：<C-n> 选中下一个；可视模式继续 <C-n> 扩大
-            vim.g.VM_mouse_mappings = 1
-            vim.g.VM_default_mappings = 0
-            -- 如需更纯净：vim.g.VM_default_mappings = 0 自己在 which-key 里标注
-            vim.g.VM_maps = {
-                ["Find Under"]         = "<A-j>",       -- 选中下一个匹配
-                ["Find Subword Under"] = "<A-j>",       -- 同上，匹配子词
-                ["Select Cursor Down"] = "<A-j>",       -- 向下选一个光标
-                ["Select Cursor Up"]   = "<A-p>",       -- 向上选一个光标
-                ["Skip Region"]        = "<A-x>",       -- 跳过 / 取消当前选中
-                ["Remove Region"]      = "<A-x>",       -- 取消当前光标
-                ["Add Cursor Down"]    = "<A-j>",
-                ["Add Cursor Up"]      = "<A-p>",
-            }
-        end,
-    },
+	{
+		"jake-stewart/multicursor.nvim",
+		branch = "1.0",
+		event = "VeryLazy",
+		config = function()
+			local mc = require("multicursor-nvim")
+			mc.setup()
+			local set = vim.keymap.set
+
+			-- ── 词匹配模式（对齐 ideavimrc）──────────────────────────
+			-- <A-n>   SelectNextOccurrence
+			set({ "n", "x" }, "<A-n>", function()
+				mc.matchAddCursor(1)
+			end, { desc = "MC: Select Next" })
+			-- <A-S-n> SelectAllOccurrences
+			set({ "n", "x" }, "<A-S-n>", mc.matchAllAddCursors, { desc = "MC: Select All" })
+			-- <A-x>   FindNextOccurrence（跳过当前，找下一个）
+			set({ "n", "x" }, "<A-x>", function()
+				mc.matchSkipCursor(1)
+			end, { desc = "MC: Skip & Next" })
+			-- <A-p>   UnselectPreviousOccurrence（移除当前光标）
+			set({ "n", "x" }, "<A-p>", mc.deleteCursor, { desc = "MC: Remove Cursor" })
+
+			-- ── 行模式：逐行添加光标 ──────────────────────────────────
+			set({ "n", "x" }, "<C-Down>", function()
+				mc.lineAddCursor(1)
+			end, { desc = "MC: Add Cursor Down" })
+			set({ "n", "x" }, "<C-Up>", function()
+				mc.lineAddCursor(-1)
+			end, { desc = "MC: Add Cursor Up" })
+
+			-- ── 任意位置：鼠标 Ctrl+Click ─────────────────────────────
+			set("n", "<c-leftmouse>", mc.handleMouse, { desc = "MC: Click add/remove cursor" })
+			set("n", "<c-leftdrag>", mc.handleMouseDrag, { desc = "MC: Drag cursors" })
+			set("n", "<c-leftrelease>", mc.handleMouseRelease, { desc = "MC: Finish drag" })
+
+			-- ── 任意位置：ga + motion 键盘算符 ───────────────────────
+			-- gaip  → 段落内每行一个光标
+			-- ga5j  → 向下 5 行各一个光标
+			-- V 选中多行后 ga → 每行一个光标
+			set({ "n", "x" }, "ga", mc.addCursorOperator, { desc = "MC: Add cursor per line (operator)" })
+
+			-- ── 光标间导航 ────────────────────────────────────────────
+			set({ "n", "x" }, "<A-Left>", mc.prevCursor, { desc = "MC: Prev Cursor" })
+			set({ "n", "x" }, "<A-Right>", mc.nextCursor, { desc = "MC: Next Cursor" })
+
+			-- ── 退出 ─────────────────────────────────────────────────
+			set("n", "<esc>", function()
+				if mc.hasCursors() then
+					mc.clearCursors()
+				else
+					vim.cmd("nohlsearch")
+				end
+			end)
+		end,
+	},
 }

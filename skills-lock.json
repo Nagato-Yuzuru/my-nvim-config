@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "effective-neovim": {
+      "source": "kylesnowschwartz/simpleclaude",
+      "sourceType": "github",
+      "computedHash": "c7d2d58197d8cba43ac4fece0d85db9230658bec5e506b4f1d478acd74783a01"
+    },
+    "obsidian-nvim": {
+      "source": "julianobarbosa/claude-code-skills",
+      "sourceType": "github",
+      "computedHash": "8117c3c57f5b850379bd368f8ba6244fd1c65c4940b372ecb62d13d40276c582"
+    }
+  }
+}
