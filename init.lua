@@ -130,12 +130,16 @@ require("lazy").setup({
         --{ import = "plugins.dap" },
         --{ import = "plugins.search" },
         { import = "plugins.ui" },
-        --{ import = "plugins.git" },
+        { import = "plugins.git" },
         { import = "plugins.lang" },
         { import = "plugins.treesitter" },
     },
     install = { colorscheme = { "tokyonight", "catppuccin" } },
-    checker = { enabled = true },
+    checker = {
+        enabled = true,
+        notify = false,    -- 静默，不弹出通知
+        frequency = 86400, -- 每 24 小时检查一次
+    },
 })
 
 
