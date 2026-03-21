@@ -134,6 +134,9 @@ require("lazy").setup({
         { import = "plugins.lang" },
         { import = "plugins.treesitter" },
     },
+    rocks = {
+        hererocks = true,
+    },
     install = { colorscheme = { "tokyonight", "catppuccin" } },
     checker = {
         enabled = true,

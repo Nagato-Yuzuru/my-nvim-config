@@ -44,6 +44,9 @@ return {
 		cmd = { "LspInfo", "LspLog" },
 		dependencies = { "b0o/SchemaStore.nvim" },
 		config = function()
+			-- 禁用 nvim-lspconfig 内置自动启动（避免与 start_for_ft 重复）
+			vim.lsp.config("gopls", { autostart = false })
+
 			-- 绑定补全能力（blink.cmp 可选）
 			local caps = vim.lsp.protocol.make_client_capabilities()
 			pcall(function()
@@ -171,11 +174,37 @@ return {
 				},
 			})
 
-			-- Python (pyright)
+			-- Python (pyright) — 补全 + hover + go-to-definition
 			start_for_ft({ "python" }, {
 				name = "pyright",
 				cmd = { "pyright-langserver", "--stdio" },
 				root_patterns = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", ".git" },
+				settings = {
+					python = {
+						analysis = {
+							autoSearchPaths = true,
+							useLibraryCodeForTypes = true,
+							typeCheckingMode = "basic",
+						},
+					},
+				},
+			})
+
+			-- Python (ruff) — lint + 快速修复
+			start_for_ft({ "python" }, {
+				name = "ruff",
+				cmd = { "ruff", "server" },
+				root_patterns = { "pyproject.toml", "ruff.toml", ".ruff.toml", ".git" },
+				settings = {
+					organizeImports = true,
+				},
+			})
+
+			-- Python (ty) — 类型检查
+			start_for_ft({ "python" }, {
+				name = "ty",
+				cmd = { "ty", "server" },
+				root_patterns = { "pyproject.toml", "ty.toml", ".git" },
 			})
 
 			-- Go (gopls)
@@ -186,7 +215,9 @@ return {
 				settings = {
 					gopls = {
 						usePlaceholders = true,
+						completeUnimported = true,
 						analyses = { unusedparams = true, unreachable = true },
+						experimentalStandaloneFiles = true,
 					},
 				},
 			})
