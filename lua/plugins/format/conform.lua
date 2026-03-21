@@ -9,7 +9,19 @@ return {
         keys = {
             {
                 "<leader>ff",
-                function() require("conform").format({ async = true, lsp_fallback = true }) end,
+                function()
+                    if vim.bo.filetype == "python" then
+                        vim.lsp.buf.code_action({
+                            context = { only = { "source.fixAll.ruff" }, diagnostics = {} },
+                            apply = true,
+                        })
+                        vim.lsp.buf.code_action({
+                            context = { only = { "source.organizeImports.ruff" }, diagnostics = {} },
+                            apply = true,
+                        })
+                    end
+                    require("conform").format({ async = true, lsp_fallback = true })
+                end,
                 desc = "Format file",
             },
         },
