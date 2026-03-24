@@ -37,6 +37,7 @@ noremap <C-x> <Nop>
 
 map <leader><leader>h <Plug>(easymotion-linebackward)
 map <leader><leader>l <Plug>(easymotion-lineforward)
+map <leader><leader>s <Plug>(easymotion-s2)
 map <leader><leader>. <Plug>(easymotion-repeat)
 
 nmap <Plug>(easymotion-prefix) <Nop>

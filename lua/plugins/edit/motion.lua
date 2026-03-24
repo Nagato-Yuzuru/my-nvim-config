@@ -48,7 +48,7 @@ return {
 					local hint = require("hop.hint")
 					hop.hint_words({ direction = hint.HintDirection.AFTER_CURSOR, current_line_only = true })
 				end),
-				mode = { "n", "x", "o" },
+				mode = { "n", "o" },
 				desc = "Hop → (line, words)",
 			},
 
@@ -171,18 +171,18 @@ return {
 				desc = "Hop word-start by first letter (buffer)",
 			},
 
-			-- 重复
-			{ "<leader><leader>.", hop_repeat, mode = { "n", "x", "o" }, desc = "Hop repeat" },
-
-			-- 双字符跳
+			-- 双字符跳（全屏）
 			{
-				"S",
-				function()
+				"<leader><leader>s",
+				remember_and_run(function()
 					require("hop").hint_char2()
-				end,
+				end),
 				mode = { "n", "x", "o" },
 				desc = "Hop 2-char",
 			},
+
+			-- 重复
+			{ "<leader><leader>.", hop_repeat, mode = { "n", "x", "o" }, desc = "Hop repeat" },
 		},
 	},
 }
