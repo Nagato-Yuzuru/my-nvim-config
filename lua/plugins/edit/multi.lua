@@ -29,12 +29,16 @@ return {
 			set({ "n", "x" }, "<A-p>", mc.deleteCursor, { desc = "MC: Remove Cursor" })
 
 			-- ── 行模式：逐行添加光标 ──────────────────────────────────
-			set({ "n", "x" }, "<C-Down>", function()
+			set({ "n", "x" }, "<A-j>", function()
 				mc.lineAddCursor(1)
 			end, { desc = "MC: Add Cursor Down" })
-			set({ "n", "x" }, "<C-Up>", function()
+			set({ "n", "x" }, "<A-k>", function()
 				mc.lineAddCursor(-1)
 			end, { desc = "MC: Add Cursor Up" })
+
+			-- ── 任意位置：键盘自由放置光标 ──────────────────────────
+			-- <A-m>  在当前光标位置添加一个新光标（自由选择）
+			set({ "n", "x" }, "<A-m>", mc.addCursor, { desc = "MC: Add cursor here" })
 
 			-- ── 任意位置：鼠标 Ctrl+Click ─────────────────────────────
 			set("n", "<c-leftmouse>", mc.handleMouse, { desc = "MC: Click add/remove cursor" })
