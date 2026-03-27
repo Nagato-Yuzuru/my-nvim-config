@@ -68,6 +68,11 @@ return {
 					map("n", "gr", vim.lsp.buf.references, "References")
 					map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
 					map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
+					-- <leader>n* 对齐 IdeaVim
+					map("n", "<leader>nd", vim.lsp.buf.definition, "Goto Definition")
+					map("n", "<leader>nD", vim.lsp.buf.type_definition, "Goto Type Definition")
+					map("n", "<leader>ni", vim.lsp.buf.implementation, "Goto Implementation")
+					map("n", "<leader>nu", vim.lsp.buf.references, "Find Usages")
 
 					-- 可选：自动开启 inlay hints
 					if vim.lsp.inlay_hint then

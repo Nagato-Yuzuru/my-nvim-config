@@ -48,13 +48,17 @@ map <A-x> <Action>(FindNextOccurrence)
 map <A-p> <Action>(UnselectPreviousOccurrence)
 
 
+map  <A-j>   <Action>(EditorCloneCaretBelow)
+map  <A-k>   <Action>(EditorCloneCaretAbove)
+
 map mc <A-n>
 map mp <A-p>
 map mx <A-x>
+map mj <A-j>
+map mk <A-k>
 
 nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
-nmap <C-x>o <Action>(Switcher)
 
 
 "" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t
@@ -140,6 +144,7 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 map <leader>F <Action>(CodeFormatGroup)
 map <leader>ff <Action>(ReformatCode)
 map <leader>fF <Action>(ShowReformatFileDialog)
+map <leader>fS <Action>(osmedile.intellij.stringmanip.PopupChoiceAction)
 
 " 7)  Mark
 nmap <leader>M <Action>(Bookmarks)
@@ -150,6 +155,8 @@ nmap <leader>mN <Action>(GotoNextBookmark)
 
 " AI
 map <leader>A <Action>(AIIntentionsActionGroup)
+
+" Popups / 菜单
 
 nnoremap <leader>y "+y
 vnoremap <leader>y "+y
