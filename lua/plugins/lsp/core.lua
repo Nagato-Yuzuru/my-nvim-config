@@ -103,12 +103,28 @@ return {
 				})
 			end
 
+			local function apply_schema_url(url, name)
+				name = name or url
+				local ft = vim.bo.filetype
+				if ft == "yaml" then
+					vim.api.nvim_buf_set_lines(0, 0, 0, false, { "# yaml-language-server: $schema=" .. url })
+					vim.notify("Schema applied: " .. name)
+				elseif ft == "toml" then
+					vim.api.nvim_buf_set_lines(0, 0, 0, false, { "#:schema " .. url })
+					vim.notify("Schema applied: " .. name)
+				elseif ft == "json" or ft == "jsonc" then
+					vim.fn.setreg("+", url)
+					vim.notify("Copied schema URL to clipboard: " .. url, vim.log.levels.INFO)
+					vim.notify('Add manually: "$schema": "' .. url .. '"', vim.log.levels.INFO)
+				end
+			end
+
 			local function select_schema_and_insert()
 				local status, schemastore = pcall(require, "schemastore")
 				local options = {}
 
 				if status then
-					options = schemastore.json.schemas() or {}
+					options = vim.list_extend({}, schemastore.json.schemas() or {})
 				end
 
 				local schemas = require("plugins.schemas.cloud_native_schema")
@@ -116,6 +132,8 @@ return {
 				for i = #schemas, 1, -1 do
 					table.insert(options, 1, schemas[i])
 				end
+
+				table.insert(options, 1, { name = "[ Enter custom URL... ]", url = "__custom__" })
 
 				vim.ui.select(options, {
 					prompt = "Select Schema to Apply",
@@ -131,28 +149,16 @@ return {
 						return
 					end
 
-					local url = choice.url
-					local ft = vim.bo.filetype
-
-					-- 定义变更逻辑
-					if ft == "yaml" then
-						local line_comment = "# yaml-language-server: $schema=" .. url
-						-- 插入到第一行
-						vim.api.nvim_buf_set_lines(0, 0, 0, false, { line_comment })
-						vim.notify("Schema applied: " .. choice.name)
-					elseif ft == "toml" then
-						local line_comment = "#:schema " .. url
-						-- 插入到第一行
-						vim.api.nvim_buf_set_lines(0, 0, 0, false, { line_comment })
-						vim.notify("Schema applied: " .. choice.name)
-					elseif ft == "json" or ft == "jsonc" then
-						-- JSON 比较特殊，不能随便在第一行加注释（除非是 jsonc）
-						-- 这里采用更安全的方式：仅复制到剪贴板，或者追加到 $schema 字段（实现复杂，暂且复制）
-						vim.fn.setreg("+", url)
-						vim.notify("Copied Schema URL to clipboard: " .. url, vim.log.levels.INFO)
-						vim.notify('Please manually add key: "$schema": "' .. url .. '"', vim.log.levels.INFO)
-						return -- JSON 不自动插入，避免破坏语法
+					if choice.url == "__custom__" then
+						vim.ui.input({ prompt = "Schema URL: " }, function(input)
+							if input and input ~= "" then
+								apply_schema_url(input)
+							end
+						end)
+						return
 					end
+
+					apply_schema_url(choice.url, choice.name)
 				end)
 			end
 
