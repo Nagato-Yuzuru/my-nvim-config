@@ -22,6 +22,7 @@ return {
 				taplo = "taplo",
 				marksman = "marksman",
 				clangd = "clangd",
+				terraformls = "terraform-ls",
 			}
 			local ensure_installed = {}
 			for lsp_name, binary_name in pairs(servers) do
@@ -294,6 +295,22 @@ return {
 			start_for_ft({ "markdown", "markdown.mdx" }, {
 				name = "marksman",
 				cmd = { "marksman", "server" },
+			})
+
+			-- Terraform / OpenTofu (terraform-ls)
+			start_for_ft({ "terraform", "terraform-vars" }, {
+				name = "terraformls",
+				cmd = { "terraform-ls", "serve" },
+				root_patterns = { ".terraform", ".terraform.lock.hcl", ".git" },
+				settings = {
+					terraform = {
+						path = vim.fn.executable("tofu") == 1 and "tofu" or "terraform",
+						experimentalFeatures = {
+							validateOnSave = true,
+							prefillRequiredFields = true,
+						},
+					},
+				},
 			})
 
 			-- C / C++ (clangd)

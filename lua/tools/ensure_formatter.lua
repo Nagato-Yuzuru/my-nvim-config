@@ -14,6 +14,7 @@ local TOOL_MAP = {
 	shfmt = { bin = "shfmt", mason = "shfmt" },
 	prettier = { bin = "prettier", mason = "prettier" },
 	taplo = { bin = "taplo", mason = "taplo" },
+	terraform_fmt = { bin = "terraform-ls", mason = "terraform-ls" },
 	-- sqlfluff = { bin = "sqlfluff",   mason = "sqlfluff" },
 }
 
@@ -30,6 +31,8 @@ local FORMATTERS_BY_FT = {
 	markdown = { "prettier" },
 	toml = { "taplo" },
 	d2 = { "d2" },
+	terraform = { "terraform_fmt" },
+	["terraform-vars"] = { "terraform_fmt" },
 }
 
 local M = {}
