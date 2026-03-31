@@ -34,6 +34,7 @@ return {
 					"latex",
 					"d2",
 					"terraform",
+					"just",
 				},
 				highligh = { enable = true },
 				auto_install = true,
