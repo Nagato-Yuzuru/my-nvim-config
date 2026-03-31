@@ -267,6 +267,11 @@ return {
 			start_for_ft({ "sh", "bash", "zsh" }, {
 				name = "bashls",
 				cmd = { "bash-language-server", "start" },
+				settings = {
+					bashIde = {
+						shellcheckPath = "shellcheck",
+					},
+				},
 			})
 
 			-- TOML (taplo)

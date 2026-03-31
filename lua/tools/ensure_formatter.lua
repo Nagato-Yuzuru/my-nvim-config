@@ -16,6 +16,8 @@ local TOOL_MAP = {
 	taplo = { bin = "taplo", mason = "taplo" },
 	terraform_fmt = { bin = "terraform-ls", mason = "terraform-ls" },
 	-- sqlfluff = { bin = "sqlfluff",   mason = "sqlfluff" },
+	-- linters
+	shellcheck = { bin = "shellcheck", mason = "shellcheck" },
 }
 
 local FORMATTERS_BY_FT = {
@@ -37,11 +39,21 @@ local FORMATTERS_BY_FT = {
 
 local M = {}
 
+local LINTERS_BY_FT = {
+	sh = { "shellcheck" },
+	bash = { "shellcheck" },
+}
+
 -- 在 VeryLazy 或首次命中文件类型时调用
 function M.ensure_all()
 	local uniq = {}
 	for _, fs in pairs(FORMATTERS_BY_FT) do
 		for _, name in ipairs(fs) do
+			uniq[name] = true
+		end
+	end
+	for _, ls in pairs(LINTERS_BY_FT) do
+		for _, name in ipairs(ls) do
 			uniq[name] = true
 		end
 	end
