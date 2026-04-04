@@ -45,6 +45,13 @@ map("n", "<C-j>", "<C-w>j", opts)
 map("n", "<C-k>", "<C-w>k", opts)
 map("n", "<C-l>", "<C-w>l", opts)
 
+-- kitty keyboard protocol 下 Shift+letter 以 <S-X> 形式到达
+map("n", "<C-w><S-H>", "<cmd>wincmd H<CR>", { desc = "Move window far left" })
+map("n", "<C-w><S-J>", "<cmd>wincmd J<CR>", { desc = "Move window far down" })
+map("n", "<C-w><S-K>", "<cmd>wincmd K<CR>", { desc = "Move window far up" })
+map("n", "<C-w><S-L>", "<cmd>wincmd L<CR>", { desc = "Move window far right" })
+map("n", "<C-w><S-R>", "<cmd>wincmd R<CR>", { desc = "Rotate windows up" })
+
 -- C-x
 
 map("n", "`", function()
@@ -54,6 +61,7 @@ map("n", "<C-x>t", ":enew<CR>", { desc = "New buffer" })
 map("n", "<C-x>T", ":tabnew<CR>", { desc = "New tabpage (workspace)" })
 map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
 map("n", "<C-x><S-Tab>", ":tabprevious<CR>", { desc = "Prev tabpage" })
+map("n", "<C-x>X", ":tabclose<CR>", { desc = "Close tabpage" })
 
 map("n", "<C-x>3", function()
 	vim.cmd.vsplit()
