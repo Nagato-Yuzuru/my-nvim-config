@@ -43,6 +43,9 @@ return {
                 end,
                 desc = "Close current buffer",
             },
+            { "<C-x>)", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
+            { "<C-x>[", "<cmd>BufferLineCloseLeft<CR>",   desc = "Close buffers to the left" },
+            { "<C-x>]", "<cmd>BufferLineCloseRight<CR>",  desc = "Close buffers to the right" },
         }
     },
 }
