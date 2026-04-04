@@ -18,6 +18,7 @@ local TOOL_MAP = {
 	-- sqlfluff = { bin = "sqlfluff",   mason = "sqlfluff" },
 	-- linters
 	shellcheck = { bin = "shellcheck", mason = "shellcheck" },
+	hadolint   = { bin = "hadolint",   mason = "hadolint" },
 }
 
 local FORMATTERS_BY_FT = {
@@ -40,8 +41,9 @@ local FORMATTERS_BY_FT = {
 local M = {}
 
 local LINTERS_BY_FT = {
-	sh = { "shellcheck" },
-	bash = { "shellcheck" },
+	sh         = { "shellcheck" },
+	bash       = { "shellcheck" },
+	dockerfile = { "hadolint" },
 }
 
 -- 在 VeryLazy 或首次命中文件类型时调用
@@ -66,6 +68,10 @@ end
 
 function M.get_formatters_by_ft()
 	return vim.deepcopy(FORMATTERS_BY_FT)
+end
+
+function M.get_linters_by_ft()
+	return vim.deepcopy(LINTERS_BY_FT)
 end
 
 return M
