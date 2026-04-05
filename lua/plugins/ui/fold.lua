@@ -56,9 +56,8 @@ return {
 			-- Treesitter 可用时优先用 TS，其次缩进；有些 LSP 也能提供 foldingRange
 			require("ufo").setup({
 				provider_selector = function(_, filetype, _)
-					-- 你已装 nvim-treesitter，优先 ts；某些文件类型用 indent 更稳
-					local ts_ok = pcall(require, "nvim-treesitter.parsers")
-					if ts_ok then
+					local ok = pcall(vim.treesitter.get_parser, bufnr)
+					if ok then
 						return { "treesitter", "indent" }
 					else
 						return { "indent" }
