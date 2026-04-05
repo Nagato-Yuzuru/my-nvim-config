@@ -36,7 +36,7 @@ return {
 					"terraform",
 					"just",
 				},
-				highligh = { enable = true },
+				highlight = { enable = true },
 				auto_install = true,
 			})
 		end,
