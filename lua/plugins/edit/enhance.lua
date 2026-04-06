@@ -6,7 +6,17 @@ return {
 	{ "michaeljsmith/vim-indent-object" },
 
 	-- matchup.vim (增强 % 匹配)
-	{ "andymass/vim-matchup", event = "BufRead" },
+	{
+		"andymass/vim-matchup",
+		event = "BufRead",
+		init = function()
+			vim.g.matchup_matchparen_deferred = 1       -- 延迟高亮，避免每次按键阻塞
+			vim.g.matchup_matchparen_deferred_show_delay = 50
+			vim.g.matchup_matchparen_deferred_hide_delay = 700
+			vim.g.matchup_matchparen_hi_surround_always = 0 -- 只高亮直接匹配对
+			vim.g.matchup_treesitter_enabled = 0 -- 禁用 treesitter 引擎（与 0.12 不兼容）
+		end,
+	},
 
 	-- vim-cool (关闭高亮后增强搜索体验)
 	{ "romainl/vim-cool", event = "VeryLazy" },
@@ -21,7 +31,7 @@ return {
 			-- nnoremap g/ <Cmd>set hlsearch<CR><Plug>(incsearch-stay)
 		end,
 	},
-	{ "machakann/vim-highlightedyank" },
+	{ "machakann/vim-highlightedyank", event = "VeryLazy" },
 	{ "haya14busa/incsearch-fuzzy.vim", event = "CmdlineEnter" }, -- 可选：/ 的模糊
 	{
 		"keaising/im-select.nvim",
@@ -57,6 +67,4 @@ return {
 		event = "VeryLazy",
 		dependencies = { "kana/vim-textobj-user" },
 	},
-	{ "machakann/vim-highlightedyank", event = "VeryLazy" },
-	{ "romainl/vim-cool", event = "VeryLazy" },
 }

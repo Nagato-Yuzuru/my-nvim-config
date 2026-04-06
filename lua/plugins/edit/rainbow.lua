@@ -24,6 +24,6 @@ return {
             }
 
         end,
-        dependencies = { "nvim-treesitter/nvim-treesitter" },
+        -- treesitter 由 ts-install + vim.treesitter.start() 提供，无需 nvim-treesitter 依赖
     },
 }

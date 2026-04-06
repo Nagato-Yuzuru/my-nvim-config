@@ -20,6 +20,22 @@ vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#ff996c" })
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+-- filetype detection（复合/非标准 filetype，供 lsp/*.lua 中声明的 filetypes 使用）
+vim.filetype.add({
+	pattern = {
+		["docker%-compose%.ya?ml"] = "yaml.docker-compose",
+		["%.?[Dd]ockerfile%..+"] = "dockerfile",
+	},
+	extension = {
+		tfvars = "terraform-vars",
+		gotmpl = "gotmpl",
+		mdx = "markdown.mdx",
+	},
+	filename = {
+		["go.work"] = "gowork",
+	},
+})
+
 -- diff
 vim.opt.diffopt = {
 	"internal",
