@@ -1,23 +1,15 @@
 return {
+	-- Parser 安装管理
 	{
-		"nvim-treesitter/nvim-treesitter",
-		build = ":TSUpdate",
-		event = "BufReadPost",
+		"lewis6991/ts-install.nvim",
 		dependencies = {
-			{
-				import = "plugins.ft.d2",
-			},
+			-- ts-install 内部依赖 nvim-treesitter 的 parser 定义和 query 文件
+			{ "nvim-treesitter/nvim-treesitter", branch = "main" },
 		},
-		branch = "main",
 		config = function()
-			local status_ok, configs = pcall(require, "nvim-treesitter.config")
-
-			if not status_ok then
-				vim.notify("Treesitter uncompleted, skip...", vim.log.levels.WARN)
-				return
-			end
-			configs.setup({
-				ensure_installed = {
+			require("ts-install").setup({
+				auto_update = false,
+				ensure_install = {
 					"lua",
 					"python",
 					"go",
@@ -25,19 +17,31 @@ return {
 					"yaml",
 					"bash",
 					"markdown",
+					"markdown_inline",
 					"html",
 					"javascript",
 					"toml",
 					"typescript",
-					"markdown_inline",
-					"html",
 					"latex",
-					"d2",
 					"terraform",
 					"just",
 				},
-				highlight = { enable = true },
 				auto_install = true,
+			})
+
+			-- Treesitter 高亮（Neovim 0.12 原生 API）
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
+				callback = function(ev)
+					local buf = ev.buf
+					if not vim.api.nvim_buf_is_valid(buf) then return end
+					local ft = vim.bo[buf].filetype
+					local lang = vim.treesitter.language.get_lang(ft)
+					if not lang then return end
+					if pcall(vim.treesitter.language.add, lang) then
+						pcall(vim.treesitter.start, buf, lang)
+					end
+				end,
 			})
 		end,
 	},
