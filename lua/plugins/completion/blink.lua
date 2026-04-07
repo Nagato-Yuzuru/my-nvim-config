@@ -8,9 +8,8 @@ return {
 		event = { "InsertEnter", "CmdlineEnter" },
 		dependencies = {
 			"L3MON4D3/LuaSnip",
-			"rafamadriz/friendly-snippets", -- 常用片段库
-			"onsails/lspkind.nvim", -- 图标 & item kind
-			"xzbdmw/colorful-menu.nvim", -- 你列表里已有，可选
+			"rafamadriz/friendly-snippets",
+			"xzbdmw/colorful-menu.nvim",
 		},
 		build = "cargo +nightly build --release",
 		opts = {
@@ -27,7 +26,7 @@ return {
 				["<C-f>"] = { "scroll_documentation_down", "fallback" },
 				["<S-Tab>"] = { "select_prev", "fallback" },
 			},
-			appearance = { use_nvim_cmp_as_default = true },
+			appearance = { nerd_font_variant = "mono" },
 			sources = {
 				default = { "lsp", "path", "buffer", "snippets" },
 			},
