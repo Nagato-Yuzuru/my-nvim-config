@@ -6,34 +6,19 @@ return {
 		config = function()
 			require("mason").setup()
 
+			local mason_ensure = require("tools.mason_ensure")
+
 			-- VeryLazy 时自动安装缺失的 LSP server（不阻塞启动）
-			local U = require("plugins.shared.ensure_utils")
-			local LSP_TOOLS = {
-				{ bin = "lua-language-server",        mason = "lua-language-server" },
-				{ bin = "pyright-langserver",          mason = "pyright" },
-				{ bin = "ruff",                        mason = "ruff" },
-				{ bin = "gopls",                       mason = "gopls" },
-				{ bin = "vscode-json-language-server",  mason = "json-lsp" },
-				{ bin = "yaml-language-server",         mason = "yaml-language-server" },
-				{ bin = "bash-language-server",         mason = "bash-language-server" },
-				{ bin = "taplo",                       mason = "taplo" },
-				{ bin = "marksman",                    mason = "marksman" },
-				{ bin = "clangd",                      mason = "clangd" },
-				{ bin = "terraform-ls",                mason = "terraform-ls" },
-				{ bin = "docker-langserver",            mason = "dockerfile-language-server" },
-			}
 			vim.api.nvim_create_autocmd("User", {
 				pattern = "VeryLazy",
 				once = true,
-				callback = function()
-					U.ensure_tools(
-						vim.tbl_map(function(t) return t.bin end, LSP_TOOLS),
-						(function()
-							local m = {}
-							for _, t in ipairs(LSP_TOOLS) do m[t.bin] = t end
-							return m
-						end)()
-					)
+				callback = mason_ensure.ensure_lsp,
+			})
+
+			-- 打开对应文件类型时按需安装 formatter/linter（注册必须在启动时完成）
+			vim.api.nvim_create_autocmd("FileType", {
+				callback = function(ev)
+					mason_ensure.ensure_for_ft(vim.bo[ev.buf].filetype)
 				end,
 			})
 

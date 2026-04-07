@@ -26,17 +26,9 @@ return {
             },
         },
         config = function()
-            local ensure = require("tools.ensure_formatter")
-            -- 懒触发安装：VeryLazy 时预检一次（不阻塞 UI）
-            vim.api.nvim_create_autocmd("User", {
-                pattern = "VeryLazy",
-                once = true,
-                callback = ensure.ensure_all,
-            })
-
             local conform = require("conform")
             conform.setup({
-                formatters_by_ft = ensure.get_formatters_by_ft(),
+                formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft(),
                 format_on_save = function(bufnr)
                     local ft = vim.bo[bufnr].filetype
                     if ft == "zsh" then return { lsp_fallback = false } end
