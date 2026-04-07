@@ -21,18 +21,7 @@ return {
 	-- vim-cool (关闭高亮后增强搜索体验)
 	{ "romainl/vim-cool", event = "VeryLazy" },
 
-	{
-		"haya14busa/incsearch.vim",
-		event = "CmdlineEnter", -- 进入 / 或 ? 时加载
-		config = function()
-			-- / 和 ? 默认就是增量; 这里提供几个更顺手的额外映射（可选）
-			-- nnoremap /  <Cmd>set hlsearch<CR><Plug>(incsearch-forward)
-			-- nnoremap ?  <Cmd>set hlsearch<CR><Plug>(incsearch-backward)
-			-- nnoremap g/ <Cmd>set hlsearch<CR><Plug>(incsearch-stay)
-		end,
-	},
 	{ "machakann/vim-highlightedyank", event = "VeryLazy" },
-	{ "haya14busa/incsearch-fuzzy.vim", event = "CmdlineEnter" }, -- 可选：/ 的模糊
 	{
 		"keaising/im-select.nvim",
 		event = "VeryLazy",
