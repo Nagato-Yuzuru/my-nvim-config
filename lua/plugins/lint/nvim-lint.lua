@@ -4,17 +4,17 @@
 return {
 	{
 		"mfussenegger/nvim-lint",
-		event = { "BufReadPost", "BufWritePost", "InsertLeave" },
+		event = "VeryLazy",
 		config = function()
 			local lint = require("lint")
 
-			lint.linters_by_ft = require("tools.ensure_formatter").get_linters_by_ft()
+			lint.linters_by_ft = require("tools.mason_ensure").get_linters_by_ft()
 
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
-				callback = function()
-					lint.try_lint()
-				end,
+				callback = function() lint.try_lint() end,
 			})
+
+			vim.schedule(lint.try_lint)
 		end,
 	},
 }
