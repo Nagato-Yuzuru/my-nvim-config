@@ -6,7 +6,9 @@ return {
 		gopls = {
 			usePlaceholders = true,
 			completeUnimported = true,
-			analyses = { unusedparams = true, unreachable = true },
+			gofumpt = true,
+			-- unusedparams/unreachable 由 golangci-lint 覆盖
+			analyses = { unusedvariable = true },
 			experimentalStandaloneFiles = true,
 		},
 	},

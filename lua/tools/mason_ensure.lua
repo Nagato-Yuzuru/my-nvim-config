@@ -20,38 +20,38 @@ local LSP_TOOLS = {
 local TOOL_MAP = {
 	stylua        = { bin = "stylua",        mason = "stylua" },
 	ruff_format   = { bin = "ruff",          mason = "ruff" },
-	black         = { bin = "black",         mason = "black" },
-	gofumpt       = { bin = "gofumpt",       mason = "gofumpt" },
 	goimports     = { bin = "goimports",     mason = "goimports" },
 	shfmt         = { bin = "shfmt",         mason = "shfmt" },
 	prettier      = { bin = "prettier",      mason = "prettier" },
 	taplo         = { bin = "taplo",         mason = "taplo" },
-	terraform_fmt = { bin = "terraform-ls",  mason = "terraform-ls" },
-	shellcheck    = { bin = "shellcheck",    mason = "shellcheck" },
-	hadolint      = { bin = "hadolint",      mason = "hadolint" },
+	shellcheck      = { bin = "shellcheck",      mason = "shellcheck" },
+	hadolint        = { bin = "hadolint",        mason = "hadolint" },
+	golangci_lint   = { bin = "golangci-lint",   mason = "golangci-lint" },
 }
 
 local FORMATTERS_BY_FT = {
 	lua                = { "stylua" },
-	python             = { "ruff_format", "black" },
-	go                 = { "gofumpt", "goimports" },
+	python             = { "ruff_format" },
+	-- gofumpt 由 golangci-lint formatter 处理，goimports 负责 import 管理
+	go                 = { "goimports" },
 	sh                 = { "shfmt" },
 	bash               = { "shfmt" },
-	zsh                = {},
+	zsh                = { "shfmt" },
 	json               = { "prettier" },
 	jsonc              = { "prettier" },
 	yaml               = { "prettier" },
 	markdown           = { "prettier" },
 	toml               = { "taplo" },
 	d2                 = { "d2" },
+	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理
 	terraform          = { "terraform_fmt" },
 	["terraform-vars"] = { "terraform_fmt" },
 }
 
 local LINTERS_BY_FT = {
-	sh         = { "shellcheck" },
-	bash       = { "shellcheck" },
+	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
+	go         = { "golangci_lint" },
 }
 
 local M = {}
