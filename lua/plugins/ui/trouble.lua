@@ -5,6 +5,11 @@ return {
 		position = "bottom", -- 面板位置：bottom, top, left, right
 		height = 10,
 		mode = "workspace_diagnostics", -- 默认模式
+		win = {
+			wo = {
+				wrap = true,
+			},
+		},
 	},
 	keys = {
 		{
