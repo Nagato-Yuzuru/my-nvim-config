@@ -79,11 +79,6 @@ map <A-p> <Action>(UnselectPreviousOccurrence)
 map  <A-j>   <Action>(EditorCloneCaretBelow)
 map  <A-k>   <Action>(EditorCloneCaretAbove)
 
-map mc <A-n>
-map mp <A-p>
-map mx <A-x>
-map mj <A-j>
-map mk <A-k>
 
 nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
@@ -136,7 +131,6 @@ nmap <leader>vr <Action>(ActivateRunToolWindow)
 nmap <leader>vd <Action>(ActivateDebugToolWindow)
 nmap <leader>vt <Action>(ActivateTODOToolWindow)
 nmap <leader>vP <Action>(ActivateProblemsViewToolWindow)
-nmap <leader>vb <Action>(ActivateBookmarksToolWindow)
 nmap <leader>vD <Action>(ToggleDistractionFreeMode)
 nmap <leader>vF <Action>(ToggleFullScreen)
 nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
