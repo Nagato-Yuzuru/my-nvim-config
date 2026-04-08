@@ -117,22 +117,35 @@ return {
 		config = function()
 			require("bookmarks").setup({})
 
-			-- Drop the aider integration keys from the merged treeview keymap
-			-- so they are (a) not bound in the tree buffer and (b) not shown
-			-- in the `?` help panel. nvim_aider is not installed in this
-			-- config (Claude Code fills that role instead).
+			-- Post-setup mutation of the merged treeview keymap.
 			--
-			-- Why post-setup mutation: vim.tbl_deep_extend has no "remove key"
-			-- semantics, so passing these in setup() can only replace values,
-			-- not delete entries. Both tree/init.lua (register_local_shortcuts)
+			-- Why post-setup: vim.tbl_deep_extend has no "remove key" semantics,
+			-- so passing changes through setup() can only replace values, not
+			-- delete entries. Both tree/init.lua (register_local_shortcuts)
 			-- and tree/operate.lua (show_help) read vim.g.bookmarks_config
 			-- fresh on every invocation, so mutating it here takes effect
-			-- on the next :BookmarksTree.
+			-- on the next :BookmarksTree (both for bindings and `?` help).
+			--
+			-- Two concerns:
+			--   1. Drop the aider integration keys (+, =, -). nvim_aider is
+			--      not installed (Claude Code fills that role instead).
+			--   2. Add yazi-style hierarchical h/l. Horizontal cursor motion
+			--      is meaningless in a tree buffer, so they're repurposed as
+			--      level-down / level-up. Mirrors neo-tree.lua's h/l bindings
+			--      so the two sidebar tree views feel consistent.
 			local cfg = vim.g.bookmarks_config
 			if cfg and cfg.treeview and cfg.treeview.keymap then
 				cfg.treeview.keymap["+"] = nil
 				cfg.treeview.keymap["="] = nil
 				cfg.treeview.keymap["-"] = nil
+				cfg.treeview.keymap["l"] = {
+					action = "toggle",
+					desc = "Open / expand node (yazi-style)",
+				}
+				cfg.treeview.keymap["h"] = {
+					action = "level_up",
+					desc = "Collapse / parent (yazi-style)",
+				}
 				vim.g.bookmarks_config = cfg
 			end
 		end,
