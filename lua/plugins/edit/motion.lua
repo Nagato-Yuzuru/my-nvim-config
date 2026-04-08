@@ -1,188 +1,159 @@
 -- lua/plugins/edit/motion.lua
--- Hop.nvim 完整配置 + EasyMotion 风格键位（无顶层 require）
-local last_hop = nil
+-- Flash.nvim: EasyMotion-style jump layout aligned with the IdeaVim side.
+-- Replaces the archived hop.nvim. See ~/.config/nvim/.ideavimrc for mirror.
+--
+-- Layout:
+--   <leader><leader>h/l   line-scoped word ← / →
+--   <leader><leader>j/k   cross-line first-non-blank ↓ / ↑
+--   <leader><leader>w/b/e line-scoped word motions
+--   <leader><leader>W/B/E buffer-wide WORD motions (\S+)
+--   <leader><leader>s     default Flash.jump (incremental search)
+--   <leader><leader>/     explicit label search (mirrors IdeaVim AceAction)
+--   <leader><leader>t/T   Flash treesitter / treesitter_search (Neovim only)
+--   <leader><leader>.     repeat last Flash jump
+--
+-- Native keys enhanced (not overridden):
+--   / ?          -> modes.search hooks in flash labels during regular search
+--   f F t T ; ,  -> modes.char enhances with labels when multiple matches exist
 
-local function remember_and_run(run)
+---Build a vim regex that restricts matches to the cursor's current line.
+---Called at keypress time so the line number is always fresh.
+---@param pat string inner vim regex, e.g. [[\<\k]]
+---@return string
+local function line_only(pat)
+	return [[\%]] .. vim.fn.line(".") .. [[l]] .. pat
+end
+
+---Build a Flash.jump callback for a fixed-pattern label jump (Hop-style:
+---no user input accepted, pattern is locked, labels appear immediately).
+---@param pattern string|fun():string vim regex, or a thunk returning one
+---@param search_opts table? merged into `search` (e.g. { forward = false })
+---@param extra table? deep-merged onto the top-level jump opts
+local function flash_pat(pattern, search_opts, extra)
 	return function()
-		last_hop = run
-		run()
+		local pat = type(pattern) == "function" and pattern() or pattern
+		local opts = vim.tbl_deep_extend("force", {
+			search = vim.tbl_extend("force", {
+				mode = "search",
+				max_length = 0,
+				multi_window = false,
+				wrap = false,
+			}, search_opts or {}),
+			pattern = pat,
+		}, extra or {})
+		require("flash").jump(opts)
 	end
 end
 
-local function hop_repeat()
-	if last_hop then
-		last_hop()
-	else
-	end
-end
+local MODE = { "n", "x", "o" }
 
 return {
 	{
-		"phaazon/hop.nvim",
-		branch = "v2",
-		-- 用 keys 懒加载即可；不需要再配 event
-		-- event = "VeryLazy",
+		"folke/flash.nvim",
+		event = "VeryLazy",
+		---@type Flash.Config
 		opts = {
-			keys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-			multi_windows = false,
+			modes = {
+				-- Hook `/` and `?` so labels appear next to every search match.
+				search = { enabled = true },
+				-- Enhance `f/F/t/T`: when there are multiple matches on the line,
+				-- each gets a label. Single-match behavior stays identical to vim.
+				char = {
+					enabled = true,
+					jump_labels = true,
+					multi_line = false, -- keep vim line-only semantics
+				},
+			},
 		},
-		config = function(_, opts)
-			require("hop").setup(opts)
-		end,
 		keys = {
-			-- 当前行左右
+			-- ===== Line direction (words, current line) =====
 			{
 				"<leader><leader>h",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_words({ direction = hint.HintDirection.BEFORE_CURSOR, current_line_only = true })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop ← (line, words)",
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
+				mode = MODE, desc = "Flash ← word (line)",
 			},
 			{
 				"<leader><leader>l",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_words({ direction = hint.HintDirection.AFTER_CURSOR, current_line_only = true })
-				end),
-				mode = { "n", "o" },
-				desc = "Hop → (line, words)",
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
+				mode = MODE, desc = "Flash → word (line)",
 			},
 
-			-- 上下行
+			-- ===== Cross-line lines (first non-blank of each line) =====
 			{
 				"<leader><leader>j",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_lines_skip_whitespace({ direction = hint.HintDirection.AFTER_CURSOR })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop ↓ lines",
+				flash_pat([[^\s*\zs\S]], { forward = true }),
+				mode = MODE, desc = "Flash ↓ lines",
 			},
 			{
 				"<leader><leader>k",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_lines_skip_whitespace({ direction = hint.HintDirection.BEFORE_CURSOR })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop ↑ lines",
+				flash_pat([[^\s*\zs\S]], { forward = false }),
+				mode = MODE, desc = "Flash ↑ lines",
 			},
 
-			-- 小写 web：当前行内
+			-- ===== Line-scoped word motions (w/b/e) =====
 			{
 				"<leader><leader>w",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_words({ direction = hint.HintDirection.AFTER_CURSOR, current_line_only = true })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop word → (line)",
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
+				mode = MODE, desc = "Flash w (line)",
 			},
 			{
 				"<leader><leader>b",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_words({ direction = hint.HintDirection.BEFORE_CURSOR, current_line_only = true })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop word ← (line)",
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
+				mode = MODE, desc = "Flash b (line)",
 			},
 			{
 				"<leader><leader>e",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_words({ direction = hint.HintDirection.AFTER_CURSOR, current_line_only = true })
-					vim.cmd("normal! e")
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop word end → (line)",
+				flash_pat(function() return line_only([[\k\>]]) end, { forward = true }),
+				mode = MODE, desc = "Flash e (line)",
 			},
 
-			-- 大写 WEB：非空白块，跨行
+			-- ===== Buffer-wide WORD motions (non-whitespace blocks) =====
 			{
 				"<leader><leader>W",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_patterns({ direction = hint.HintDirection.AFTER_CURSOR, pattern = [[\S\+]] })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop WORD →",
+				flash_pat([[\S\+]], { forward = true }),
+				mode = MODE, desc = "Flash W",
 			},
 			{
 				"<leader><leader>B",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_patterns({ direction = hint.HintDirection.BEFORE_CURSOR, pattern = [[\S\+]] })
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop WORD ←",
+				flash_pat([[\S\+]], { forward = false }),
+				mode = MODE, desc = "Flash B",
 			},
 			{
 				"<leader><leader>E",
-				remember_and_run(function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					hop.hint_patterns({ direction = hint.HintDirection.AFTER_CURSOR, pattern = [[\S\+]] })
-					vim.cmd("normal! E")
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop WORD end →",
+				flash_pat([[\S\+]], { forward = true }, { jump = { pos = "end" } }),
+				mode = MODE, desc = "Flash E",
 			},
 
-			-- 首字母跳（词首）
+			-- ===== Incremental label jump =====
+			{
+				"<leader><leader>s",
+				function() require("flash").jump() end,
+				mode = MODE, desc = "Flash jump",
+			},
+			{
+				"<leader><leader>/",
+				function() require("flash").jump() end,
+				mode = MODE, desc = "Flash label search",
+			},
+
+			-- ===== Treesitter (IdeaVim has no equivalent; intentionally unbound there) =====
 			{
 				"<leader><leader>t",
-				function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					local c = vim.fn.getcharstr()
-					hop.hint_patterns({
-						pattern = "\\<" .. vim.fn.escape(c, [[\]]),
-						current_line_only = true,
-						direction = hint.HintDirection.AFTER_CURSOR,
-					})
-				end,
-				mode = { "n", "x", "o" },
-				desc = "Hop word-start by first letter (line)",
+				function() require("flash").treesitter() end,
+				mode = MODE, desc = "Flash Treesitter",
 			},
 			{
 				"<leader><leader>T",
-				function()
-					local hop = require("hop")
-					local hint = require("hop.hint")
-					local c = vim.fn.getcharstr()
-					hop.hint_patterns({
-						pattern = "\\<" .. vim.fn.escape(c, [[\]]),
-						direction = hint.HintDirection.AFTER_CURSOR,
-					})
-				end,
-				mode = { "n", "x", "o" },
-				desc = "Hop word-start by first letter (buffer)",
+				function() require("flash").treesitter_search() end,
+				mode = MODE, desc = "Flash Treesitter search",
 			},
 
-			-- 双字符跳（全屏）
+			-- ===== Repeat last Flash jump =====
 			{
-				"<leader><leader>s",
-				remember_and_run(function()
-					require("hop").hint_char2()
-				end),
-				mode = { "n", "x", "o" },
-				desc = "Hop 2-char",
+				"<leader><leader>.",
+				function() require("flash").jump({ continue = true }) end,
+				mode = MODE, desc = "Flash repeat",
 			},
-
-			-- 重复
-			{ "<leader><leader>.", hop_repeat, mode = { "n", "x", "o" }, desc = "Hop repeat" },
 		},
 	},
 }
