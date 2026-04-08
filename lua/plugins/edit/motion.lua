@@ -4,6 +4,7 @@
 --
 -- Layout:
 --   <leader><leader>h/l   line-scoped word ← / →
+--   <leader><leader>H/L   buffer-wide word ← / →   (word = \k, mirrors h/l)
 --   <leader><leader>j/k   cross-line first-non-blank ↓ / ↑
 --   <leader><leader>w/b/e line-scoped word motions
 --   <leader><leader>W/B/E buffer-wide WORD motions (\S+)
@@ -53,6 +54,21 @@ return {
 		event = "VeryLazy",
 		---@type Flash.Config
 		opts = {
+			-- Full 52-letter pool: lowercase home/top/bottom rows, then the
+			-- same rows uppercased. Flash assigns from left to right by
+			-- proximity, so the first ~26 nearby matches still get the easy
+			-- lowercase keys, and anything beyond that falls back to Shift+*
+			-- instead of running out of labels.
+			labels = "asdfghjklqwertyuiopzxcvbnm"
+				.. "ASDFGHJKLQWERTYUIOPZXCVBNM",
+			label = {
+				-- Insert label instead of overlaying it, so the second char
+				-- of each match stays visible.
+				style = "inline",
+				-- Explicit (already default) — keeps the above 52-char pool
+				-- intact even if a future default changes.
+				uppercase = true,
+			},
 			modes = {
 				-- Hook `/` and `?` so labels appear next to every search match.
 				search = { enabled = true },
@@ -76,6 +92,18 @@ return {
 				"<leader><leader>l",
 				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
 				mode = MODE, desc = "Flash → word (line)",
+			},
+
+			-- ===== Buffer-wide word (mirror of h/l, word = \k not \S+) =====
+			{
+				"<leader><leader>H",
+				flash_pat([[\<\k]], { forward = false }),
+				mode = MODE, desc = "Flash ← word (buffer)",
+			},
+			{
+				"<leader><leader>L",
+				flash_pat([[\<\k]], { forward = true }),
+				mode = MODE, desc = "Flash → word (buffer)",
 			},
 
 			-- ===== Cross-line lines (first non-blank of each line) =====

@@ -43,6 +43,10 @@ noremap <C-x> <Nop>
 map <leader><leader>h <Plug>(easymotion-linebackward)
 map <leader><leader>l <Plug>(easymotion-lineforward)
 
+" Buffer-wide word (mirror of h/l, word = \k not \S+)
+map <leader><leader>H <Plug>(easymotion-b)
+map <leader><leader>L <Plug>(easymotion-w)
+
 " Cross-line first-non-blank
 map <leader><leader>j <Plug>(easymotion-j)
 map <leader><leader>k <Plug>(easymotion-k)
