@@ -35,9 +35,33 @@ noremap <C-x> <Nop>
 
 
 
+" Mirrors ~/.config/nvim/lua/plugins/edit/motion.lua (Flash.nvim).
+" <leader><leader>t/T on the Neovim side is Flash Treesitter — intentionally
+" left unbound here since IdeaVim has no equivalent node-based jump.
+
+" Line direction (words, current line)
 map <leader><leader>h <Plug>(easymotion-linebackward)
 map <leader><leader>l <Plug>(easymotion-lineforward)
+
+" Cross-line first-non-blank
+map <leader><leader>j <Plug>(easymotion-j)
+map <leader><leader>k <Plug>(easymotion-k)
+
+" Line-scoped word motions
+map <leader><leader>w <Plug>(easymotion-wl)
+map <leader><leader>b <Plug>(easymotion-bl)
+map <leader><leader>e <Plug>(easymotion-el)
+
+" Buffer-wide WORD motions (non-whitespace blocks)
+map <leader><leader>W <Plug>(easymotion-W)
+map <leader><leader>B <Plug>(easymotion-B)
+map <leader><leader>E <Plug>(easymotion-E)
+
+" Incremental label jump (2-char / label search)
 map <leader><leader>s <Plug>(easymotion-s2)
+map <leader><leader>/ <Action>(AceAction)
+
+" Repeat last jump
 map <leader><leader>. <Plug>(easymotion-repeat)
 
 nmap <Plug>(easymotion-prefix) <Nop>
