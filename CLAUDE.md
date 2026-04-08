@@ -13,6 +13,7 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 - **`.ideavimrc` is hard-linked to `~/.ideavimrc`** so that IdeaVim reads this repo's file directly. Editing `.ideavimrc` in this repo immediately affects every JetBrains IDE on the machine.
 - When adding or changing a keymap, plugin, or workflow on the Neovim side, **check `.ideavimrc` and mirror the binding** whenever an equivalent IDE Action exists. When no equivalent exists (e.g. Flash Treesitter has no IdeaVim counterpart), leave a comment on the IdeaVim side explaining why it's intentionally unbound.
 - Conversely, when touching `.ideavimrc`, check the corresponding Neovim file and keep the two in sync.
+- Asymmetries are allowed when Neovim genuinely has more capability than IdeaVim (e.g. multi-list bookmarks, Flash Treesitter). When this happens, the nvim-only extras must be documented as a comment block in the relevant `.ideavimrc` section so both sides share the same source of truth for what's bound where.
 
 ### Parity map (which .ideavimrc section corresponds to which nvim file)
 
@@ -25,6 +26,7 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 | Navigation `<leader>n*`                                     | LSP keymaps in `init.lua` (`LspAttach`)                            |
 | Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
+| Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
 
 ### The `<C-x>` handling — an intentional asymmetry
 

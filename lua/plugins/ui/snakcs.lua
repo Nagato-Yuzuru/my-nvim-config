@@ -6,6 +6,10 @@ return {
 		opts = {
 			picker = {
 				enabled = true,
+				-- Replace vim.ui.select with Snacks' picker system-wide.
+				-- Auto-benefits any plugin that prompts via vim.ui.select
+				-- (e.g. LintaoAmons/bookmarks.nvim's list/delete prompts).
+				ui_select = true,
 				layout = { preset = "default" },
 			},
 			explorer = { enabled = false }, -- 替代 NeoTree/NvimTree

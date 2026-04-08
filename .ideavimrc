@@ -168,12 +168,21 @@ map <leader>ff <Action>(ReformatCode)
 map <leader>fF <Action>(ShowReformatFileDialog)
 map <leader>fS <Action>(osmedile.intellij.stringmanip.PopupChoiceAction)
 
-" 7)  Mark
+" 7)  Mark — mirrors lua/plugins/edit/marks.lua
+"
+" Core bindings (mirrored on both sides):
 nmap <leader>M <Action>(Bookmarks)
 nmap <leader>mm <Action>(ToggleBookmark)
 nmap <leader>mM <Action>(ToggleBookmarkWithMnemonic)
 nmap <leader>mn <Action>(GotoNextBookmarkInEditor)
-nmap <leader>mN <Action>(GotoNextBookmark)
+nmap <leader>mN <Action>(GotoPreviousBookmark)
+"
+" nvim-only extras (no precise IdeaVim equivalent; the <leader>M IDE panel
+" covers similar ground interactively):
+"   <leader>mo  → :BookmarksGoto      fuzzy picker over bookmarks
+"   <leader>ml  → :BookmarksLists     switch active list (nvim multi-list)
+"   <leader>ma  → :BookmarksCommands  bookmark command palette
+"   <leader>mg  → :BookmarksGrep      grep inside bookmarked files
 
 " AI
 map <leader>A <Action>(AIIntentionsActionGroup)
