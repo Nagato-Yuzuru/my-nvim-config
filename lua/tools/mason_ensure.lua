@@ -50,7 +50,7 @@ local TOOL_MAP = {
 	taplo         = { bin = "taplo",         mason = "taplo" },
 	shellcheck      = { bin = "shellcheck",      mason = "shellcheck" },
 	hadolint        = { bin = "hadolint",        mason = "hadolint" },
-	golangci_lint   = { bin = "golangci-lint",   mason = "golangci-lint" },
+	golangcilint    = { bin = "golangci-lint",   mason = "golangci-lint" },
 }
 
 local FORMATTERS_BY_FT = {
@@ -75,7 +75,7 @@ local FORMATTERS_BY_FT = {
 local LINTERS_BY_FT = {
 	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
-	go         = { "golangci_lint" },
+	go         = { "golangcilint" },
 }
 
 local M = {}
