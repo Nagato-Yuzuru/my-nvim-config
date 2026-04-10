@@ -38,6 +38,7 @@ local LSP_TOOLS = {
 	{ bin = "clangd",                      mason = "clangd" },
 	{ bin = "terraform-ls",               mason = "terraform-ls" },
 	{ bin = "docker-langserver",           mason = "dockerfile-language-server" },
+	{ bin = "just-lsp",                    mason = "just-lsp" },
 }
 
 -- Formatter / Linter binary → Mason 包映射

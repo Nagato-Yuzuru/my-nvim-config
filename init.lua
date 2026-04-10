@@ -64,6 +64,7 @@ vim.lsp.enable({
     "lua_ls", "pyright", "ruff", "ty", "gopls",
     "jsonls", "yamlls", "bashls", "taplo",
     "marksman", "terraformls", "dockerls", "clangd",
+    "just_ls",
 })
 
 -- LspAttach: 快捷键 + inlay hints
