@@ -1,7 +1,7 @@
 ---
 --- Created by colas.
 --- Git 状态可视：gutter 标识 + inline blame + diff 视图
---- 对齐 ideavimrc：<leader>vv = ActivateVersionControlToolWindow
+--- 对齐 ideavimrc：<localleader>G = Vcs.QuickListPopupAction
 ---
 return {
 	{
@@ -34,15 +34,15 @@ return {
 				local map = function(mode, l, r, desc)
 					vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
 				end
-				map("n", "]c", gs.next_hunk, "Next Hunk")
-				map("n", "[c", gs.prev_hunk, "Prev Hunk")
-				map("n", "<leader>gp", gs.preview_hunk, "Preview Hunk")
-				map("n", "<leader>gb", gs.blame_line, "Blame Line (detail)")
-				map("n", "<leader>gs", gs.stage_hunk, "Stage Hunk")
-				map("n", "<leader>gu", gs.undo_stage_hunk, "Unstage Hunk")
-				map("n", "<leader>vv", function()
-					gs.diffthis("HEAD") -- 对齐 ideavimrc <leader>vv
-				end, "Diff vs HEAD")
+				map("n", "]c", gs.next_hunk, "Git: Next Hunk")
+				map("n", "[c", gs.prev_hunk, "Git: Prev Hunk")
+				map("n", "<localleader>gp", gs.preview_hunk, "Git: Preview Hunk")
+				map("n", "<localleader>gb", gs.blame_line, "Git: Blame Line (detail)")
+				map("n", "<localleader>gs", gs.stage_hunk, "Git: Stage Hunk")
+				map("n", "<localleader>gu", gs.undo_stage_hunk, "Git: Unstage Hunk")
+				map("n", "<localleader>gd", function()
+					gs.diffthis("HEAD")
+				end, "Git: Diff vs HEAD")
 			end,
 		},
 	},

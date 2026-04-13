@@ -2,10 +2,20 @@ return {
 	"folke/trouble.nvim",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
 	opts = {
-		position = "bottom", -- 面板位置：bottom, top, left, right
-		height = 10,
-		mode = "workspace_diagnostics", -- 默认模式
+		focus = true,
+		follow = false, -- 不自动跟随光标跳转，需手动确认（<cr> / l）
+		auto_preview = true, -- 光标移动时自动显示浮窗预览
+		preview = {
+			type = "float",
+			relative = "editor",
+			border = "rounded",
+			title = "Preview",
+			size = { width = 0.7, height = 0.4 },
+			position = { 0.5, 0.5 },
+		},
 		win = {
+			position = "bottom",
+			height = 10,
 			wo = {
 				wrap = true,
 			},
@@ -14,14 +24,13 @@ return {
 	keys = {
 		{
 			"<leader>vP",
-			"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+			"<cmd>Trouble diagnostics toggle filter.buf=0 focus=false<cr>",
 			desc = "Buffer Diagnostics (Trouble)",
 		},
-		-- 4. 查看 LSP 的引用列表 (替代原本的 gr 列表)
 		{
-			"gr",
+			"<leader>nu",
 			"<cmd>Trouble lsp_references toggle<cr>",
-			desc = "LSP References (Trouble)",
+			desc = "Find Usages (Trouble)",
 		},
 	},
 }

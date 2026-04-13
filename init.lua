@@ -72,8 +72,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("UserLspKeymaps", { clear = true }),
     callback = function(args)
         local bufnr = args.buf
+        local client = vim.lsp.get_client_by_id(args.data.client_id)
         local map = function(mode, lhs, rhs, desc)
             vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, noremap = true, silent = true, desc = desc })
+        end
+        -- Only register a keymap if the attached server supports the method.
+        local map_if = function(method, mode, lhs, rhs, desc)
+            if client and client:supports_method(method) then
+                map(mode, lhs, rhs, desc)
+            end
         end
 
         pcall(function() vim.lsp.inlay_hint.enable(true, { bufnr = bufnr }) end)
@@ -81,7 +88,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         map("n", "<C-q>", vim.lsp.buf.hover, "LSP: Hover")
         map({ "n", "i", "s" }, "<A-P>", vim.lsp.buf.signature_help, "LSP: Signature Help")
         map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
-        map("n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
+        map_if("textDocument/declaration", "n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
         map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
         map("n", "gr", vim.lsp.buf.references, "References")
         map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
@@ -89,6 +96,5 @@ vim.api.nvim_create_autocmd("LspAttach", {
         map("n", "<leader>nd", vim.lsp.buf.definition, "Goto Definition")
         map("n", "<leader>nD", vim.lsp.buf.type_definition, "Goto Type Definition")
         map("n", "<leader>ni", vim.lsp.buf.implementation, "Goto Implementation")
-        map("n", "<leader>nu", vim.lsp.buf.references, "Find Usages")
     end,
 })
