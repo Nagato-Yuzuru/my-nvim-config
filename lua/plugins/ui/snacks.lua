@@ -29,6 +29,7 @@ return {
 				replace_netrw = true, -- hijack directory opens (was Neo-tree hijack_netrw)
 			},
 			dashboard = { enabled = true }, -- 启动页
+			notifier = { enabled = true },
 		},
 		keys = {
 			{
@@ -51,6 +52,34 @@ return {
 					Snacks.picker.grep()
 				end,
 				desc = "Grep",
+			},
+			{
+				"<leader>ns",
+				function()
+					Snacks.picker.lsp_symbols()
+				end,
+				desc = "Document Symbols",
+			},
+			{
+				"<leader>nS",
+				function()
+					Snacks.picker.lsp_workspace_symbols()
+				end,
+				desc = "Workspace Symbols",
+			},
+			{
+				"<leader>nC",
+				function()
+					Snacks.picker.commands()
+				end,
+				desc = "Commands",
+			},
+			{
+				"<leader>vn",
+				function()
+					Snacks.notifier.show_history()
+				end,
+				desc = "Notification History",
 			},
 			{
 				"<localleader>G",
