@@ -45,11 +45,8 @@ return {
 			set("n", "<c-leftdrag>", mc.handleMouseDrag, { desc = "MC: Drag cursors" })
 			set("n", "<c-leftrelease>", mc.handleMouseRelease, { desc = "MC: Finish drag" })
 
-			-- ── 任意位置：ga + motion 键盘算符 ───────────────────────
-			-- gaip  → 段落内每行一个光标
-			-- ga5j  → 向下 5 行各一个光标
-			-- V 选中多行后 ga → 每行一个光标
-			set({ "n", "x" }, "ga", mc.addCursorOperator, { desc = "MC: Add cursor per line (operator)" })
+			-- ga 留给 mini.align（交互式对齐）
+			-- 逐行添加光标用 <A-j>/<A-k>，或 V 选中后 <A-S-n>
 
 			-- ── 光标间导航 ────────────────────────────────────────────
 			set({ "n", "x" }, "<A-Left>", mc.prevCursor, { desc = "MC: Prev Cursor" })
