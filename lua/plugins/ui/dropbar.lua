@@ -18,7 +18,20 @@ return {
 			},
 		},
 		keys = {
-			{ "<leader>cb", function() require("dropbar.api").pick() end, desc = "Breadcrumb pick" },
+			{
+				"<leader>cB",
+				function()
+					require("dropbar.api").pick()
+				end,
+				desc = "Breadcrumb pick",
+			},
+			{
+				"<leader>cb",
+				function()
+					require("dropbar.api").select_next_context()
+				end,
+				desc = "Breadcrumb browse siblings",
+			},
 		},
 	},
 }
