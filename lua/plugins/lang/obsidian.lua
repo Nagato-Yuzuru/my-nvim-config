@@ -1,6 +1,8 @@
 ---
 --- Obsidian.nvim — vault management inside Neovim
---- Keymaps: <localleader>o (,o) prefix — only active inside vault notes
+--- Keymaps: <localleader>o (,o) prefix
+---   Vault 级: 任意 ft，文件在 vault 内即生效
+---   Note 级:  markdown + vault 内才生效
 --- 智能检测：向上查找 .obsidian/ 目录，自动识别 vault
 ---
 
@@ -23,10 +25,10 @@ return {
 		"obsidian-nvim/obsidian.nvim",
 		version = "*",
 		lazy = true,
-		ft = "markdown",
+		event = "BufReadPost",
 		dependencies = { "nvim-lua/plenary.nvim" },
 		config = function()
-			-- 动态检测 vault：非 vault 内的 markdown 跳过 setup
+			-- 动态检测 vault：非 vault 内跳过 setup
 			local vault = find_vault()
 			if not vault then return end
 
@@ -90,7 +92,7 @@ return {
 				-- 与 img-clip.nvim 保持一致
 				attachments = { folder = "attachments" },
 
-				-- ── 键位：仅在 vault 笔记中生效 ─────────────────────────────
+				-- ── Note 级键位：仅在 vault 内 markdown 中生效 ──────────────
 				callbacks = {
 					enter_note = function(_, _)
 						local buf = vim.api.nvim_get_current_buf()
@@ -98,23 +100,14 @@ return {
 							vim.keymap.set(mode, lhs, rhs, { buffer = buf, silent = true, desc = desc })
 						end
 
-						-- 笔记操作（,o 前缀）
-						map("n", "<localleader>on", "<cmd>Obsidian new<CR>",             "Obsidian: New note")
-						map("n", "<localleader>ot", "<cmd>Obsidian today<CR>",           "Obsidian: Today")
-						map("n", "<localleader>oy", "<cmd>Obsidian yesterday<CR>",       "Obsidian: Yesterday")
-						map("n", "<localleader>oT", "<cmd>Obsidian tomorrow<CR>",        "Obsidian: Tomorrow")
-						map("n", "<localleader>of", "<cmd>Obsidian quick_switch<CR>",    "Obsidian: Find note")
-						map("n", "<localleader>os", "<cmd>Obsidian search<CR>",          "Obsidian: Search vault")
+						-- markdown 专属操作
 						map("n", "<localleader>ob", "<cmd>Obsidian backlinks<CR>",       "Obsidian: Backlinks")
 						map("n", "<localleader>ol", "<cmd>Obsidian links<CR>",           "Obsidian: Outgoing links")
 						map("n", "<localleader>oc", "<cmd>Obsidian toggle_checkbox<CR>", "Obsidian: Toggle checkbox")
 						map("n", "<localleader>or", "<cmd>Obsidian rename<CR>",          "Obsidian: Rename note")
-						map("n", "<localleader>ow", "<cmd>Obsidian workspace<CR>",       "Obsidian: Switch workspace")
 						map("n", "<localleader>oi", "<cmd>Obsidian template<CR>",        "Obsidian: Insert template")
-						map("n", "<localleader>oo", "<cmd>Obsidian open<CR>",            "Obsidian: Open in app")
-						map("n", "<localleader>otg","<cmd>Obsidian tags<CR>",            "Obsidian: Tags")
 
-						-- 链接导航（<CR> ]o [o 由 obsidian.nvim 内置自动绑定）
+						-- 链接导航
 						map("n", "gf", "<cmd>Obsidian follow_link<CR>", "Obsidian: Follow link")
 
 						-- 可视模式
@@ -123,6 +116,37 @@ return {
 						map("v", "<localleader>oe", ":'<,'>Obsidian extract_note<CR>", "Obsidian: Extract to note")
 					end,
 				},
+			})
+
+			-- ── Vault 级键位：vault 内任意 ft 生效 ──────────────────────
+			local function set_vault_keys(buf)
+				local map = function(mode, lhs, rhs, desc)
+					vim.keymap.set(mode, lhs, rhs, { buffer = buf, silent = true, desc = desc })
+				end
+				map("n", "<localleader>on", "<cmd>Obsidian new<CR>",          "Obsidian: New note")
+				map("n", "<localleader>ot", "<cmd>Obsidian today<CR>",        "Obsidian: Today")
+				map("n", "<localleader>oy", "<cmd>Obsidian yesterday<CR>",    "Obsidian: Yesterday")
+				map("n", "<localleader>oT", "<cmd>Obsidian tomorrow<CR>",     "Obsidian: Tomorrow")
+				map("n", "<localleader>of", "<cmd>Obsidian quick_switch<CR>", "Obsidian: Find note")
+				map("n", "<localleader>os", "<cmd>Obsidian search<CR>",       "Obsidian: Search vault")
+				map("n", "<localleader>ow", "<cmd>Obsidian workspace<CR>",    "Obsidian: Switch workspace")
+				map("n", "<localleader>oo", "<cmd>Obsidian open<CR>",         "Obsidian: Open in app")
+				map("n", "<localleader>otg","<cmd>Obsidian tags<CR>",         "Obsidian: Tags")
+			end
+
+			-- 当前 buffer 立即设置
+			set_vault_keys(0)
+
+			-- 后续在 vault 内打开的 buffer 也设置
+			vim.api.nvim_create_autocmd("BufEnter", {
+				group = vim.api.nvim_create_augroup("ObsidianVaultKeys", { clear = true }),
+				callback = function(args)
+					local bufpath = vim.api.nvim_buf_get_name(args.buf)
+					if bufpath == "" then return end
+					if find_vault(vim.fn.fnamemodify(bufpath, ":p:h")) then
+						set_vault_keys(args.buf)
+					end
+				end,
 			})
 		end,
 	},

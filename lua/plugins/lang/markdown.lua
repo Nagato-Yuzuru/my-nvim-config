@@ -152,10 +152,10 @@ return {
             },
         },
         keys = {
-            { '<localleader>P',  '<cmd>PasteImage<cr>',                               desc = 'Paste image from system clipboard' },
-            { "<localleader>mr", function() require("render-markdown").set_buf() end, desc = "MD: Toggle render (buffer)" },
-            { "<localleader>mR", function() require("render-markdown").toggle() end,  desc = "MD: Toggle render (global)" },
-            { "<localleader>mp", function() require("render-markdown").preview() end, desc = "MD: Preview (split)" },
+            { '<localleader>P',  '<cmd>PasteImage<cr>',                               ft = { "markdown", "markdown.mdx", "tex", "typst" }, desc = 'Paste image from system clipboard' },
+            { "<localleader>mr", function() require("render-markdown").set_buf() end, ft = { "markdown", "markdown.mdx" }, desc = "MD: Toggle render (buffer)" },
+            { "<localleader>mR", function() require("render-markdown").toggle() end,  ft = { "markdown", "markdown.mdx" }, desc = "MD: Toggle render (global)" },
+            { "<localleader>mp", function() require("render-markdown").preview() end, ft = { "markdown", "markdown.mdx" }, desc = "MD: Preview (split)" },
         },
     },
     {
