@@ -91,7 +91,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         map_if("textDocument/declaration", "n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
         map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
         map("n", "gr", vim.lsp.buf.references, "References")
-        map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
+        -- <leader>rn is handled by inc-rename.nvim (plugins/lsp/inc-rename.lua)
         map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
         map("n", "<leader>nd", vim.lsp.buf.definition, "Goto Definition")
         map("n", "<leader>nD", vim.lsp.buf.type_definition, "Goto Type Definition")

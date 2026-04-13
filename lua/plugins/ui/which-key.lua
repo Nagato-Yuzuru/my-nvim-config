@@ -21,13 +21,22 @@ return {
         config = function(_, opts)
             local wk = require("which-key")
             wk.setup(opts)
-            --wk.add({
-            --    ["<C-x>"] = { name = "Windows / Tabs" },
-            --    ["<leader>f"] = { name = "File / Format" },
-            --    ["<leader>g"] = { name = "Generate" },
-            --    ["<leader>s"] = { name = "Search" },
-            --    ["<leader>t"] = { name = "Terminal / Test" },
-            --})
+            wk.add({
+                { "<leader>n",       group = "Navigation" },
+                { "<leader>r",       group = "Refactor" },
+                { "<leader>v",       group = "Views" },
+                { "<leader>g",       group = "Generate" },
+                { "<leader>d",       group = "Debug" },
+                { "<leader>f",       group = "Format" },
+                { "<leader>m",       group = "Mark" },
+                { "<leader>c",       group = "Code" },
+                { "<leader><leader>",group = "Motion (Flash)" },
+                { "<C-x>",          group = "Window / Buffer" },
+                { "<localleader>g",  group = "Git" },
+                { "<localleader>l",  group = "LeetCode" },
+                { "<localleader>o",  group = "Obsidian" },
+                { "<localleader>m",  group = "Markdown" },
+            })
         end,
     },
 }

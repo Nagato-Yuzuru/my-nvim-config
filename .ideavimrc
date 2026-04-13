@@ -82,6 +82,9 @@ map  <A-k>   <Action>(EditorCloneCaretAbove)
 
 nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
+nmap <leader>ns <Action>(FileStructurePopup)
+nmap <leader>nS <Action>(GotoSymbol)
+nmap <leader>nC <Action>(GotoAction)
 
 
 "" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t
