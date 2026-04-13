@@ -13,7 +13,7 @@ return {
             options = {
                 diagnostics = "nvim_lsp",
                 offsets = {
-                    { filetype = "neo-tree", text = "Explorer", highlight = "Directory", separator = true },
+                    { filetype = "snacks_layout_box", text = "Explorer", highlight = "Directory", separator = true },
                 },
                 separator_style = "slant",
                 -- 关闭按钮行为交给 mini.bufremove

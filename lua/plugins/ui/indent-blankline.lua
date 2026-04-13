@@ -46,7 +46,7 @@ return {
                     highlight = rainbow_groups, -- 彩虹作用域
                 },
                 exclude = {
-                    filetypes = { "help", "lazy", "mason", "neo-tree", "Trouble", "alpha", "dashboard" },
+                    filetypes = { "help", "lazy", "mason", "snacks_picker_list", "Trouble", "alpha", "dashboard" },
                     buftypes  = { "terminal", "nofile", "prompt" },
                 },
             }

@@ -125,7 +125,7 @@ map <leader>nf <Action>(FindInPath)
 
 nmap <leader>vp <Action>(ActivateProjectToolWindow)
 nmap <leader>vs <Action>(ActivateStructureToolWindow)
-nmap <leader>vv <Action>(ActivateVersionControlToolWindow)
+nmap <localleader>gd <Action>(Compare.SameVersion)
 nmap <leader>vc <Action>(ActivateCommitToolWindow)
 nmap <leader>vr <Action>(ActivateRunToolWindow)
 nmap <leader>vd <Action>(ActivateDebugToolWindow)
@@ -137,8 +137,11 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 
 
 " 4)  Generate
-
 map <leader>G <Action>(Generate)
+
+" 8)  Git — <localleader>g* (low-frequency, tool-level ops)
+nmap <localleader>G <Action>(Vcs.QuickListPopupAction)
+nmap <localleader>gl <Action>(Vcs.ShowTabbedFileHistory)
 map <leader>go <Action>(OverrideMethods)
 map <leader>gi <Action>(ImplementMethods)
 map <leader>gc <Action>(GoGenerateConstructorAction)

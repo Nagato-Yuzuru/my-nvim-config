@@ -53,7 +53,7 @@
 --
 -- Side benefit: since telescope is present anyway, `<leader>mo` is bound
 -- to :BookmarksGoto for a proper fuzzy picker over bookmark descriptions.
--- Snacks' ui_select integration (enabled in plugins/ui/snakcs.lua) still
+-- Snacks' ui_select integration (enabled in plugins/ui/snacks.lua) still
 -- routes LintaoAmons' internal vim.ui.select prompts (list switcher,
 -- delete confirmations) through Snacks for a consistent UX on the
 -- non-fuzzy-picker paths.
@@ -75,7 +75,7 @@ return {
 			-- bookmarks win a same-line collision against native letter marks.
 			sign_priority = 10,
 			excluded_filetypes = {
-				"neo-tree", "snacks_picker_list", "trouble", "toggleterm",
+				"snacks_picker_list", "trouble", "toggleterm",
 				"lazy", "mason", "help", "qf",
 			},
 		},
@@ -131,7 +131,7 @@ return {
 			--      not installed (Claude Code fills that role instead).
 			--   2. Add yazi-style hierarchical h/l. Horizontal cursor motion
 			--      is meaningless in a tree buffer, so they're repurposed as
-			--      level-down / level-up. Mirrors neo-tree.lua's h/l bindings
+			--      level-down / level-up. Mirrors Snacks explorer's h/l bindings
 			--      so the two sidebar tree views feel consistent.
 			local cfg = vim.g.bookmarks_config
 			if cfg and cfg.treeview and cfg.treeview.keymap then
