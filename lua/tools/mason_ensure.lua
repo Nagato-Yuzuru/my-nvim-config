@@ -39,6 +39,9 @@ local LSP_TOOLS = {
 	{ bin = "terraform-ls",               mason = "terraform-ls" },
 	{ bin = "docker-langserver",           mason = "dockerfile-language-server" },
 	{ bin = "just-lsp",                    mason = "just-lsp" },
+	{ bin = "deno",                        mason = "deno" },
+	{ bin = "vtsls",                       mason = "vtsls" },
+	{ bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
@@ -66,6 +69,12 @@ local FORMATTERS_BY_FT = {
 	jsonc              = { "prettier" },
 	yaml               = { "prettier" },
 	markdown           = { "prettier" },
+	-- ts/js: conform.lua 会按 buffer root 运行时切换 deno_fmt / prettier
+	-- 这里列 prettier 是为了 Mason 自动安装；deno_fmt 随 deno 二进制而来
+	typescript         = { "prettier" },
+	typescriptreact    = { "prettier" },
+	javascript         = { "prettier" },
+	javascriptreact    = { "prettier" },
 	toml               = { "taplo" },
 	d2                 = { "d2" },
 	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理

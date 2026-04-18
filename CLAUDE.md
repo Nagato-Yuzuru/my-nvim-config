@@ -61,8 +61,7 @@ lua/
     ui/                -- tokyonight, bufferline, neo-tree, snacks, toggleterm, trouble,
                          noice, which-key, indent-blankline, fold, todo-comments, …
     git/gitsigns.lua   -- Git integration
-    lang/              -- Language-specific plugins (markdown, obsidian, leetcode)
-    ft/                -- Filetype-specific plugins (markdown, d2)
+    lang/              -- Language-specific plugins (markdown, obsidian, leetcode, d2)
     schemas/           -- Custom JSON/YAML/TOML schema catalog (cloud-native)
     treesitter.lua     -- Treesitter config
   tools/

@@ -27,8 +27,20 @@ return {
         },
         config = function()
             local conform = require("conform")
+            local formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft()
+
+            -- ts/js: Deno 项目用 deno fmt，其余用 prettier
+            local function pick_js_formatter(bufnr)
+                local deno_root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" })
+                if deno_root then return { "deno_fmt" } end
+                return { "prettier" }
+            end
+            for _, ft in ipairs({ "typescript", "typescriptreact", "javascript", "javascriptreact" }) do
+                formatters_by_ft[ft] = pick_js_formatter
+            end
+
             conform.setup({
-                formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft(),
+                formatters_by_ft = formatters_by_ft,
                 format_on_save = function(bufnr)
                     local ft = vim.bo[bufnr].filetype
                     if ft == "zsh" then return { lsp_fallback = false } end
