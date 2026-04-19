@@ -52,5 +52,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         map("n", "<leader>nd", vim.lsp.buf.definition, "Goto Definition")
         map("n", "<leader>nD", vim.lsp.buf.type_definition, "Goto Type Definition")
         map("n", "<leader>ni", vim.lsp.buf.implementation, "Goto Implementation")
+        map_if("textDocument/prepareTypeHierarchy", "n", "<leader>nb",
+            function() vim.lsp.buf.typehierarchy("supertypes") end, "Goto Base (supertypes)")
     end,
 })

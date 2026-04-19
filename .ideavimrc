@@ -118,8 +118,9 @@ map <leader>rM <Action>(Move)
 map <leader>nd <Action>(GotoDeclaration)
 map <leader>nD <Action>(GotoTypeDeclaration)
 map <leader>ni <Action>(GotoImplementation)
-map <leader>ns <Action>(GotoSuperMethod)
-map <leader>nS <Action>(GotoSuperClass)
+map <leader>nb <Action>(GotoSuperClass)
+" GotoSuperMethod 未绑定：LSP 没有等价 API（typeHierarchy 只到类级别），保持跨编辑器对齐
+" ns/nS 保留给 FileStructurePopup / GotoSymbol（见上文 leader 快捷区）
 map <leader>nt <Action>(GotoTest)
 map <leader>nu <Action>(FindUsages)
 map <leader>nf <Action>(FindInPath)
