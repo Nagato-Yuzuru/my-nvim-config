@@ -39,8 +39,28 @@ return {
                 formatters_by_ft[ft] = pick_js_formatter
             end
 
+            -- markdown: 项目显式声明 .mdformat.toml 时走 mdformat（opt-in，由项目自行决定
+            -- 是否需要 pymdown / MDX / admonition 等扩展的安全格式化），否则默认 prettier。
+            -- 作用域随 .mdformat.toml 位置下沉：放 docs/ 下只影响 docs/；放项目根则全仓库。
+            -- 安装：uv tool install mdformat --with mdformat-mkdocs --with mdformat-gfm --with mdformat-frontmatter
+            -- mdformat 缺失时跳过 fmt（不降级到 prettier），以免破坏项目已声明要保留的语法。
+            local function pick_md_formatter(bufnr)
+                if vim.fs.root(bufnr, { ".mdformat.toml" }) then
+                    if vim.fn.executable("mdformat") == 1 then return { "mdformat" } end
+                    return {}
+                end
+                return { "prettier" }
+            end
+            formatters_by_ft.markdown = pick_md_formatter
+
             conform.setup({
                 formatters_by_ft = formatters_by_ft,
+                formatters = {
+                    -- mdformat 默认校验 "格式化前后 HTML 渲染一致"，但歧义字符（列表中的裸 `*` 等）
+                    -- 会被合法地转义触发误报。--no-validate 跳过该检查；MkDocs / MDX 扩展语法
+                    -- 仍由对应插件正确保留。
+                    mdformat = { prepend_args = { "--no-validate" } },
+                },
                 format_on_save = function(bufnr)
                     local ft = vim.bo[bufnr].filetype
                     if ft == "zsh" then return { lsp_fallback = false } end
