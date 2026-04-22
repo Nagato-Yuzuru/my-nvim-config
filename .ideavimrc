@@ -212,3 +212,45 @@ vnoremap K :move '<-2<CR>gv=gv
 
 nmap ]d <Action>(GotoNextError)
 nmap [d <Action>(GotoPreviousError)
+
+" ===== Syntax-aware navigation & editing =====
+" Mirrors lua/plugins/edit/textobjects.lua (nvim-treesitter-textobjects on the
+" Neovim side). IDE actions cover what JetBrains exposes natively; kinds
+" without a matching action stay nvim-only (listed at the bottom of this
+" section so both sides share one source of truth).
+
+" Bracket-prefix motions
+nmap ]f <Action>(MethodDown)
+nmap [f <Action>(MethodUp)
+nmap ]c <Action>(VcsShowNextChangeMarker)
+nmap [c <Action>(VcsShowPrevChangeMarker)
+
+" Sibling swap (statement / argument).
+" MoveStatementDown/Up is the same action IDE binds to Cmd+Shift+Down/Up.
+" MoveElementRight/Left swaps a function argument with its neighbor.
+nmap gss <Action>(MoveStatementDown)
+nmap gsS <Action>(MoveStatementUp)
+nmap gsa <Action>(MoveElementRight)
+nmap gsA <Action>(MoveElementLeft)
+
+" Incremental selection — grow/shrink to enclosing syntax node.
+" <Action>(EditorSelectWord) through IdeaVim does NOT work: the dispatch
+" resets the caret/selection model between calls, so the action's internal
+" "extend further" state is lost and rapid presses all restart from cursor.
+" Workaround: sethandler — let the IDE handle the key natively. Requires a
+" one-time setup in IDE Preferences → Keymap:
+"   Alt+W        → EditorSelectWord
+"   Alt+Shift+W  → EditorUnSelectWord
+" (IDE default is Opt+Up/Down on Mac; we rebind for parity with <A-w>/<A-W>.)
+sethandler <A-w> a:ide
+sethandler <A-W> a:ide
+
+" nvim-only (no IDE action with the same granularity — intentionally unbound
+" here):
+"   ]l/[l ]L/[L    → @loop.outer start/end
+"   ]i/[i          → @conditional.outer (if / match / switch)
+"   ]C/[C          → @class.outer (GotoNextClass is project-wide, not buffer-local)
+"   ]F/[F          → @function.outer end (MethodUp/Down has no end variant)
+"   ]a/[a          → @parameter.outer
+"   af/if ac/ic ai/ii al/il → treesitter-textobjects selections
+"                    (argtextobj plugin already covers aa/ia on this side)

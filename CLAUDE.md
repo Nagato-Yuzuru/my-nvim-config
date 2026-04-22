@@ -10,7 +10,7 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 
 **The single most important constraint of this repo:** the editing experience in Neovim and JetBrains IDEs (via IdeaVim) must stay as consistent as possible. The user works daily in both, and muscle memory must transfer between them.
 
-- **`.ideavimrc` is hard-linked to `~/.ideavimrc`** so that IdeaVim reads this repo's file directly. Editing `.ideavimrc` in this repo immediately affects every JetBrains IDE on the machine.
+- **`.ideavimrc` is linked to `~/.ideavimrc`** so that IdeaVim reads this repo's file directly. Editing `.ideavimrc` in this repo immediately affects every JetBrains IDE on the machine.
 - When adding or changing a keymap, plugin, or workflow on the Neovim side, **check `.ideavimrc` and mirror the binding** whenever an equivalent IDE Action exists. When no equivalent exists (e.g. Flash Treesitter has no IdeaVim counterpart), leave a comment on the IdeaVim side explaining why it's intentionally unbound.
 - Conversely, when touching `.ideavimrc`, check the corresponding Neovim file and keep the two in sync.
 - Asymmetries are allowed when Neovim genuinely has more capability than IdeaVim (e.g. multi-list bookmarks, Flash Treesitter). When this happens, the nvim-only extras must be documented as a comment block in the relevant `.ideavimrc` section so both sides share the same source of truth for what's bound where.
