@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "c7d2d58197d8cba43ac4fece0d85db9230658bec5e506b4f1d478acd74783a01"
     },
+    "neovim": {
+      "source": "julianobarbosa/claude-code-skills",
+      "sourceType": "github",
+      "computedHash": "ff0e9af9763683f5cc5032b350fa9ce011368ae26b51f04a640cfc3a1f44a40e"
+    },
     "obsidian-nvim": {
       "source": "julianobarbosa/claude-code-skills",
       "sourceType": "github",

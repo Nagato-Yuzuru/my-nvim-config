@@ -22,12 +22,32 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 | Leader + clipboard + `J`/`K` visual move + `<C-x>` handling | `lua/core/keymaps.lua`                                             |
 | easymotion `<leader><leader>*`                              | `lua/plugins/edit/motion.lua` (flash.nvim)                         |
 | multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
-| Refactor `<leader>r*`                                       | LSP keymaps in `init.lua` (`LspAttach`) + language plugins         |
-| Navigation `<leader>n*` (jumps + `ns`/`nS` structure)       | LSP keymaps in `init.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` |
+| Refactor `<leader>r*`                                       | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + language plugins |
+| Core navigation `g*` (`gd`/`gD`/`gi`/`gr`)                  | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/trouble.lua` (`gr`) |
+| Navigation extras `<leader>n*` (no `g*` equivalent)         | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` |
 | Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua`                                       |
 | Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
+
+### Navigation `g*` — two intentional decisions
+
+The bindings themselves are in `lua/core/lsp.lua` / `.ideavimrc`. The code
+can tell you **what**; these two points are the **why**:
+
+1. **`gD = type_definition`, not `declaration`** (diverges from Kickstart/
+   LazyVim). Declaration vs. definition is only distinct in C/C++ (header
+   vs. impl) and Objective-C; for our stack (Lua/Py/TS/Go/shell/…) both
+   LSP requests return identical results, so `gD = declaration` is a
+   wasted keystroke. C/C++ users wanting header ↔ impl should use
+   `:ClangdSwitchSourceHeader` — more precise than `gD` anyway.
+
+2. **`<leader>nd`/`nD`/`ni`/`nu` are retired by design.** They used to
+   mirror `g*`; removed to stay aligned with community muscle memory.
+   Do **not** re-introduce them as aliases. `<leader>n*` only survives
+   for jumps with **no** `g*` counterpart: `<leader>nb` supertypes (both
+   sides), IdeaVim-only `<leader>nt` GotoTest / `<leader>nf` FindInPath.
+   `<leader>ns`/`<leader>nS` are structure views, not jumps.
 
 ### The `<C-x>` handling — an intentional asymmetry
 
@@ -42,42 +62,13 @@ When adding a new `<C-x>*` binding on the Neovim side, do **not** try to mirror 
 
 ## Architecture
 
-```
-init.lua              -- Entry: leader keys, clipboard, lazy.nvim bootstrap,
-                         vim.lsp.enable(...), LspAttach keymaps, inlay hints
-.ideavimrc            -- Hard-linked to ~/.ideavimrc; keep in sync with nvim side
-lsp/                  -- Neovim-native per-server LSP config, auto-loaded by
-                         vim.lsp.enable() (gopls.lua, pyright.lua, lua_ls.lua, …)
-lua/
-  core/
-    options.lua       -- Vim options (tabs = 4 spaces, UI, diff options)
-    keymaps.lua       -- Global keymaps: clipboard, window nav, <C-x> prefix, visual J/K
-  plugins/            -- Plugin specs organized by domain (each file returns a lazy.nvim spec)
-    lsp/core.lua      -- Mason setup + :SchemaSelect command (NOT the LSP server configs)
-    completion/        -- blink.cmp + LuaSnip + blink.compat (zsh completion)
-    format/conform.lua -- conform.nvim with format-on-save
-    lint/nvim-lint.lua -- nvim-lint
-    edit/              -- align, autopairs, autotag, comment, enhance, motion (flash),
-                         multi-cursor, rainbow, surround
-    ui/                -- tokyonight, bufferline, neo-tree, snacks, toggleterm, trouble,
-                         noice, which-key, indent-blankline, fold, todo-comments, …
-    git/gitsigns.lua   -- Git integration
-    lang/              -- Language-specific plugins (markdown, obsidian, leetcode, d2)
-    schemas/           -- Custom JSON/YAML/TOML schema catalog (cloud-native)
-    treesitter.lua     -- Treesitter config
-  tools/
-    mason_ensure.lua   -- Mason auto-install: install primitives + LSP/formatter/linter
-                         inventory + VeryLazy and FileType wiring. Single source of truth.
-```
-
-### Active lazy.nvim layers
-
-`init.lua` imports **9** layers: `lsp`, `edit`, `format`, `lint`, `completion`, `ui`, `git`, `lang`, `treesitter`. There are no disabled/commented-out layers.
+The layout is self-describing — see `ls` / the tree in your editor. The
+non-obvious things that `ls` can't tell you are below.
 
 ### Key Design Patterns
 
-- **Neovim 0.11+ native LSP**: Server configs live in **top-level `lsp/<server>.lua`** files and are activated via `vim.lsp.enable({...})` in `init.lua`. This repo does **not** use `lspconfig[server].setup()`. Global capabilities (including blink.cmp's) are injected once at `VeryLazy` via `vim.lsp.config("*", { capabilities = ... })`.
-- **LSP keymaps via `LspAttach`**: All LSP-related keymaps (`gd`, `gi`, `gr`, `<leader>rn`, `<leader>ca`, `<leader>n*`, etc.) are set in the `LspAttach` autocmd in `init.lua`, not in `core/keymaps.lua`, so they're scoped to buffers with an attached LSP client. Inlay hints are also enabled there.
+- **Neovim 0.11+ native LSP**: Server configs live in **top-level `lsp/<server>.lua`** files and are activated via `vim.lsp.enable({...})` in `lua/core/lsp.lua` (invoked from `init.lua`). This repo does **not** use `lspconfig[server].setup()`. Global capabilities (including blink.cmp's) are injected once at `VeryLazy` via `vim.lsp.config("*", { capabilities = ... })`.
+- **LSP keymaps via `LspAttach`**: All LSP-related keymaps (`gd`/`gD`/`gi`, `<leader>rn`, `<leader>ca`, `<leader>nb`, `<C-k>` signature in insert, etc.) are set in the `LspAttach` autocmd in `lua/core/lsp.lua`, not in `core/keymaps.lua`, so they're scoped to buffers with an attached LSP client. `gr` is handled by `lua/plugins/ui/trouble.lua` (Trouble UI instead of raw quickfix). Inlay hints are also enabled in `LspAttach`. See the `g*` navigation table above for the full scheme.
 - **Modular lazy.nvim imports**: `init.lua` uses `spec = { import = "plugins.<domain>" }`. Each subdirectory is a self-contained import layer that can be commented out independently for bisection.
 - **Mason auto-install**: `tools/mason_ensure.lua` is the single source of truth — it holds the install primitives (`has_exec`, `ensure_mason_pkg`, `ensure_tools`), the project-specific inventory (`LSP_TOOLS`, `FORMATTERS_BY_FT`, `LINTERS_BY_FT`), and the wiring to `VeryLazy` (LSP servers) and `FileType` autocmds (formatters/linters). Install is skipped when `CI=true` or `NO_AUTO_INSTALL=1`.
 - **Schema selection**: `:SchemaSelect` (bound to `<leader>cs`) applies JSON/YAML/TOML schemas from SchemaStore + the custom cloud-native catalog in `plugins/schemas/cloud_native_schema.lua`. Implemented in `plugins/lsp/core.lua`.

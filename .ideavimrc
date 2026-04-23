@@ -31,6 +31,14 @@ Plug 'terryma/vim-multiple-cursors'
 "" -- Emacs C-x prefix keymap
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
+
+" -- LSP hover / signature help: both sides use community defaults
+" normal K          → Quick Documentation  (IdeaVim native)
+" insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;
+"                                            bind in IDE Keymap if the default
+"                                            Cmd/Ctrl+P has been overridden)
+" Mirror of lua/core/lsp.lua. Intentionally unbound here — nothing to do.
+
 " -- easymotion
 
 
@@ -124,16 +132,25 @@ nmap <leader>rr <Action>(RefactorCode)
 map <leader>rM <Action>(Move)
 
 
-" 2) Navigation
-" 和`gd`/`gD`一致
-map <leader>nd <Action>(GotoDeclaration)
-map <leader>nD <Action>(GotoTypeDeclaration)
-map <leader>ni <Action>(GotoImplementation)
+" 2) Navigation — aligned with Neovim/LSP community g* defaults.
+" Overriding Vim natives here:
+"   gi — "insert at last insert position" (use <C-o>i or `^i instead)
+"   gr — virtual replace mode (use R for normal replace)
+"   gD — search word in current file (use * / # instead)
+" gd is already IdeaVim default (GotoDeclaration); declared here for symmetry.
+nmap gd <Action>(GotoDeclaration)
+nmap gD <Action>(GotoTypeDeclaration)
+nmap gi <Action>(GotoImplementation)
+nmap gr <Action>(FindUsages)
+" <leader>n* — extras that have no standard g* default:
+"   nb  → supertypes / GotoSuperClass
+"   nt  → GotoTest
+"   nf  → FindInPath (search, not jump)
+"   ns/nS → structure popup / sidebar (not jump; see leader shortcuts above)
+" GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
+" class-level, not method-level — keep parity with Neovim side.
 map <leader>nb <Action>(GotoSuperClass)
-" GotoSuperMethod 未绑定：LSP 没有等价 API（typeHierarchy 只到类级别），保持跨编辑器对齐
-" ns/nS 是结构浏览（popup / sidebar），不是 jump 动作 —— 见上文 leader 快捷区
 map <leader>nt <Action>(GotoTest)
-map <leader>nu <Action>(FindUsages)
 map <leader>nf <Action>(FindInPath)
 
 "3) Views
