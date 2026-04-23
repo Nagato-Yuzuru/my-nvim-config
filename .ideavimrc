@@ -82,9 +82,20 @@ map  <A-k>   <Action>(EditorCloneCaretAbove)
 
 nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
+
+" Structure / Outline — mirrors lua/plugins/ui/aerial.lua on the Neovim side.
+" Lowercase = transient popup, uppercase = persistent sidebar. Same semantic
+" on both sides; the backing widgets differ (JetBrains popup/tool window vs
+" aerial picker/sidebar).
 nmap <leader>ns <Action>(FileStructurePopup)
-nmap <leader>nS <Action>(GotoSymbol)
-nmap <leader>nC <Action>(GotoAction)
+nmap <leader>nS <Action>(ActivateStructureToolWindow)
+
+" Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua):
+"   <leader>ss  → workspace symbols    — use Shift+Shift (Search Everywhere)
+"   <leader>sc  → commands / actions   — use Shift+Shift, "Actions" tab
+" IdeaVim deliberately doesn't mirror these: Search Everywhere already covers
+" the same ground with a single entry point, so duplicating them as leader
+" bindings would just add noise.
 
 
 "" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t
@@ -120,7 +131,7 @@ map <leader>nD <Action>(GotoTypeDeclaration)
 map <leader>ni <Action>(GotoImplementation)
 map <leader>nb <Action>(GotoSuperClass)
 " GotoSuperMethod 未绑定：LSP 没有等价 API（typeHierarchy 只到类级别），保持跨编辑器对齐
-" ns/nS 保留给 FileStructurePopup / GotoSymbol（见上文 leader 快捷区）
+" ns/nS 是结构浏览（popup / sidebar），不是 jump 动作 —— 见上文 leader 快捷区
 map <leader>nt <Action>(GotoTest)
 map <leader>nu <Action>(FindUsages)
 map <leader>nf <Action>(FindInPath)

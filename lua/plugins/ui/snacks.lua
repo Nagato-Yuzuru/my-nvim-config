@@ -4,6 +4,20 @@ return {
 		priority = 1000,
 		lazy = false,
 		opts = {
+			-- Friendly help popup: rounded centered float with a title, instead of
+			-- the default dense grid docked at the bottom.
+			styles = {
+				help = {
+					position = "float",
+					backdrop = false,
+					border = "rounded",
+					title = " Keymaps — press ? to close ",
+					title_pos = "center",
+					row = 0.15,
+					col = 0.5,
+					width = 0.6,
+				},
+			},
 			picker = {
 				enabled = true,
 				-- Replace vim.ui.select with Snacks' picker system-wide.
@@ -11,6 +25,15 @@ return {
 				-- (e.g. LintaoAmons/bookmarks.nvim's list/delete prompts).
 				ui_select = true,
 				layout = { preset = "default" },
+				-- Wider columns → fewer keys per row, each entry gets breathing room.
+				actions = {
+					toggle_help_input = function(p)
+						p.input.win:toggle_help({ col_width = 45, key_width = 14 })
+					end,
+					toggle_help_list = function(p)
+						p.list.win:toggle_help({ col_width = 45, key_width = 14 })
+					end,
+				},
 				sources = {
 					explorer = {
 						win = {
@@ -54,25 +77,25 @@ return {
 				desc = "Grep",
 			},
 			{
-				"<leader>ns",
-				function()
-					Snacks.picker.lsp_symbols()
-				end,
-				desc = "Document Symbols",
-			},
-			{
-				"<leader>nS",
+				"<leader>ss",
 				function()
 					Snacks.picker.lsp_workspace_symbols()
 				end,
 				desc = "Workspace Symbols",
 			},
 			{
-				"<leader>nC",
+				"<leader>sc",
 				function()
 					Snacks.picker.commands()
 				end,
 				desc = "Commands",
+			},
+			{
+				"<leader>sk",
+				function()
+					Snacks.picker.keymaps()
+				end,
+				desc = "Keymaps",
 			},
 			{
 				"<leader>vn",

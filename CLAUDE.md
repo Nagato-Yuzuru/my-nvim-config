@@ -23,7 +23,8 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 | easymotion `<leader><leader>*`                              | `lua/plugins/edit/motion.lua` (flash.nvim)                         |
 | multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
 | Refactor `<leader>r*`                                       | LSP keymaps in `init.lua` (`LspAttach`) + language plugins         |
-| Navigation `<leader>n*`                                     | LSP keymaps in `init.lua` (`LspAttach`)                            |
+| Navigation `<leader>n*` (jumps + `ns`/`nS` structure)       | LSP keymaps in `init.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` |
+| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua`                                       |
 | Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |

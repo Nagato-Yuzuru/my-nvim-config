@@ -23,6 +23,7 @@ return {
             wk.setup(opts)
             wk.add({
                 { "<leader>n",       group = "Navigation" },
+                { "<leader>s",       group = "Search" },
                 { "<leader>r",       group = "Refactor" },
                 { "<leader>v",       group = "Views" },
                 { "<leader>g",       group = "Generate" },
