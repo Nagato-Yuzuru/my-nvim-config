@@ -5,6 +5,9 @@
 return {
 	{
 		"saghen/blink.cmp",
+		-- Pin to v1: v2 is explicitly marked unstable / breaking in the README
+		-- (config schema is still churning). Revisit when v2 ships stable.
+		version = "1.*",
 		event = { "InsertEnter", "CmdlineEnter" },
 		dependencies = {
 			"L3MON4D3/LuaSnip",
@@ -40,7 +43,7 @@ return {
 					window = { border = "rounded", winblend = 0 },
 				},
 			},
-			signature = { -- 插入时签名提示（与 <A-P> 互补）
+			signature = { -- 插入时自动签名提示（与 insert <C-k> 手动触发互补）
 				enabled = true,
 				window = { border = "rounded", winblend = 0 },
 			},

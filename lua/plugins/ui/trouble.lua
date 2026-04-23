@@ -28,9 +28,9 @@ return {
 			desc = "Buffer Diagnostics (Trouble)",
 		},
 		{
-			"<leader>nu",
+			"gr",
 			"<cmd>Trouble lsp_references toggle<cr>",
-			desc = "Find Usages (Trouble)",
+			desc = "LSP References (Trouble)",
 		},
 	},
 }

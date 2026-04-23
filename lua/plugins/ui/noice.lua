@@ -15,7 +15,7 @@ return {
             popupmenu = { enabled = false },
             lsp = {
                 progress = { enabled = false },  -- 交给现有 UI/状态栏
-                hover = { enabled = false },     -- 我们用 <C-q>/K 自己的 hover
+                hover = { enabled = false },     -- 走 LSP 默认 K (vim.lsp.buf.hover)
                 signature = { enabled = false }, -- blink 的签名窗
             },
             presets = {

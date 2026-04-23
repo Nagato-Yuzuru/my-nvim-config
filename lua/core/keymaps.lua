@@ -14,8 +14,6 @@ for _, mode in ipairs({ "v", "n" }) do
 	map(mode, "<A-d>", '"_d', opts)
 end
 
--- 不需要禁用，会自动覆盖
--- map("", "<C-q>", "<Nop>")
 map("v", "g<C-x>", "<Nop>", opts)
 map("v", "g<C-S-A>", "g<C-x>", opts)
 

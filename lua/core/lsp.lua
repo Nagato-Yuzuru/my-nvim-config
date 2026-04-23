@@ -14,6 +14,25 @@ vim.api.nvim_create_autocmd("User", {
     end,
 })
 
+-- Hover popup buffer 内把 K 绑为关闭 popup：
+-- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg (:help)。虽然我们已
+-- 经把 keywordprg 从 :Man 改成 :help（见 core/options.lua），popup 里按 K 跳
+-- 出一个 no-help 提示仍然不直觉。更符合直觉的是"再按一次 K 关掉 popup"。
+do
+    local orig = vim.lsp.util.open_floating_preview
+    vim.lsp.util.open_floating_preview = function(contents, syntax, opts, ...)
+        local bufnr, winid = orig(contents, syntax, opts, ...)
+        if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+            vim.keymap.set("n", "K", function()
+                if winid and vim.api.nvim_win_is_valid(winid) then
+                    vim.api.nvim_win_close(winid, true)
+                end
+            end, { buffer = bufnr, silent = true, desc = "Close hover popup" })
+        end
+        return bufnr, winid
+    end
+end
+
 -- 启用 LSP servers
 vim.lsp.enable({
     "lua_ls", "pyright", "ruff", "ty", "gopls",
@@ -41,17 +60,22 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
         pcall(function() vim.lsp.inlay_hint.enable(true, { bufnr = bufnr }) end)
 
-        map("n", "<C-q>", vim.lsp.buf.hover, "LSP: Hover")
-        map({ "n", "i", "s" }, "<A-P>", vim.lsp.buf.signature_help, "LSP: Signature Help")
+        -- Hover (K) and insert-mode signature_help (<C-k>) follow Neovim 0.11
+        -- LspAttach community defaults. The signature_help line below is kept
+        -- explicit as a safety net against upstream default changes; it is NOT
+        -- a divergence from the default.
+        map("i", "<C-k>", vim.lsp.buf.signature_help, "LSP: Signature Help")
+        -- Navigation: g* follows community defaults (mirrors .ideavimrc §Navigation).
+        -- gd: Goto Definition    | gD: Goto Type Definition
+        -- gi: Goto Implementation | gr: References (Trouble UI, see ui/trouble.lua)
+        -- Note: gD overrides vim.lsp.buf.declaration — declaration is rarely
+        --       distinct from definition for our stack; type-def is more useful.
         map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
-        map_if("textDocument/declaration", "n", "gD", vim.lsp.buf.declaration, "Goto Declaration")
+        map("n", "gD", vim.lsp.buf.type_definition, "Goto Type Definition")
         map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
-        map("n", "gr", vim.lsp.buf.references, "References")
         -- <leader>rn is handled by inc-rename.nvim (plugins/lsp/inc-rename.lua)
         map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
-        map("n", "<leader>nd", vim.lsp.buf.definition, "Goto Definition")
-        map("n", "<leader>nD", vim.lsp.buf.type_definition, "Goto Type Definition")
-        map("n", "<leader>ni", vim.lsp.buf.implementation, "Goto Implementation")
+        -- <leader>n* — extras that have no standard g* counterpart:
         map_if("textDocument/prepareTypeHierarchy", "n", "<leader>nb",
             function() vim.lsp.buf.typehierarchy("supertypes") end, "Goto Base (supertypes)")
     end,
