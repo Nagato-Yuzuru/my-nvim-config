@@ -1,10 +1,18 @@
 -- Mason 安装原语 -----------------------------------------------------------
 
-local function has_exec(bin) return vim.fn.executable(bin) == 1 end
+local function has_exec(bin)
+	return vim.fn.executable(bin) == 1
+end
 
 local function ensure_mason_pkg(pkg_name)
-	local ok, mr = pcall(require, "mason-registry"); if not ok then return end
-	local okp, pkg = pcall(mr.get_package, pkg_name); if not okp then return end
+	local ok, mr = pcall(require, "mason-registry")
+	if not ok then
+		return
+	end
+	local okp, pkg = pcall(mr.get_package, pkg_name)
+	if not okp then
+		return
+	end
 	if not pkg:is_installed() then
 		vim.notify(("Installing %s via Mason…"):format(pkg_name), vim.log.levels.INFO)
 		pkg:install()
@@ -13,7 +21,9 @@ end
 
 -- 根据 "name → {bin, mason}" 映射，缺失时自动安装
 local function ensure_tools(list, tool_map)
-	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then return end
+	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
+		return
+	end
 	for _, name in ipairs(list) do
 		local t = tool_map[name]
 		if t and not has_exec(t.bin) then
@@ -26,73 +36,73 @@ end
 
 -- LSP servers（由 mason.nvim 触发安装）
 local LSP_TOOLS = {
-	{ bin = "lua-language-server",        mason = "lua-language-server" },
-	{ bin = "pyright-langserver",          mason = "pyright" },
-	{ bin = "ruff",                        mason = "ruff" },
-	{ bin = "gopls",                       mason = "gopls" },
+	{ bin = "lua-language-server", mason = "lua-language-server" },
+	{ bin = "pyright-langserver", mason = "pyright" },
+	{ bin = "ruff", mason = "ruff" },
+	{ bin = "gopls", mason = "gopls" },
 	{ bin = "vscode-json-language-server", mason = "json-lsp" },
-	{ bin = "yaml-language-server",        mason = "yaml-language-server" },
-	{ bin = "bash-language-server",        mason = "bash-language-server" },
-	{ bin = "taplo",                       mason = "taplo" },
-	{ bin = "marksman",                    mason = "marksman" },
-	{ bin = "clangd",                      mason = "clangd" },
-	{ bin = "terraform-ls",               mason = "terraform-ls" },
-	{ bin = "docker-langserver",           mason = "dockerfile-language-server" },
-	{ bin = "just-lsp",                    mason = "just-lsp" },
-	{ bin = "deno",                        mason = "deno" },
-	{ bin = "vtsls",                       mason = "vtsls" },
+	{ bin = "yaml-language-server", mason = "yaml-language-server" },
+	{ bin = "bash-language-server", mason = "bash-language-server" },
+	{ bin = "taplo", mason = "taplo" },
+	{ bin = "marksman", mason = "marksman" },
+	{ bin = "clangd", mason = "clangd" },
+	{ bin = "terraform-ls", mason = "terraform-ls" },
+	{ bin = "docker-langserver", mason = "dockerfile-language-server" },
+	{ bin = "just-lsp", mason = "just-lsp" },
+	{ bin = "deno", mason = "deno" },
+	{ bin = "vtsls", mason = "vtsls" },
 	{ bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
-	{ bin = "helm_ls",                     mason = "helm-ls" },
+	{ bin = "helm_ls", mason = "helm-ls" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
 local TOOL_MAP = {
-	stylua        = { bin = "stylua",        mason = "stylua" },
-	ruff_format   = { bin = "ruff",          mason = "ruff" },
-	goimports     = { bin = "goimports",     mason = "goimports" },
-	shfmt         = { bin = "shfmt",         mason = "shfmt" },
-	prettier      = { bin = "prettier",      mason = "prettier" },
-	taplo         = { bin = "taplo",         mason = "taplo" },
-	shellcheck      = { bin = "shellcheck",      mason = "shellcheck" },
-	hadolint        = { bin = "hadolint",        mason = "hadolint" },
-	golangcilint    = { bin = "golangci-lint",   mason = "golangci-lint" },
-	yamllint        = { bin = "yamllint",        mason = "yamllint" },
-	actionlint      = { bin = "actionlint",      mason = "actionlint" },
+	stylua = { bin = "stylua", mason = "stylua" },
+	ruff_format = { bin = "ruff", mason = "ruff" },
+	goimports = { bin = "goimports", mason = "goimports" },
+	shfmt = { bin = "shfmt", mason = "shfmt" },
+	prettier = { bin = "prettier", mason = "prettier" },
+	taplo = { bin = "taplo", mason = "taplo" },
+	shellcheck = { bin = "shellcheck", mason = "shellcheck" },
+	hadolint = { bin = "hadolint", mason = "hadolint" },
+	golangcilint = { bin = "golangci-lint", mason = "golangci-lint" },
+	yamllint = { bin = "yamllint", mason = "yamllint" },
+	actionlint = { bin = "actionlint", mason = "actionlint" },
 }
 
 local FORMATTERS_BY_FT = {
-	lua                = { "stylua" },
-	python             = { "ruff_format" },
+	lua = { "stylua" },
+	python = { "ruff_format" },
 	-- gofumpt 由 golangci-lint formatter 处理，goimports 负责 import 管理
-	go                 = { "goimports" },
-	sh                 = { "shfmt" },
-	bash               = { "shfmt" },
-	zsh                = { "shfmt" },
-	json               = { "prettier" },
-	jsonc              = { "prettier" },
-	yaml               = { "prettier" },
-	markdown           = { "prettier" },
+	go = { "goimports" },
+	sh = { "shfmt" },
+	bash = { "shfmt" },
+	zsh = { "shfmt" },
+	json = { "prettier" },
+	jsonc = { "prettier" },
+	yaml = { "prettier" },
+	markdown = { "prettier" },
 	-- ts/js: conform.lua 会按 buffer root 运行时切换 deno_fmt / prettier
 	-- 这里列 prettier 是为了 Mason 自动安装；deno_fmt 随 deno 二进制而来
-	typescript         = { "prettier" },
-	typescriptreact    = { "prettier" },
-	javascript         = { "prettier" },
-	javascriptreact    = { "prettier" },
-	toml               = { "taplo" },
-	d2                 = { "d2" },
+	typescript = { "prettier" },
+	typescriptreact = { "prettier" },
+	javascript = { "prettier" },
+	javascriptreact = { "prettier" },
+	toml = { "taplo" },
+	d2 = { "d2" },
 	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理
-	terraform          = { "terraform_fmt" },
+	terraform = { "terraform_fmt" },
 	["terraform-vars"] = { "terraform_fmt" },
 }
 
 local LINTERS_BY_FT = {
 	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
-	go         = { "golangcilint" },
+	go = { "golangcilint" },
 	-- yamllint 跑风格/缩进/重复 key 检查；schema 校验由 yamlls 负责。
 	-- actionlint 只对 .github/workflows/* 有意义（懂 expr / needs / matrix），
 	-- 不放在这里自动跑，由 plugins/lint/nvim-lint.lua 里按路径触发。
-	yaml       = { "yamllint" },
+	yaml = { "yamllint" },
 }
 
 local M = {}
@@ -100,21 +110,38 @@ local M = {}
 -- 安装缺失的 LSP servers（VeryLazy 时调用）
 function M.ensure_lsp()
 	local map = {}
-	for _, t in ipairs(LSP_TOOLS) do map[t.bin] = t end
-	ensure_tools(vim.tbl_map(function(t) return t.bin end, LSP_TOOLS), map)
+	for _, t in ipairs(LSP_TOOLS) do
+		map[t.bin] = t
+	end
+	ensure_tools(
+		vim.tbl_map(function(t)
+			return t.bin
+		end, LSP_TOOLS),
+		map
+	)
 end
 
 -- 打开某 filetype 时按需安装对应 formatter/linter（FileType autocmd 调用）
 function M.ensure_for_ft(ft)
 	local seen = {}
-	for _, name in ipairs(FORMATTERS_BY_FT[ft] or {}) do seen[name] = true end
-	for _, name in ipairs(LINTERS_BY_FT[ft] or {}) do seen[name] = true end
+	for _, name in ipairs(FORMATTERS_BY_FT[ft] or {}) do
+		seen[name] = true
+	end
+	for _, name in ipairs(LINTERS_BY_FT[ft] or {}) do
+		seen[name] = true
+	end
 	local list = vim.tbl_keys(seen)
-	if #list > 0 then ensure_tools(list, TOOL_MAP) end
+	if #list > 0 then
+		ensure_tools(list, TOOL_MAP)
+	end
 end
 
-function M.get_formatters_by_ft() return vim.deepcopy(FORMATTERS_BY_FT) end
-function M.get_linters_by_ft() return vim.deepcopy(LINTERS_BY_FT) end
+function M.get_formatters_by_ft()
+	return vim.deepcopy(FORMATTERS_BY_FT)
+end
+function M.get_linters_by_ft()
+	return vim.deepcopy(LINTERS_BY_FT)
+end
 
 -- 按工具名按需安装（供需要"路径触发"的工具使用，如 actionlint 仅在
 -- .github/workflows/* 下才想装）

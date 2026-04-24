@@ -30,7 +30,9 @@ return {
 		config = function()
 			-- 动态检测 vault：非 vault 内跳过 setup
 			local vault = find_vault()
-			if not vault then return end
+			if not vault then
+				return
+			end
 
 			require("obsidian").setup({
 				workspaces = {
@@ -84,8 +86,12 @@ return {
 					date_format = "%Y-%m-%d",
 					time_format = "%H:%M",
 					substitutions = {
-						yesterday = function() return os.date("%Y-%m-%d", os.time() - 86400) end,
-						tomorrow  = function() return os.date("%Y-%m-%d", os.time() + 86400) end,
+						yesterday = function()
+							return os.date("%Y-%m-%d", os.time() - 86400)
+						end,
+						tomorrow = function()
+							return os.date("%Y-%m-%d", os.time() + 86400)
+						end,
 					},
 				},
 
@@ -101,18 +107,18 @@ return {
 						end
 
 						-- markdown 专属操作
-						map("n", "<localleader>ob", "<cmd>Obsidian backlinks<CR>",       "Obsidian: Backlinks")
-						map("n", "<localleader>ol", "<cmd>Obsidian links<CR>",           "Obsidian: Outgoing links")
+						map("n", "<localleader>ob", "<cmd>Obsidian backlinks<CR>", "Obsidian: Backlinks")
+						map("n", "<localleader>ol", "<cmd>Obsidian links<CR>", "Obsidian: Outgoing links")
 						map("n", "<localleader>oc", "<cmd>Obsidian toggle_checkbox<CR>", "Obsidian: Toggle checkbox")
-						map("n", "<localleader>or", "<cmd>Obsidian rename<CR>",          "Obsidian: Rename note")
-						map("n", "<localleader>oi", "<cmd>Obsidian template<CR>",        "Obsidian: Insert template")
+						map("n", "<localleader>or", "<cmd>Obsidian rename<CR>", "Obsidian: Rename note")
+						map("n", "<localleader>oi", "<cmd>Obsidian template<CR>", "Obsidian: Insert template")
 
 						-- 链接导航
 						map("n", "gf", "<cmd>Obsidian follow_link<CR>", "Obsidian: Follow link")
 
 						-- 可视模式
-						map("v", "<localleader>ol", ":'<,'>Obsidian link<CR>",         "Obsidian: Link selection")
-						map("v", "<localleader>on", ":'<,'>Obsidian link_new<CR>",     "Obsidian: Link to new note")
+						map("v", "<localleader>ol", ":'<,'>Obsidian link<CR>", "Obsidian: Link selection")
+						map("v", "<localleader>on", ":'<,'>Obsidian link_new<CR>", "Obsidian: Link to new note")
 						map("v", "<localleader>oe", ":'<,'>Obsidian extract_note<CR>", "Obsidian: Extract to note")
 					end,
 				},
@@ -123,15 +129,15 @@ return {
 				local map = function(mode, lhs, rhs, desc)
 					vim.keymap.set(mode, lhs, rhs, { buffer = buf, silent = true, desc = desc })
 				end
-				map("n", "<localleader>on", "<cmd>Obsidian new<CR>",          "Obsidian: New note")
-				map("n", "<localleader>ot", "<cmd>Obsidian today<CR>",        "Obsidian: Today")
-				map("n", "<localleader>oy", "<cmd>Obsidian yesterday<CR>",    "Obsidian: Yesterday")
-				map("n", "<localleader>oT", "<cmd>Obsidian tomorrow<CR>",     "Obsidian: Tomorrow")
+				map("n", "<localleader>on", "<cmd>Obsidian new<CR>", "Obsidian: New note")
+				map("n", "<localleader>ot", "<cmd>Obsidian today<CR>", "Obsidian: Today")
+				map("n", "<localleader>oy", "<cmd>Obsidian yesterday<CR>", "Obsidian: Yesterday")
+				map("n", "<localleader>oT", "<cmd>Obsidian tomorrow<CR>", "Obsidian: Tomorrow")
 				map("n", "<localleader>of", "<cmd>Obsidian quick_switch<CR>", "Obsidian: Find note")
-				map("n", "<localleader>os", "<cmd>Obsidian search<CR>",       "Obsidian: Search vault")
-				map("n", "<localleader>ow", "<cmd>Obsidian workspace<CR>",    "Obsidian: Switch workspace")
-				map("n", "<localleader>oo", "<cmd>Obsidian open<CR>",         "Obsidian: Open in app")
-				map("n", "<localleader>otg","<cmd>Obsidian tags<CR>",         "Obsidian: Tags")
+				map("n", "<localleader>os", "<cmd>Obsidian search<CR>", "Obsidian: Search vault")
+				map("n", "<localleader>ow", "<cmd>Obsidian workspace<CR>", "Obsidian: Switch workspace")
+				map("n", "<localleader>oo", "<cmd>Obsidian open<CR>", "Obsidian: Open in app")
+				map("n", "<localleader>otg", "<cmd>Obsidian tags<CR>", "Obsidian: Tags")
 			end
 
 			-- 当前 buffer 立即设置
@@ -142,7 +148,9 @@ return {
 				group = vim.api.nvim_create_augroup("ObsidianVaultKeys", { clear = true }),
 				callback = function(args)
 					local bufpath = vim.api.nvim_buf_get_name(args.buf)
-					if bufpath == "" then return end
+					if bufpath == "" then
+						return
+					end
 					if find_vault(vim.fn.fnamemodify(bufpath, ":p:h")) then
 						set_vault_keys(args.buf)
 					end

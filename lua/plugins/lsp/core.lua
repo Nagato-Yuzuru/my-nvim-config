@@ -57,14 +57,20 @@ return {
 					prompt = "Select Schema to Apply",
 					format_item = function(item)
 						local desc = item.description and (" - " .. item.description) or ""
-						if #desc > 50 then desc = string.sub(desc, 1, 47) .. "..." end
+						if #desc > 50 then
+							desc = string.sub(desc, 1, 47) .. "..."
+						end
 						return item.name .. desc
 					end,
 				}, function(choice)
-					if not choice then return end
+					if not choice then
+						return
+					end
 					if choice.url == "__custom__" then
 						vim.ui.input({ prompt = "Schema URL: " }, function(input)
-							if input and input ~= "" then apply_schema_url(input) end
+							if input and input ~= "" then
+								apply_schema_url(input)
+							end
 						end)
 						return
 					end

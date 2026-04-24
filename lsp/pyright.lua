@@ -8,7 +8,10 @@ return {
 			on_dir(vim.uv.cwd())
 			return
 		end
-		local root = vim.fs.root(bufnr, { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "pyrightconfig.json", ".git" })
+		local root = vim.fs.root(
+			bufnr,
+			{ "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "pyrightconfig.json", ".git" }
+		)
 		on_dir(root or vim.fs.dirname(bufname))
 	end,
 	settings = {

@@ -25,7 +25,9 @@ return {
 			-- 命中时按需走 Mason 安装。
 			local function is_gh_workflow(bufnr)
 				local p = vim.api.nvim_buf_get_name(bufnr or 0)
-				if p == "" then return false end
+				if p == "" then
+					return false
+				end
 				return p:match("%.github/workflows/.*%.ya?ml$") ~= nil
 			end
 			-- ft 不限死 "yaml"：有些设置会把 workflow 文件识别为 yaml.xxx
@@ -75,7 +77,9 @@ return {
 				)
 			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
 
-			vim.schedule(function() lint.try_lint() end)
+			vim.schedule(function()
+				lint.try_lint()
+			end)
 		end,
 	},
 }

@@ -34,10 +34,14 @@ return {
 				group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
 				callback = function(ev)
 					local buf = ev.buf
-					if not vim.api.nvim_buf_is_valid(buf) then return end
+					if not vim.api.nvim_buf_is_valid(buf) then
+						return
+					end
 					local ft = vim.bo[buf].filetype
 					local lang = vim.treesitter.language.get_lang(ft)
-					if not lang then return end
+					if not lang then
+						return
+					end
 					if pcall(vim.treesitter.language.add, lang) then
 						pcall(vim.treesitter.start, buf, lang)
 					end

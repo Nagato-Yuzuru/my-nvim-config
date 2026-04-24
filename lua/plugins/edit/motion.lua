@@ -59,8 +59,7 @@ return {
 			-- proximity, so the first ~26 nearby matches still get the easy
 			-- lowercase keys, and anything beyond that falls back to Shift+*
 			-- instead of running out of labels.
-			labels = "asdfghjklqwertyuiopzxcvbnm"
-				.. "ASDFGHJKLQWERTYUIOPZXCVBNM",
+			labels = "asdfghjklqwertyuiopzxcvbnm" .. "ASDFGHJKLQWERTYUIOPZXCVBNM",
 			label = {
 				-- Insert label instead of overlaying it, so the second char
 				-- of each match stays visible.
@@ -85,102 +84,139 @@ return {
 			-- ===== Line direction (words, current line) =====
 			{
 				"<leader><leader>h",
-				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
-				mode = MODE, desc = "Flash ← word (line)",
+				flash_pat(function()
+					return line_only([[\<\k]])
+				end, { forward = false }),
+				mode = MODE,
+				desc = "Flash ← word (line)",
 			},
 			{
 				"<leader><leader>l",
-				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
-				mode = MODE, desc = "Flash → word (line)",
+				flash_pat(function()
+					return line_only([[\<\k]])
+				end, { forward = true }),
+				mode = MODE,
+				desc = "Flash → word (line)",
 			},
 
 			-- ===== Buffer-wide word (mirror of h/l, word = \k not \S+) =====
 			{
 				"<leader><leader>H",
 				flash_pat([[\<\k]], { forward = false }),
-				mode = MODE, desc = "Flash ← word (buffer)",
+				mode = MODE,
+				desc = "Flash ← word (buffer)",
 			},
 			{
 				"<leader><leader>L",
 				flash_pat([[\<\k]], { forward = true }),
-				mode = MODE, desc = "Flash → word (buffer)",
+				mode = MODE,
+				desc = "Flash → word (buffer)",
 			},
 
 			-- ===== Cross-line lines (first non-blank of each line) =====
 			{
 				"<leader><leader>j",
 				flash_pat([[^\s*\zs\S]], { forward = true }),
-				mode = MODE, desc = "Flash ↓ lines",
+				mode = MODE,
+				desc = "Flash ↓ lines",
 			},
 			{
 				"<leader><leader>k",
 				flash_pat([[^\s*\zs\S]], { forward = false }),
-				mode = MODE, desc = "Flash ↑ lines",
+				mode = MODE,
+				desc = "Flash ↑ lines",
 			},
 
 			-- ===== Line-scoped word motions (w/b/e) =====
 			{
 				"<leader><leader>w",
-				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
-				mode = MODE, desc = "Flash w (line)",
+				flash_pat(function()
+					return line_only([[\<\k]])
+				end, { forward = true }),
+				mode = MODE,
+				desc = "Flash w (line)",
 			},
 			{
 				"<leader><leader>b",
-				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
-				mode = MODE, desc = "Flash b (line)",
+				flash_pat(function()
+					return line_only([[\<\k]])
+				end, { forward = false }),
+				mode = MODE,
+				desc = "Flash b (line)",
 			},
 			{
 				"<leader><leader>e",
-				flash_pat(function() return line_only([[\k\>]]) end, { forward = true }),
-				mode = MODE, desc = "Flash e (line)",
+				flash_pat(function()
+					return line_only([[\k\>]])
+				end, { forward = true }),
+				mode = MODE,
+				desc = "Flash e (line)",
 			},
 
 			-- ===== Buffer-wide WORD motions (non-whitespace blocks) =====
 			{
 				"<leader><leader>W",
 				flash_pat([[\S\+]], { forward = true }),
-				mode = MODE, desc = "Flash W",
+				mode = MODE,
+				desc = "Flash W",
 			},
 			{
 				"<leader><leader>B",
 				flash_pat([[\S\+]], { forward = false }),
-				mode = MODE, desc = "Flash B",
+				mode = MODE,
+				desc = "Flash B",
 			},
 			{
 				"<leader><leader>E",
 				flash_pat([[\S\+]], { forward = true }, { jump = { pos = "end" } }),
-				mode = MODE, desc = "Flash E",
+				mode = MODE,
+				desc = "Flash E",
 			},
 
 			-- ===== Incremental label jump =====
 			{
 				"<leader><leader>s",
-				function() require("flash").jump() end,
-				mode = MODE, desc = "Flash jump",
+				function()
+					require("flash").jump()
+				end,
+				mode = MODE,
+				desc = "Flash jump",
 			},
 			{
 				"<leader><leader>/",
-				function() require("flash").jump() end,
-				mode = MODE, desc = "Flash label search",
+				function()
+					require("flash").jump()
+				end,
+				mode = MODE,
+				desc = "Flash label search",
 			},
 
 			-- ===== Treesitter (IdeaVim has no equivalent; intentionally unbound there) =====
 			{
 				"<leader><leader>t",
-				function() require("flash").treesitter() end,
-				mode = MODE, desc = "Flash Treesitter",
+				function()
+					require("flash").treesitter()
+				end,
+				mode = MODE,
+				desc = "Flash Treesitter",
 			},
 			{
 				"<leader><leader>T",
-				function() require("flash").treesitter_search() end,
-				mode = MODE, desc = "Flash Treesitter search",
+				function()
+					require("flash").treesitter_search()
+				end,
+				mode = MODE,
+				desc = "Flash Treesitter search",
 			},
 
 			-- ===== Repeat last Flash jump =====
 			{
 				"<leader><leader>.",
-				function() require("flash").jump({ continue = true }) end,
-				mode = MODE, desc = "Flash repeat",
+				function()
+					require("flash").jump({ continue = true })
+				end,
+				mode = MODE,
+				desc = "Flash repeat",
 			},
 		},
 	},

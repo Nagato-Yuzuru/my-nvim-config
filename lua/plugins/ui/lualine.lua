@@ -38,7 +38,9 @@ return {
 						-- 录制中显示寄存器名，录完后显示内容（截断）
 						local last_reg = nil
 						vim.api.nvim_create_autocmd("RecordingLeave", {
-							callback = function() last_reg = vim.fn.reg_recording() end,
+							callback = function()
+								last_reg = vim.fn.reg_recording()
+							end,
 						})
 						return {
 							function()

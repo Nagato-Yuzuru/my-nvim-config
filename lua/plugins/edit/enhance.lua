@@ -6,7 +6,7 @@ return {
 		"andymass/vim-matchup",
 		event = "BufRead",
 		init = function()
-			vim.g.matchup_matchparen_deferred = 1       -- 延迟高亮，避免每次按键阻塞
+			vim.g.matchup_matchparen_deferred = 1 -- 延迟高亮，避免每次按键阻塞
 			vim.g.matchup_matchparen_deferred_show_delay = 50
 			vim.g.matchup_matchparen_deferred_hide_delay = 700
 			vim.g.matchup_matchparen_hi_surround_always = 0 -- 只高亮直接匹配对

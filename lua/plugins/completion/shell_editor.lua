@@ -1,4 +1,3 @@
-
 return {
 	-- cmp-zsh: 在 edit-command-line（zsh filetype）里提供 zsh 补全候选
 	-- 注意：fzf-tab 的 UI 无法在 nvim 内还原，但候选列表来源相同

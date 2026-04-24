@@ -14,7 +14,9 @@ return {
 		if deno_root and (not node_root or #deno_root >= #node_root) then
 			return
 		end
-		if node_root then on_dir(node_root) end
+		if node_root then
+			on_dir(node_root)
+		end
 	end,
 	settings = {
 		typescript = {
