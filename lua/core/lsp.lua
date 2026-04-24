@@ -10,6 +10,13 @@ vim.api.nvim_create_autocmd("User", {
         pcall(function()
             caps = vim.tbl_deep_extend("force", caps, require("blink.cmp").get_lsp_capabilities())
         end)
+        -- nvim-ufo 的 LSP provider 要求显式声明 lineFoldingOnly，
+        -- 否则 jsonls / yamlls 等服务端不会返回 foldingRange。
+        caps.textDocument = caps.textDocument or {}
+        caps.textDocument.foldingRange = {
+            dynamicRegistration = false,
+            lineFoldingOnly = true,
+        }
         vim.lsp.config("*", { capabilities = caps })
     end,
 })
@@ -40,6 +47,7 @@ vim.lsp.enable({
     "marksman", "terraformls", "dockerls", "clangd",
     "just_ls",
     "denols", "vtsls", "eslint",
+    "helm_ls",
 })
 
 -- LspAttach: 快捷键 + inlay hints

@@ -42,6 +42,7 @@ local LSP_TOOLS = {
 	{ bin = "deno",                        mason = "deno" },
 	{ bin = "vtsls",                       mason = "vtsls" },
 	{ bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
+	{ bin = "helm_ls",                     mason = "helm-ls" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
@@ -55,6 +56,8 @@ local TOOL_MAP = {
 	shellcheck      = { bin = "shellcheck",      mason = "shellcheck" },
 	hadolint        = { bin = "hadolint",        mason = "hadolint" },
 	golangcilint    = { bin = "golangci-lint",   mason = "golangci-lint" },
+	yamllint        = { bin = "yamllint",        mason = "yamllint" },
+	actionlint      = { bin = "actionlint",      mason = "actionlint" },
 }
 
 local FORMATTERS_BY_FT = {
@@ -86,6 +89,10 @@ local LINTERS_BY_FT = {
 	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
 	go         = { "golangcilint" },
+	-- yamllint 跑风格/缩进/重复 key 检查；schema 校验由 yamlls 负责。
+	-- actionlint 只对 .github/workflows/* 有意义（懂 expr / needs / matrix），
+	-- 不放在这里自动跑，由 plugins/lint/nvim-lint.lua 里按路径触发。
+	yaml       = { "yamllint" },
 }
 
 local M = {}
@@ -108,5 +115,11 @@ end
 
 function M.get_formatters_by_ft() return vim.deepcopy(FORMATTERS_BY_FT) end
 function M.get_linters_by_ft() return vim.deepcopy(LINTERS_BY_FT) end
+
+-- 按工具名按需安装（供需要"路径触发"的工具使用，如 actionlint 仅在
+-- .github/workflows/* 下才想装）
+function M.ensure_tool(name)
+	ensure_tools({ name }, TOOL_MAP)
+end
 
 return M

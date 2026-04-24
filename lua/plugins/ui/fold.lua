@@ -53,15 +53,22 @@ return {
 			},
 		},
 		config = function()
-			-- Treesitter 可用时优先用 TS，其次缩进；有些 LSP 也能提供 foldingRange
+			-- UFO 的 provider_selector 只认 { main, fallback } 两档：main 拿不到
+			-- 结果时才用 fallback，返回 3 个会报错。所以选一个最合适的 main，
+			-- 再固定用 "indent" 兜底。LSP foldingRange 语义最准（jsonls 能合并
+			-- 注释块、lua_ls 能按作用域），没 LSP 时退到 treesitter（结构折叠），
+			-- 再退到 indent。
 			require("ufo").setup({
-				provider_selector = function(_, filetype, _)
-					local ok = pcall(vim.treesitter.get_parser, bufnr)
-					if ok then
-						return { "treesitter", "indent" }
-					else
-						return { "indent" }
+				provider_selector = function(bufnr, _filetype, _buftype)
+					for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+						if client:supports_method("textDocument/foldingRange") then
+							return { "lsp", "indent" }
+						end
 					end
+					if pcall(vim.treesitter.get_parser, bufnr) then
+						return { "treesitter", "indent" }
+					end
+					return { "indent" }
 				end,
 				-- 可选：自定义折叠行的虚拟文本
 				-- fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
