@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/7 12:35
----
 local markdown_cfg = function()
     require('render-markdown').setup {
         callout = {

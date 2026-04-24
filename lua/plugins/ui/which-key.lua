@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/3 19:58
----
 return {
     {
         "folke/which-key.nvim",

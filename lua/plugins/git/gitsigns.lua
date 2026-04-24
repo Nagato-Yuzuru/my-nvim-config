@@ -1,8 +1,5 @@
----
---- Created by colas.
---- Git 状态可视：gutter 标识 + inline blame + diff 视图
---- 对齐 ideavimrc：<localleader>G = Vcs.QuickListPopupAction
----
+-- Git 状态可视：gutter 标识 + inline blame + diff 视图
+-- 对齐 ideavimrc：<localleader>G = Vcs.QuickListPopupAction
 return {
 	{
 		"lewis6991/gitsigns.nvim",

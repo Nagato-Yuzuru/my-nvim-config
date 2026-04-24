@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/7 13:13
----
 return {
     "folke/todo-comments.nvim",
     event = { "BufReadPost", "BufNewFile" },

@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/4 13:14
----
 return {
     {
         "stevearc/conform.nvim",

@@ -1,9 +1,5 @@
----
---- Created by colas.
---- DateTime: 2025/11/4 19:25
---- 键位对齐 .ideavimrc multiple-cursors 配置
---- 使用 multicursor.nvim（纯 Lua，性能优于 vim-visual-multi）
----
+-- 键位对齐 .ideavimrc multiple-cursors 配置
+-- 使用 multicursor.nvim（纯 Lua，性能优于 vim-visual-multi）
 return {
 	{
 		"jake-stewart/multicursor.nvim",

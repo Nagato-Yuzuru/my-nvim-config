@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/4 18:50
----
 return {
     {
         "kylechui/nvim-surround",

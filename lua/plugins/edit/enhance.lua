@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/4 19:05
----
 return {
 	{ "michaeljsmith/vim-indent-object" },
 

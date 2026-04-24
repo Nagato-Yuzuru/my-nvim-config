@@ -1,7 +1,3 @@
----
---- Created by yuzuru.
---- DateTime: 2025/12/9 12:30
----
 
 return {
 	-- cmp-zsh: 在 edit-command-line（zsh filetype）里提供 zsh 补全候选
@@ -9,7 +5,6 @@ return {
 	{
 		"tamago324/cmp-zsh",
 		ft = { "zsh" },
-		event = "VeryLazy",
 		dependencies = {
 			"saghen/blink.cmp",
 			"saghen/blink.compat",
