@@ -61,7 +61,15 @@ return {
 					-- 仍由对应插件正确保留。
 					mdformat = { prepend_args = { "--no-validate" } },
 				},
+				-- Autoformat kill-switch：
+				--   :FormatDisable   → 全局关（vim.g.disable_autoformat）
+				--   :FormatDisable!  → 仅当前 buffer 关（vim.b.disable_autoformat）
+				--   :FormatEnable    → 重新打开（同时清掉当前 buffer 的局部开关）
+				-- 场景：mkdocs / 特殊 MDX / 带 frontmatter 的 YAML 等，fmt 会改坏语法时。
 				format_on_save = function(bufnr)
+					if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+						return nil
+					end
 					local ft = vim.bo[bufnr].filetype
 					if ft == "zsh" then
 						return { lsp_fallback = false }
@@ -70,6 +78,21 @@ return {
 				end,
 			})
 			vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+
+			vim.api.nvim_create_user_command("FormatDisable", function(args)
+				if args.bang then
+					vim.b.disable_autoformat = true
+				else
+					vim.g.disable_autoformat = true
+				end
+			end, {
+				desc = "Disable autoformat-on-save (use ! for buffer-local)",
+				bang = true,
+			})
+			vim.api.nvim_create_user_command("FormatEnable", function()
+				vim.b.disable_autoformat = false
+				vim.g.disable_autoformat = false
+			end, { desc = "Re-enable autoformat-on-save" })
 		end,
 	},
 }
