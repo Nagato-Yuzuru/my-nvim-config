@@ -40,19 +40,19 @@ return {
 		-- nav uses uppercase `]C`/`[C`. `[i` shadows the rarely-used builtin
 		-- "search word in included files" — intentional.
 		local moves = {
-			["]f"] = { move.goto_next_start,     "@function.outer",    "Next function start" },
-			["]F"] = { move.goto_next_end,       "@function.outer",    "Next function end" },
-			["[f"] = { move.goto_previous_start, "@function.outer",    "Prev function start" },
-			["[F"] = { move.goto_previous_end,   "@function.outer",    "Prev function end" },
-			["]a"] = { move.goto_next_start,     "@parameter.outer",   "Next argument" },
-			["[a"] = { move.goto_previous_start, "@parameter.outer",   "Prev argument" },
-			["]l"] = { move.goto_next_start,     "@loop.outer",        "Next loop start" },
-			["]L"] = { move.goto_next_end,       "@loop.outer",        "Next loop end" },
-			["[l"] = { move.goto_previous_start, "@loop.outer",        "Prev loop start" },
-			["[L"] = { move.goto_previous_end,   "@loop.outer",        "Prev loop end" },
-			["]C"] = { move.goto_next_start,     "@class.outer",       "Next class" },
-			["[C"] = { move.goto_previous_start, "@class.outer",       "Prev class" },
-			["]i"] = { move.goto_next_start,     "@conditional.outer", "Next conditional" },
+			["]f"] = { move.goto_next_start, "@function.outer", "Next function start" },
+			["]F"] = { move.goto_next_end, "@function.outer", "Next function end" },
+			["[f"] = { move.goto_previous_start, "@function.outer", "Prev function start" },
+			["[F"] = { move.goto_previous_end, "@function.outer", "Prev function end" },
+			["]a"] = { move.goto_next_start, "@parameter.outer", "Next argument" },
+			["[a"] = { move.goto_previous_start, "@parameter.outer", "Prev argument" },
+			["]l"] = { move.goto_next_start, "@loop.outer", "Next loop start" },
+			["]L"] = { move.goto_next_end, "@loop.outer", "Next loop end" },
+			["[l"] = { move.goto_previous_start, "@loop.outer", "Prev loop start" },
+			["[L"] = { move.goto_previous_end, "@loop.outer", "Prev loop end" },
+			["]C"] = { move.goto_next_start, "@class.outer", "Next class" },
+			["[C"] = { move.goto_previous_start, "@class.outer", "Prev class" },
+			["]i"] = { move.goto_next_start, "@conditional.outer", "Next conditional" },
 			["[i"] = { move.goto_previous_start, "@conditional.outer", "Prev conditional" },
 		}
 		for key, spec in pairs(moves) do
@@ -62,10 +62,18 @@ return {
 		end
 
 		-- Swap siblings
-		map("n", "gsa", function() swap.swap_next("@parameter.inner") end, "Swap with next argument")
-		map("n", "gsA", function() swap.swap_previous("@parameter.inner") end, "Swap with prev argument")
-		map("n", "gss", function() swap.swap_next("@statement.outer") end, "Swap with next statement")
-		map("n", "gsS", function() swap.swap_previous("@statement.outer") end, "Swap with prev statement")
+		map("n", "gsa", function()
+			swap.swap_next("@parameter.inner")
+		end, "Swap with next argument")
+		map("n", "gsA", function()
+			swap.swap_previous("@parameter.inner")
+		end, "Swap with prev argument")
+		map("n", "gss", function()
+			swap.swap_next("@statement.outer")
+		end, "Swap with next statement")
+		map("n", "gsS", function()
+			swap.swap_previous("@statement.outer")
+		end, "Swap with prev statement")
 
 		-- ===== Incremental selection =====
 		-- `<A-w>` grows the visual selection to the enclosing syntax node;
@@ -112,9 +120,9 @@ return {
 				-- Already in charwise visual: reposition BOTH ends without leaving
 				-- visual. Without this, the anchor stays at the original `v` spot
 				-- and expansion grows only on one side.
-				vim.fn.setpos(".", { 0, e_line, e_col, 0 })  -- cursor → new end
-				vim.cmd("normal! o")                         -- flip: anchor ↔ cursor
-				vim.fn.setpos(".", { 0, s_line, s_col, 0 })  -- cursor → new start
+				vim.fn.setpos(".", { 0, e_line, e_col, 0 }) -- cursor → new end
+				vim.cmd("normal! o") -- flip: anchor ↔ cursor
+				vim.fn.setpos(".", { 0, s_line, s_col, 0 }) -- cursor → new start
 			else
 				-- Drop any non-charwise visual, then enter charwise fresh.
 				if mode == "V" or mode == "\22" then
@@ -135,7 +143,9 @@ return {
 			local stack = sel_stack[buf] or {}
 			local top = stack[#stack]
 			local node = top and next_larger(top) or vim.treesitter.get_node()
-			if not node then return end
+			if not node then
+				return
+			end
 			stack[#stack + 1] = node
 			sel_stack[buf] = stack
 			select_node(node)
@@ -144,12 +154,14 @@ return {
 		local function ts_shrink()
 			local buf = vim.api.nvim_get_current_buf()
 			local stack = sel_stack[buf]
-			if not stack or #stack <= 1 then return end
+			if not stack or #stack <= 1 then
+				return
+			end
 			stack[#stack] = nil
 			select_node(stack[#stack])
 		end
 
 		map({ "n", "x" }, "<A-w>", ts_expand, "TS: expand selection")
-		map("x",           "<A-W>", ts_shrink, "TS: shrink selection")
+		map("x", "<A-W>", ts_shrink, "TS: shrink selection")
 	end,
 }

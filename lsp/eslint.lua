@@ -2,9 +2,17 @@
 -- Deno 项目跳过（denols 内置 deno lint）
 local DENO_MARKERS = { "deno.json", "deno.jsonc", "deno.lock" }
 local ESLINT_MARKERS = {
-	"eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts",
-	".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.mjs",
-	".eslintrc.yaml", ".eslintrc.yml", ".eslintrc.json",
+	"eslint.config.js",
+	"eslint.config.mjs",
+	"eslint.config.cjs",
+	"eslint.config.ts",
+	".eslintrc",
+	".eslintrc.js",
+	".eslintrc.cjs",
+	".eslintrc.mjs",
+	".eslintrc.yaml",
+	".eslintrc.yml",
+	".eslintrc.json",
 	"package.json",
 }
 
@@ -13,9 +21,13 @@ return {
 	filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
 	root_markers = ESLINT_MARKERS,
 	root_dir = function(bufnr, on_dir)
-		if vim.fs.root(bufnr, DENO_MARKERS) then return end
+		if vim.fs.root(bufnr, DENO_MARKERS) then
+			return
+		end
 		local root = vim.fs.root(bufnr, ESLINT_MARKERS)
-		if root then on_dir(root) end
+		if root then
+			on_dir(root)
+		end
 	end,
 	settings = {
 		workingDirectories = { mode = "auto" },

@@ -47,19 +47,25 @@ return {
 			cmdline = {
 				keymap = {
 					preset = "none",
-					["<C-n>"]   = { "select_next", "fallback" },
-					["<C-p>"]   = { "select_prev", "fallback" },
-					["<Tab>"]   = { "show", "select_next", "fallback" },
+					["<C-n>"] = { "select_next", "fallback" },
+					["<C-p>"] = { "select_prev", "fallback" },
+					["<Tab>"] = { "show", "select_next", "fallback" },
 					["<S-Tab>"] = { "select_prev", "fallback" },
-					["<cr>"]    = { "fallback" },
+					["<cr>"] = { "fallback" },
 					-- 行尾有 ghost text 则 accept，否则前进一字
-					["<C-f>"] = { function(cmp)
-						if vim.fn.getcmdpos() > #vim.fn.getcmdline() then
-							return cmp.accept()
-						end
-						vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Right>", true, true, true), "cn", false)
-						return true
-					end },
+					["<C-f>"] = {
+						function(cmp)
+							if vim.fn.getcmdpos() > #vim.fn.getcmdline() then
+								return cmp.accept()
+							end
+							vim.api.nvim_feedkeys(
+								vim.api.nvim_replace_termcodes("<Right>", true, true, true),
+								"cn",
+								false
+							)
+							return true
+						end,
+					},
 				},
 				completion = {
 					-- 只在输入 : 命令时自动显示菜单；/ ? 搜索仍按原生行为
@@ -95,10 +101,10 @@ return {
 
 			-- cmdline Emacs/shell 风格导航
 			local map = vim.keymap.set
-			map("c", "<C-a>", "<Home>",   { noremap = true })
-			map("c", "<C-b>", "<Left>",   { noremap = true })
+			map("c", "<C-a>", "<Home>", { noremap = true })
+			map("c", "<C-b>", "<Left>", { noremap = true })
 			map("c", "<M-b>", "<S-Left>", { noremap = true })
-			map("c", "<M-f>", "<S-Right>",{ noremap = true })
+			map("c", "<M-f>", "<S-Right>", { noremap = true })
 			map("c", "<C-k>", function()
 				local col = vim.fn.getcmdpos()
 				vim.fn.setcmdline(vim.fn.getcmdline():sub(1, col - 1))

@@ -4,7 +4,9 @@ return {
 	root_markers = { "deno.json", "deno.jsonc", "deno.lock" },
 	root_dir = function(bufnr, on_dir)
 		local root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" })
-		if root then on_dir(root) end
+		if root then
+			on_dir(root)
+		end
 	end,
 	settings = {
 		deno = {
