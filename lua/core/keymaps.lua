@@ -38,10 +38,9 @@ map("v", "K", ":move '<-2<CR>gv=gv", opts)
 --    })
 --end
 
-map("n", "<C-h>", "<C-w>h", opts)
-map("n", "<C-j>", "<C-w>j", opts)
-map("n", "<C-k>", "<C-w>k", opts)
-map("n", "<C-l>", "<C-w>l", opts)
+-- <C-h/j/k/l> 窗口移动由 vim-tmux-navigator 提供（plugins/ui/tmux.lua），
+-- 它兼顾 nvim 内部窗口 + tmux pane 切换。此处不再重复绑定，否则会被
+-- 插件加载时覆盖，等于死代码。
 
 -- kitty keyboard protocol 下 Shift+letter 以 <S-X> 形式到达
 map("n", "<C-w><S-H>", "<cmd>wincmd H<CR>", { desc = "Move window far left" })

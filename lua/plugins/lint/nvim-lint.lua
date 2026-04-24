@@ -1,6 +1,3 @@
----
---- Created by yuzuru.
----
 return {
 	{
 		"mfussenegger/nvim-lint",

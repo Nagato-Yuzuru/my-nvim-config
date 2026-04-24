@@ -1,7 +1,3 @@
----
---- Created by yuzuru.
---- DateTime: 2025/11/4 01:43
----
 return {
     {
         "folke/noice.nvim",

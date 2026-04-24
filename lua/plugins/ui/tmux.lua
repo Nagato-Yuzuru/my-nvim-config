@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/3 20:07
----
 -- plugins/ui/tmux.lua
 return {
 	{

@@ -1,7 +1,3 @@
----
---- Created by colas.
---- DateTime: 2025/11/3 19:26
----
 return {
     {
         "folke/tokyonight.nvim",

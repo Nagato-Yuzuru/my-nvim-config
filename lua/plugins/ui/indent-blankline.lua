@@ -1,7 +1,3 @@
----
---- Created by yuzuru.
---- DateTime: 2025/11/4 00:14
----
 return {
     {
         "lukas-reineke/indent-blankline.nvim",
