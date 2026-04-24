@@ -8,6 +8,48 @@ return {
 
 			lint.linters_by_ft = mason_ensure.get_linters_by_ft()
 
+			-- golangci-lint v2 override：
+			-- 上游 adapter 的 getArgs() 在模块 dofile 时跑一次 `go env GOMOD`
+			-- 来决定后续传"目录"还是"文件路径"，结果**永久缓存**。如果首次
+			-- 触发时 nvim 的 cwd 不在 Go module 里（或 buffer 不带 name），
+			-- 缓存到错误模式后所有后续 lint 都给 v2 喂错路径，exit 5
+			-- (NoGoFiles)。这里强制每次 lint 重新解析 + 忽略 exit code
+			-- (v2 在 NoGoFiles / ErrorLogged 时也会非零 exit，那是预期行为，
+			-- 不是 nvim-lint 该报警的 bug)。
+			do
+				local function go_args()
+					local bufname = vim.api.nvim_buf_get_name(0)
+					if bufname == "" then
+						return nil
+					end
+					local buf_dir = vim.fn.fnamemodify(bufname, ":h")
+					local has_mod = vim.fs.find("go.mod", { path = buf_dir, upward = true })[1] ~= nil
+					-- Module 内：传目录让 v2 自己处理 package 边界。
+					-- Module 外：传文件路径走 single-file 模式。
+					return has_mod and buf_dir or bufname
+				end
+
+				lint.linters.golangcilint = vim.tbl_deep_extend("force", lint.linters.golangcilint or {}, {
+					ignore_exitcode = true,
+					args = {
+						"run",
+						"--output.json.path=stdout",
+						"--output.text.path=",
+						"--output.tab.path=",
+						"--output.html.path=",
+						"--output.checkstyle.path=",
+						"--output.code-climate.path=",
+						"--output.junit-xml.path=",
+						"--output.teamcity.path=",
+						"--output.sarif.path=",
+						"--issues-exit-code=0",
+						"--show-stats=false",
+						"--path-mode=abs",
+						go_args, -- 每次 lint 重算，不缓存
+					},
+				})
+			end
+
 			-- Find the nearest ancestor directory containing `filename`.
 			local function find_root(filename)
 				local buf_dir = vim.fn.expand("%:p:h")
