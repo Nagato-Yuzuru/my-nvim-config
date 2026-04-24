@@ -61,6 +61,7 @@
   "ts-install.nvim": { "branch": "main", "commit": "7c5569256212d17041d5f3057e5fcbaf646f6643" },
   "vim-cool": { "branch": "master", "commit": "9ea940c0d537e55de0de4c0298c04b976960fb12" },
   "vim-exchange": { "branch": "master", "commit": "d6c1e9790bcb8df27c483a37167459bbebe0112e" },
+  "vim-helm": { "branch": "master", "commit": "2c8525fd98e57472769d137317bca83e477858ce" },
   "vim-indent-object": { "branch": "master", "commit": "8ab36d5ec2a3a60468437a95e142ce994df598c6" },
   "vim-markdown": { "branch": "master", "commit": "1bc9d0cd8e1cc3e901b0a49c2b50a843f1c89397" },
   "vim-matchup": { "branch": "master", "commit": "dccb2d12ef2a703d2f076b3cda36a3339449d1eb" },
