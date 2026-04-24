@@ -29,6 +29,9 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 | Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
+| Debug `<leader>D`, `<leader>d*`, `<leader>vd`               | `lua/plugins/runtime/dap.lua`                                      |
+| Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
+| Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
 
 ### Navigation `g*` — two intentional decisions
 
@@ -60,6 +63,46 @@ Beyond that, the two sides diverge **on purpose**:
 
 When adding a new `<C-x>*` binding on the Neovim side, do **not** try to mirror it in `.ideavimrc`. Instead, leave the IDE-side binding to the JetBrains keymap and, if the parity matters, document the IDE shortcut in a comment.
 
+### Runtime suite (DAP / Overseer / Neotest) — partial parity, by design
+
+The "runtime" layer (debug / run / test) lives in `lua/plugins/runtime/`. Two
+intentional design points:
+
+1. **Step keys use CLI-debugger mnemonics, not F-keys.** `<leader>dn` (next /
+   step over), `<leader>ds` (step into), `<leader>df` (finish / step out) match
+   the `n`/`s`/`f` commands of pdb, dlv, and gdb verbatim. F-keys (`<F7>`/
+   `<F8>` JetBrains-style) are intentionally **not** bound on the Neovim side
+   — leader-based stays in the Vim grammar and reaches across keyboard
+   layouts. JetBrains keeps its native F-key keymap; that's an asymmetry we
+   accept.
+
+2. **`<leader>nt` (GotoTest) is IdeaVim-only.** Neotest has no native
+   "navigate to test file" command — it's a runner, not a navigator. The
+   IdeaVim-side binding survives because GotoTest is a JetBrains IDE Action;
+   on Neovim use `<leader>tt` (run nearest test) or language-specific tools
+   (`:GoAlt`, etc.). Do not invent a fragile heuristic to mimic GotoTest.
+
+3. **DAP adapters install via mason-registry directly**, called from
+   `lua/core/dap.lua` (which scans `dap/<adapter>.lua` files for `mason = ...`
+   fields). We do **not** use `mason-nvim-dap` — its `setup_handlers` model
+   duplicates what our per-adapter files already do, and its adapter-name
+   namespace (`python`, `js`) doesn't match the mason package namespace
+   (`debugpy`, `js-debug-adapter`), creating two sources of truth. Per-adapter
+   files keep `mason = "<raw-mason-pkg>"`. `tools/mason_ensure.lua` remains
+   the single source of truth for **LSP + formatters + linters**; DAP is
+   parallel and self-contained under `dap/`.
+
+4. **`dap/<adapter>.lua` is keyed by adapter, not by language** (mirroring
+   `lsp/<server>.lua` being keyed by server). `dap/codelldb.lua` therefore
+   bundles `c` / `cpp` / `rust` because codelldb is a single binary with
+   identical adapter spec for all three. **Trigger to split**: when a language
+   needs distinct configurations (e.g. Rust wanting `cargo run` integration
+   or auto-pointing `program` at `target/debug/<crate>`), pull it into its
+   own file (e.g. `dap/rust.lua`) — both files keep `type = "codelldb"`, the
+   orchestrator overwrites the (identical) adapter spec from the second-loaded
+   file harmlessly and registers each file's configurations under its own
+   filetypes.
+
 ## Architecture
 
 The layout is self-describing — see `ls` / the tree in your editor. The
@@ -68,6 +111,7 @@ non-obvious things that `ls` can't tell you are below.
 ### Key Design Patterns
 
 - **Neovim 0.11+ native LSP**: Server configs live in **top-level `lsp/<server>.lua`** files and are activated via `vim.lsp.enable({...})` in `lua/core/lsp.lua` (invoked from `init.lua`). This repo does **not** use `lspconfig[server].setup()`. Global capabilities (including blink.cmp's) are injected once at `VeryLazy` via `vim.lsp.config("*", { capabilities = ... })`.
+- **DAP per-adapter split (mirrors LSP layout)**: Each debug adapter lives in **top-level `dap/<adapter>.lua`** as a self-contained spec table (`type` / `mason` / `filetypes` / `adapter` / `configurations`). The orchestrator `lua/core/dap.lua` scans the directory at runtime and wires each spec into `dap.adapters` / `dap.configurations`, returning the list of mason package names which `lua/plugins/runtime/dap.lua` hands to `mason-registry` for install. **To add a new debugger, drop a single file into `dap/`** — never grow `runtime/dap.lua`. The plugin spec stays small (plugin deps + keymaps + UI/sign + one `core.dap.setup()` call).
 - **LSP keymaps via `LspAttach`**: All LSP-related keymaps (`gd`/`gD`/`gi`, `<leader>rn`, `<leader>ca`, `<leader>nb`, `<C-k>` signature in insert, etc.) are set in the `LspAttach` autocmd in `lua/core/lsp.lua`, not in `core/keymaps.lua`, so they're scoped to buffers with an attached LSP client. `gr` is handled by `lua/plugins/ui/trouble.lua` (Trouble UI instead of raw quickfix). Inlay hints are also enabled in `LspAttach`. See the `g*` navigation table above for the full scheme.
 - **Modular lazy.nvim imports**: `init.lua` uses `spec = { import = "plugins.<domain>" }`. Each subdirectory is a self-contained import layer that can be commented out independently for bisection.
 - **Mason auto-install**: `tools/mason_ensure.lua` is the single source of truth — it holds the install primitives (`has_exec`, `ensure_mason_pkg`, `ensure_tools`), the project-specific inventory (`LSP_TOOLS`, `FORMATTERS_BY_FT`, `LINTERS_BY_FT`), and the wiring to `VeryLazy` (LSP servers) and `FileType` autocmds (formatters/linters). Install is skipped when `CI=true` or `NO_AUTO_INSTALL=1`.

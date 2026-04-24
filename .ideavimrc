@@ -166,6 +166,9 @@ nmap <leader>vP <Action>(ActivateProblemsViewToolWindow)
 nmap <leader>vD <Action>(ToggleDistractionFreeMode)
 nmap <leader>vF <Action>(ToggleFullScreen)
 nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
+" <leader>vr / <leader>vd panel toggles mirror Neovim:
+"   vr → :OverseerToggle    (lua/plugins/runtime/overseer.lua)
+"   vd → require'dapui'.toggle  (lua/plugins/runtime/dap.lua)
 
 
 " 4)  Generate
@@ -192,10 +195,47 @@ map <leader>gm <Action>(GoGenerateMethodAction)
 map <leader>gs <Action>(GoGenerateForStruct)
 "" Map \b to toggle the breakpoint on the current line
 "map \b <Action>(ToggleLineBreakpoint)
-" 5)  Debug
+" 5)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
+"
+" Shared bindings (both sides):
 nmap <leader>D <Action>(DebugMainMenu)
 nmap <leader>db <Action>(ToggleLineBreakpoint)
 map <leader>dB <Action>(BreakpointActionsGroup)
+"
+" nvim-only debug bindings (no IdeaVim equivalent — these are nvim-dap operations
+" without IDE Action counterparts; on JetBrains use the IDE's native F-key
+" keymap or the Debug Tool Window):
+"   <leader>dc      Continue (same as <leader>D, namespace alias)
+"   <leader>dn      Step over (next, like pdb/dlv `n`)
+"   <leader>ds      Step into (step, like pdb/dlv `s`)
+"   <leader>df      Step out  (finish, like dlv `f`)
+"   <leader>dr      Toggle REPL
+"   <leader>de      Inspect expression at cursor / visual
+"   <leader>dh      Hover variable popup
+"   <leader>dl      Run last debug session
+"   <leader>dq      Terminate session
+"   <leader>dj/dk   Frame down/up
+"
+" Step-key choice rationale: <leader>dn/ds/df mirror the n/s/f commands of
+" pdb, dlv, and gdb (one mnemonic across CLI debuggers and the editor). On
+" JetBrains the same operations are F8 / F7 / Shift-F8 via the IDE keymap.
+" This asymmetry is intentional — see CLAUDE.md "Runtime suite" section.
+
+" 5b) Test / Run — nvim-only namespace; on JetBrains the Run/Debug Tool
+" Window + run configurations cover the same workflow.
+"   <leader>tt   neotest run nearest        (IDE: gutter run icon / Ctrl-Shift-F10)
+"   <leader>tT   neotest run file
+"   <leader>tl   neotest run last
+"   <leader>td   neotest debug nearest      (IDE: gutter debug icon)
+"   <leader>ts   neotest summary toggle
+"   <leader>to   neotest output for nearest
+"   <leader>tO   neotest output panel
+"   <leader>tS   neotest stop
+"   <leader>tw   neotest watch toggle
+"   <leader>or   overseer run task          (IDE: Run Anything / run config dropdown)
+"   <leader>oR   overseer rerun last
+"   <leader>oo   overseer task action menu
+"   <leader>oc   overseer cancel running
 
 " 6) Reformat
 map <leader>F <Action>(CodeFormatGroup)

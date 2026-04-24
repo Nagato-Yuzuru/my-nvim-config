@@ -60,6 +60,7 @@ vim.lsp.enable({
 	"vtsls",
 	"eslint",
 	"helm_ls",
+	"rust_analyzer",
 })
 
 -- LspAttach: 快捷键 + inlay hints
