@@ -105,7 +105,7 @@ function M.setup()
 				dap.defaults[spec.type].exception_breakpoints = spec.exception_breakpoints
 			end
 			if spec.mason then
-				table.insert(mason_pkgs, spec.mason)
+				table.insert(mason_pkgs, { name = spec.mason, bin = M.adapter_bin(spec) })
 			end
 		end
 	end
@@ -113,9 +113,29 @@ function M.setup()
 	return mason_pkgs
 end
 
--- 通过 mason-registry 直接安装（不依赖 mason-nvim-dap）。所有 mason 装的二进制
--- 都在 ~/.local/share/nvim/mason/bin（mason 启动时已加进 nvim 的 PATH），所以
--- 用 vim.fn.executable() 做 fast-path 判断。
+-- 从 adapter spec 里抽出运行时真正调用的 bin 名。
+--   executable 型 => adapter.command
+--   server 型     => adapter.executable.command
+--   其它（纯远端 server 等）=> nil，表示无法探测 PATH、只能交给 mason
+function M.adapter_bin(spec)
+	local a = spec.adapter
+	if type(a) ~= "table" then
+		return nil
+	end
+	if type(a.command) == "string" then
+		return a.command
+	end
+	if type(a.executable) == "table" and type(a.executable.command) == "string" then
+		return a.executable.command
+	end
+	return nil
+end
+
+-- 通过 mason-registry 直接安装（不依赖 mason-nvim-dap）。
+-- 镜像 LSP 那一侧的 env-first 策略：先 `vim.fn.executable()` 看 bin 是否已经
+-- 在 PATH 上拿得到（go install 来的 dlv、brew 装的 codelldb、mason 上次装好
+-- 的都算），命中就跳过 mason 安装。mason 启动时会把 `~/.local/share/nvim/
+-- mason/bin` 追加到 PATH，所以 mason 先前装过的二进制也会在这一步命中。
 function M.ensure_mason(pkgs)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
@@ -124,11 +144,15 @@ function M.ensure_mason(pkgs)
 	if not ok then
 		return
 	end
-	for _, name in ipairs(pkgs) do
-		local okp, pkg = pcall(mr.get_package, name)
-		if okp and not pkg:is_installed() then
-			vim.notify(("Installing %s via Mason…"):format(name), vim.log.levels.INFO)
-			pkg:install()
+	for _, p in ipairs(pkgs) do
+		if p.bin and vim.fn.executable(p.bin) == 1 then
+			-- 已在 PATH，mason 不用插手
+		else
+			local okp, pkg = pcall(mr.get_package, p.name)
+			if okp and not pkg:is_installed() then
+				vim.notify(("Installing %s via Mason…"):format(p.name), vim.log.levels.INFO)
+				pkg:install()
+			end
 		end
 	end
 end
