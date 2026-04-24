@@ -6,6 +6,9 @@ return {
 	type = "pwa-node",
 	mason = "js-debug-adapter",
 	filetypes = { "javascript", "typescript", "javascriptreact", "typescriptreact" },
+	-- session 启动默认订阅未捕获异常。js-debug 支持的 filter：
+	--   all / uncaught / promise
+	exception_breakpoints = { "uncaught" },
 	adapter = {
 		type = "server",
 		host = "localhost",
@@ -40,6 +43,24 @@ return {
 			end,
 			cwd = "${workspaceFolder}",
 			sourceMaps = true,
+		},
+		-- 远端 Node：目标进程用 `node --inspect=0.0.0.0:9229 app.js` 起来，
+		-- 本地通过 pwa-node 走 Inspector protocol 连过去。
+		{
+			type = "pwa-node",
+			request = "attach",
+			name = "Attach remote (prompt host:port)",
+			address = function()
+				local h = vim.fn.input("Remote host [127.0.0.1]: ")
+				return (h ~= "" and h) or "127.0.0.1"
+			end,
+			port = function()
+				local p = vim.fn.input("Remote port [9229]: ", "9229")
+				return tonumber(p) or 9229
+			end,
+			cwd = "${workspaceFolder}",
+			sourceMaps = true,
+			skipFiles = { "<node_internals>/**", "node_modules/**" },
 		},
 	},
 }

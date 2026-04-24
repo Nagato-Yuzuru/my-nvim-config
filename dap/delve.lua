@@ -5,6 +5,9 @@ return {
 	type = "delve",
 	mason = "delve",
 	filetypes = { "go" },
+	-- session 启动默认订阅 unrecovered-panic。delve 的 filter 名：
+	--   all / unrecovered-panic
+	exception_breakpoints = { "unrecovered-panic" },
 	adapter = {
 		type = "server",
 		port = "${port}",
@@ -50,6 +53,35 @@ return {
 			mode = "local",
 			processId = function()
 				return require("dap.utils").pick_process()
+			end,
+		},
+		-- Post-mortem：加载 core dump（程序得用 `GOTRACEBACK=crash` 或 `dlv debug --core` 产出）。
+		{
+			type = "delve",
+			name = "Debug core dump",
+			request = "launch",
+			mode = "core",
+			program = function()
+				return vim.fn.input("Path to Go binary: ", vim.fn.getcwd() .. "/", "file")
+			end,
+			coreFilePath = function()
+				return vim.fn.input("Path to core file: ", vim.fn.getcwd() .. "/", "file")
+			end,
+		},
+		-- 远程：目标机已跑 `dlv debug --headless --listen=:PORT --api-version=2`，
+		-- 本地 attach 过去。mode = "remote"。
+		{
+			type = "delve",
+			name = "Attach headless remote (prompt host:port)",
+			request = "attach",
+			mode = "remote",
+			host = function()
+				local h = vim.fn.input("Remote host [127.0.0.1]: ")
+				return (h ~= "" and h) or "127.0.0.1"
+			end,
+			port = function()
+				local p = vim.fn.input("Remote port [2345]: ", "2345")
+				return tonumber(p) or 2345
 			end,
 		},
 	},

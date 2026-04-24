@@ -2,6 +2,11 @@
 -- mason 包 `debugpy` 提供 `debugpy-adapter` 二进制（adapter 端）。
 -- 注意：被调试进程也需要 debugpy 包，必须装在项目环境里：
 --   uv add --dev debugpy
+--
+-- Post-mortem debug：debugpy 不原生支持 core dump / post-mortem。
+-- 想在崩溃后复盘栈状态，走 pdb 外部流程：
+--   uv run python -m pdb -c continue script.py
+-- 或程序里 `import pdb; pdb.post_mortem()` —— 不经过 DAP。
 
 -- Python 解释器解析顺序（强→弱信号）：
 --   1. $VIRTUAL_ENV/bin/python   (用户 shell 里显式激活了 venv，最可信)
@@ -47,6 +52,9 @@ return {
 	type = "python",
 	mason = "debugpy",
 	filetypes = { "python" },
+	-- 默认 session 开启时自动订阅未捕获异常 filter（debugpy 支持的 filter
+	-- 名：raised / uncaught / userUnhandled）。`<leader>dX` 可交互覆盖。
+	exception_breakpoints = { "uncaught" },
 	adapter = {
 		type = "executable",
 		command = "debugpy-adapter",
