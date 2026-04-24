@@ -72,7 +72,18 @@ return {
 							return vim.fn.getcmdtype() == ":"
 						end,
 					},
-					ghost_text = { enabled = true }, -- 装了 noice 时会有"灰色建议"效果
+					-- 纯 ghost 模式：预选首项（ghost 立即显示），但不自动写入 cmdline。
+					-- 覆盖 blink.cmp cmdline 模式默认的 auto_insert=true
+					-- （见 blink.cmp 的 config/modes/cmdline.lua）。
+					-- 流程：
+					--   · 打开菜单：ghost 预览首项
+					--   · Tab / S-Tab：在候选间移动 ghost，cmdline 保持不变
+					--   · <C-f>：在行尾把 ghost 真写进 cmdline（已有绑定）
+					--   · <CR>：执行命令（fallback，不 accept）
+					list = {
+						selection = { preselect = true, auto_insert = false },
+					},
+					ghost_text = { enabled = true },
 				},
 				-- 源的控制（一般默认就行；需要的话可增加 min_keyword_length 等）
 				-- sources = {
