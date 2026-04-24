@@ -53,6 +53,8 @@ local LSP_TOOLS = {
 	{ bin = "vtsls", mason = "vtsls" },
 	{ bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
 	{ bin = "helm_ls", mason = "helm-ls" },
+	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 是兜底
+	{ bin = "rust-analyzer", mason = "rust-analyzer" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
@@ -93,6 +95,9 @@ local FORMATTERS_BY_FT = {
 	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理
 	terraform = { "terraform_fmt" },
 	["terraform-vars"] = { "terraform_fmt" },
+	-- rustfmt 跟着 rustup（rustup component add rustfmt），不走 Mason；conform
+	-- 自带的 rustfmt formatter 会从 PATH 找
+	rust = { "rustfmt" },
 }
 
 local LINTERS_BY_FT = {

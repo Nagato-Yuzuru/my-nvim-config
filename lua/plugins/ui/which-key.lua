@@ -24,6 +24,8 @@ return {
 				{ "<leader>v", group = "Views" },
 				{ "<leader>g", group = "Generate" },
 				{ "<leader>d", group = "Debug" },
+				{ "<leader>t", group = "Test" },
+				{ "<leader>o", group = "Overseer / Run" },
 				{ "<leader>f", group = "Format" },
 				{ "<leader>m", group = "Mark" },
 				{ "<leader>c", group = "Code" },
@@ -33,6 +35,7 @@ return {
 				{ "<localleader>l", group = "LeetCode" },
 				{ "<localleader>o", group = "Obsidian" },
 				{ "<localleader>m", group = "Markdown" },
+				{ "<localleader>c", group = "Crates (Cargo.toml)" },
 			})
 		end,
 	},

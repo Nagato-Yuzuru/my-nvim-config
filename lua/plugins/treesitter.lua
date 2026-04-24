@@ -25,6 +25,7 @@ return {
 					"latex",
 					"terraform",
 					"just",
+					"rust",
 				},
 				auto_install = true,
 			})

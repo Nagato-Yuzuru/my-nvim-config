@@ -31,6 +31,7 @@ require("lazy").setup({
 		{ import = "plugins.ui" },
 		{ import = "plugins.git" },
 		{ import = "plugins.lang" },
+		{ import = "plugins.runtime" },
 		{ import = "plugins.treesitter" },
 	},
 	rocks = {
