@@ -3,17 +3,66 @@
 --
 -- 每个 dap/<name>.lua 必须 return 一个 spec table：
 --   {
---     type           = "delve",            -- key in dap.adapters；configs 通过 `type` 字段引用
---     mason          = "delve",            -- 可选：mason 包名（缺省则不自动安装）
---     filetypes      = { "go" },           -- 把 configurations 注册到哪些 ft
---     adapter        = { ... },            -- nvim-dap adapter spec
---     configurations = { ... },            -- list of debug configurations
+--     type                  = "delve",            -- key in dap.adapters；configs 通过 `type` 字段引用
+--     mason                 = "delve",            -- 可选：mason 包名（缺省则不自动安装）
+--     filetypes             = { "go" },           -- 把 configurations 注册到哪些 ft
+--     adapter               = { ... },            -- nvim-dap adapter spec
+--     configurations        = { ... },            -- list of debug configurations
+--     exception_breakpoints = { "uncaught" },     -- 可选：启动 session 时默认开的 filter 列表
+--                                                 -- （filter 名是 adapter-specific，见各 dap/*.lua）
 --   }
 --
 -- setup() 由 plugins/runtime/dap.lua 在 nvim-dap 加载完后调用，并把收集到的
 -- mason 包列表回传给 mason 安装入口。
 
 local M = {}
+
+-- 函数断点（function breakpoints）的轻量实现。
+-- nvim-dap 没有高层 API，这里维护一个 name->true 表：
+--   * toggle_function_breakpoint(name) 改表并（若 session 活）立即 apply
+--   * apply_function_breakpoints()      发 setFunctionBreakpoints 请求
+-- plugins/runtime/dap.lua 在 event_initialized 里会调 apply，让断点跟新
+-- session 一起恢复。
+local function_breakpoints = {}
+
+function M.toggle_function_breakpoint(name)
+	if not name or name == "" then
+		return
+	end
+	if function_breakpoints[name] then
+		function_breakpoints[name] = nil
+		vim.notify(("Function breakpoint removed: %s"):format(name), vim.log.levels.INFO)
+	else
+		function_breakpoints[name] = true
+		vim.notify(("Function breakpoint added: %s"):format(name), vim.log.levels.INFO)
+	end
+	M.apply_function_breakpoints()
+end
+
+function M.apply_function_breakpoints()
+	local ok_dap, dap = pcall(require, "dap")
+	if not ok_dap then
+		return
+	end
+	local session = dap.session()
+	if not session then
+		return
+	end
+	local bps = {}
+	for fname in pairs(function_breakpoints) do
+		table.insert(bps, { name = fname })
+	end
+	session:request("setFunctionBreakpoints", { breakpoints = bps })
+end
+
+function M.list_function_breakpoints()
+	local list = {}
+	for fname in pairs(function_breakpoints) do
+		table.insert(list, fname)
+	end
+	table.sort(list)
+	return list
+end
 
 function M.setup()
 	local ok_dap, dap = pcall(require, "dap")
@@ -44,6 +93,16 @@ function M.setup()
 				for _, ft in ipairs(spec.filetypes) do
 					dap.configurations[ft] = spec.configurations
 				end
+			end
+			-- 默认异常 filter 注入 dap.defaults[type].exception_breakpoints。
+			-- filter 名是 adapter-specific，各 dap/*.lua 自己列：
+			--   debugpy  => "uncaught"
+			--   codelldb => "rust_panic" / "cpp_throw"
+			--   delve    => "unrecovered-panic"
+			--   js-debug => "uncaught"
+			if spec.type and spec.exception_breakpoints then
+				dap.defaults[spec.type] = dap.defaults[spec.type] or {}
+				dap.defaults[spec.type].exception_breakpoints = spec.exception_breakpoints
 			end
 			if spec.mason then
 				table.insert(mason_pkgs, spec.mason)
