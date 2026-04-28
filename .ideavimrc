@@ -237,6 +237,20 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "   <leader>oo   overseer task action menu
 "   <leader>oc   overseer cancel running
 
+" 5c) Typst — nvim-only namespace (lua/plugins/lang/typst.lua + lsp/tinymist.lua).
+" Typst itself doesn't ship as a JetBrains-blessed language; preview/format/LSP
+" all run through tinymist on the Neovim side. On JetBrains use the third-party
+" "Typst" plugin if installed — its actions don't have stable IDs to map here.
+"
+"   <localleader>tp   :TypstPreview                   start preview (browser, live)
+"   <localleader>tt   :TypstPreviewToggle             toggle preview server
+"   <localleader>tP   :TypstPreviewStop               stop preview server
+"   <localleader>ts   :TypstPreviewSyncCursor         scroll preview to cursor (one-shot)
+"   <localleader>tF   :TypstPreviewFollowCursorToggle toggle live cursor follow
+"
+" Format (.typ) goes through conform → typstyle on save (tools/mason_ensure.lua),
+" same gateway as every other filetype — <leader>ff still works.
+
 " 6) Reformat
 map <leader>F <Action>(CodeFormatGroup)
 map <leader>ff <Action>(ReformatCode)

@@ -36,6 +36,7 @@ return {
 				{ "<localleader>o", group = "Obsidian" },
 				{ "<localleader>m", group = "Markdown" },
 				{ "<localleader>c", group = "Crates (Cargo.toml)" },
+				{ "<localleader>t", group = "Typst" },
 			})
 		end,
 	},

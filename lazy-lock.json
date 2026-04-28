@@ -71,6 +71,7 @@
   "tree-sitter-d2": { "branch": "main", "commit": "d552b17bf3e4c29b3f090a4a02f61ed2c4a67b3b" },
   "trouble.nvim": { "branch": "main", "commit": "bd67efe408d4816e25e8491cc5ad4088e708a69a" },
   "ts-install.nvim": { "branch": "main", "commit": "7c5569256212d17041d5f3057e5fcbaf646f6643" },
+  "typst-preview.nvim": { "branch": "master", "commit": "87db18b8d19c8b0eed399f52e4c527ce5afe4817" },
   "vim-cool": { "branch": "master", "commit": "9ea940c0d537e55de0de4c0298c04b976960fb12" },
   "vim-exchange": { "branch": "master", "commit": "d6c1e9790bcb8df27c483a37167459bbebe0112e" },
   "vim-helm": { "branch": "master", "commit": "2c8525fd98e57472769d137317bca83e477858ce" },
