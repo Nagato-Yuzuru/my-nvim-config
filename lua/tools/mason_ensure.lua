@@ -13,10 +13,16 @@ local function ensure_mason_pkg(pkg_name)
 	if not okp then
 		return
 	end
-	if not pkg:is_installed() then
-		vim.notify(("Installing %s via Mason…"):format(pkg_name), vim.log.levels.INFO)
-		pkg:install()
+	if pkg:is_installed() then
+		return
 	end
+	-- pkg:install() 内部 assert(not is_installing())，autocmd（BufNewFile +
+	-- FileType）短时间二次触发会撞上正在装的同一个包，这里手动短路。
+	if pkg.is_installing and pkg:is_installing() then
+		return
+	end
+	vim.notify(("Installing %s via Mason…"):format(pkg_name), vim.log.levels.INFO)
+	pkg:install()
 end
 
 -- 根据 "name → {bin, mason}" 映射，缺失时自动安装
@@ -55,6 +61,8 @@ local LSP_TOOLS = {
 	{ bin = "helm_ls", mason = "helm-ls" },
 	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 是兜底
 	{ bin = "rust-analyzer", mason = "rust-analyzer" },
+	-- tinymist：Typst LSP + 预览后端（typst-preview.nvim 复用同一份二进制）
+	{ bin = "tinymist", mason = "tinymist" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
@@ -70,6 +78,7 @@ local TOOL_MAP = {
 	golangcilint = { bin = "golangci-lint", mason = "golangci-lint" },
 	yamllint = { bin = "yamllint", mason = "yamllint" },
 	actionlint = { bin = "actionlint", mason = "actionlint" },
+	typstyle = { bin = "typstyle", mason = "typstyle" },
 }
 
 local FORMATTERS_BY_FT = {
@@ -98,6 +107,7 @@ local FORMATTERS_BY_FT = {
 	-- rustfmt 跟着 rustup（rustup component add rustfmt），不走 Mason；conform
 	-- 自带的 rustfmt formatter 会从 PATH 找
 	rust = { "rustfmt" },
+	typst = { "typstyle" },
 }
 
 local LINTERS_BY_FT = {

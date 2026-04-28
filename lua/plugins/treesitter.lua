@@ -26,6 +26,7 @@ return {
 					"terraform",
 					"just",
 					"rust",
+					"typst",
 				},
 				auto_install = true,
 			})
