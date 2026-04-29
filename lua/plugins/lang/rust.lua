@@ -14,9 +14,11 @@ return {
 		event = { "BufRead Cargo.toml" },
 		dependencies = { "nvim-lua/plenary.nvim" },
 		opts = {
+			-- 补全走 lsp.enabled = true（in-process LSP）→ blink.cmp 经 LSP 渠道吃。
+			-- 不设 completion.cmp / completion.coq —— 它们已被 crates.nvim 标记为
+			-- deprecated，touch 一下就 warn，留空即可（默认就是 false）。
 			completion = {
-				crates = { enabled = true }, -- crate 名补全
-				cmp = { enabled = false },   -- 我们用 blink.cmp，不要 cmp 桥接
+				crates = { enabled = true }, -- crate 名补全（in-buffer 触发逻辑）
 			},
 			lsp = {
 				enabled = true,
