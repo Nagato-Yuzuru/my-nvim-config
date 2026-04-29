@@ -251,6 +251,43 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " Format (.typ) goes through conform → typstyle on save (tools/mason_ensure.lua),
 " same gateway as every other filetype — <leader>ff still works.
 
+" 5d) Scheme / Racket / Steel — nvim-only namespace (lua/plugins/lang/scheme.lua).
+" The Lisp workflow is REPL-driven (Conjure on the Neovim side), structurally
+" different from JetBrains' file/project edit-and-run model. JetBrains has no
+" first-party Racket/Scheme/Steel plugin with stable Action IDs we can map to,
+" and no equivalent of paredit slurp/barf. Documenting the asymmetry instead of
+" inventing fragile bindings — same precedent as Flash Treesitter, Neotest, and
+" the DAP step-keys above.
+"
+" Conjure (REPL eval) — ,c* prefix on Neovim, no IdeaVim equivalent:
+"   ,cee   eval form at point         (no IDE counterpart — use SendSelectionToRepl
+"                                      manually if the REPL plugin offers it)
+"   ,cer   eval root form
+"   ,cE    eval entire buffer
+"   ,clg   open / focus REPL log
+"   ,cqq   stop REPL session
+"
+" nvim-paredit (structural paren editing) — ,p* prefix on Neovim, no IdeaVim equivalent:
+"   ,p>    slurp forwards (pull next form into current)
+"   ,p<    barf forwards  (push last form out)
+"   ,pP    slurp backwards
+"   ,pB    barf backwards
+"   ,pw    wrap element under cursor
+"   ,pW    wrap enclosing form
+"   ,pr    raise element
+"   ,pR    raise form
+"   ,pdf   delete form
+"   ,pde   delete element
+"   E/W/B/gE  next/prev element head/tail (replaces vim default WORD motions in lisp ft)
+"   (/)    move to parent form start/end
+"
+" LSP for Racket / Guile / Steel: gd/gD/gi/gr/<leader>rn etc. all reuse the
+" community g* defaults shared with every other LSP (lua/core/lsp.lua) — those
+" already work on the IdeaVim side via JetBrains GotoDeclaration etc., so
+" nothing extra to bind. Formatting (.rkt → raco fmt, .scm → schemat) goes
+" through conform → <leader>ff on the Neovim side; on JetBrains use the third-
+" party Racket plugin's Reformat action if installed.
+
 " 6) Reformat
 map <leader>F <Action>(CodeFormatGroup)
 map <leader>ff <Action>(ReformatCode)

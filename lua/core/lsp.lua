@@ -64,6 +64,23 @@ vim.lsp.enable({
 	"tinymist",
 })
 
+-- Scheme 系 LSP 按需启用——后端不在时不挂，避免刷 "Client X quit with exit code 1"。
+-- 工具链探测在 lua/tools/scheme_ensure.lua；FileType 触发的安装提示也走那里。
+-- 装好工具后重启一次 nvim 就会启用对应 LSP（同一 session 内不动态启用，因为
+-- 探测结果已缓存且这个场景不值得做热重载）。
+do
+	local ensure = require("tools.scheme_ensure")
+	if ensure.is_installed("racket-langserver (raco pkg)") then
+		vim.lsp.enable("racket_langserver")
+	end
+	if ensure.is_installed("guile-lsp-server") then
+		vim.lsp.enable("guile_lsp_server")
+	end
+	if ensure.is_installed("steel-language-server") then
+		vim.lsp.enable("steel_language_server")
+	end
+end
+
 -- LspAttach: 快捷键 + inlay hints
 vim.api.nvim_create_autocmd("LspAttach", {
 	group = vim.api.nvim_create_augroup("UserLspKeymaps", { clear = true }),
