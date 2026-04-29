@@ -156,6 +156,10 @@ map <leader>nf <Action>(FindInPath)
 "3) Views
 
 nmap <leader>vp <Action>(ActivateProjectToolWindow)
+" Asymmetry: snacks.explorer on Neovim binds vim-fold-style z[oOcCaARM] inside
+" the tree (lua/plugins/ui/snacks.lua). The JetBrains Project tool window uses
+" the IDE's own keymap (Right/Left, NumPad +/-, Ctrl+NumPad+ for expand-all),
+" which IdeaVim cannot intercept — leave it to the IDE keymap.
 nmap <leader>vs <Action>(ActivateStructureToolWindow)
 nmap <localleader>gd <Action>(Compare.SameVersion)
 nmap <leader>vc <Action>(ActivateCommitToolWindow)
