@@ -108,6 +108,11 @@ local FORMATTERS_BY_FT = {
 	-- 自带的 rustfmt formatter 会从 PATH 找
 	rust = { "rustfmt" },
 	typst = { "typstyle" },
+	-- Scheme 系：raco_fmt / schemat 都不在 mason，TOOL_MAP 也没登记，
+	-- 所以 ensure_tools 会跳过它们；formatter 命令本体在 plugins/format/conform.lua
+	-- 里定义，缺失时由 plugins/lang/scheme.lua 触发的 scheme_ensure 提示安装。
+	racket = { "raco_fmt" },
+	scheme = { "schemat" },
 }
 
 local LINTERS_BY_FT = {

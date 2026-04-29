@@ -60,6 +60,19 @@ return {
 					-- 会被合法地转义触发误报。--no-validate 跳过该检查；MkDocs / MDX 扩展语法
 					-- 仍由对应插件正确保留。
 					mdformat = { prepend_args = { "--no-validate" } },
+					-- Scheme / Racket：两者都不在 conform 内置 formatter 列表里，手动声明。
+					-- 安装路径：raco fmt 由 sorawee/fmt 提供（raco pkg install fmt），
+					--          schemat 由 raymond-w-ko/schemat 提供（cargo install schemat）。
+					-- 缺失时静默跳过（has_exec 在 lua/tools/scheme_ensure.lua 会提示）。
+					raco_fmt = {
+						command = "raco",
+						args = { "fmt", "-" },
+						stdin = true,
+					},
+					schemat = {
+						command = "schemat",
+						stdin = true,
+					},
 				},
 				-- Autoformat kill-switch：
 				--   :FormatDisable   → 全局关（vim.g.disable_autoformat）
