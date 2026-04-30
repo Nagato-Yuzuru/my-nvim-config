@@ -6,7 +6,7 @@ return {
 		taplo = {
 			schema = {
 				enable = true,
-				respositoryEnable = true,
+				repositoryEnable = true,
 			},
 			formatting = {
 				alignEntries = true,

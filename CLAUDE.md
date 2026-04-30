@@ -29,7 +29,7 @@ Personal Neovim configuration using **lazy.nvim** as the plugin manager. All con
 | Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
-| Debug `<leader>D`, `<leader>d*`, `<leader>vd`               | `lua/plugins/runtime/dap.lua`                                      |
+| Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped) | `lua/plugins/runtime/dap.lua`                                      |
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
 
@@ -68,13 +68,26 @@ When adding a new `<C-x>*` binding on the Neovim side, do **not** try to mirror 
 The "runtime" layer (debug / run / test) lives in `lua/plugins/runtime/`. Two
 intentional design points:
 
-1. **Step keys use CLI-debugger mnemonics, not F-keys.** `<leader>dn` (next /
-   step over), `<leader>ds` (step into), `<leader>df` (finish / step out) match
-   the `n`/`s`/`f` commands of pdb, dlv, and gdb verbatim. F-keys (`<F7>`/
-   `<F8>` JetBrains-style) are intentionally **not** bound on the Neovim side
-   — leader-based stays in the Vim grammar and reaches across keyboard
+1. **Two-layer DAP keymap split: `<leader>d*` (static) vs `<localleader>*`
+   (session-scoped).** The `<leader>d*` namespace is bound at startup and
+   covers editor-state actions that make sense outside a debug session —
+   start/continue (`<leader>D`), toggle breakpoint (`<leader>db`), set
+   logpoint (`<leader>dt`), pick attach config (`<leader>dA`), focus dap-ui
+   panels (`<leader>dv*`), etc. Step / inspect / frame-walk actions only make
+   sense **inside a session** and are bound under `<localleader>` (= `,`)
+   exclusively, attached on `event_initialized` and detached on
+   `event_terminated`. The keys use CLI-debugger mnemonics, not F-keys:
+   `,n` (next / step over), `,s` (step into), `,f` (finish / step out) match
+   `n`/`s`/`f` from pdb, dlv, and gdb verbatim; `,c` continue, `,p` pause,
+   `,u` run-to-cursor (until), `,r` toggle REPL, `,e` inspect expression
+   (also visual), `,h` hover variable, `,w` add watch from source (also
+   visual), `,j`/`,k` frame down/up, `,R` restart, `,q` terminate. F-keys
+   (`<F7>`/`<F8>` JetBrains-style) are intentionally **not** bound — leader
+   / localleader stays in the Vim grammar and reaches across keyboard
    layouts. JetBrains keeps its native F-key keymap; that's an asymmetry we
-   accept.
+   accept. Action table (the single source of truth) is in the `actions`
+   local in `lua/plugins/runtime/dap.lua` — do not duplicate-bind those
+   actions under `<leader>d*`.
 
 2. **`<leader>nt` (GotoTest) is IdeaVim-only.** Neotest has no native
    "navigate to test file" command — it's a runner, not a navigator. The
