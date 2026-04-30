@@ -35,13 +35,11 @@ return {
 				},
 				lualine_x = {
 					(function()
-						-- 录制中显示寄存器名，录完后显示内容（截断）
+						-- 录制中显示寄存器名，录完后显示内容（截断）。
+						-- last_reg 由下面 component 函数在 reg_recording() ~= "" 时
+						-- 写入；不要再绑 RecordingLeave —— 该事件触发时
+						-- reg_recording() 已经返回 ""，会反向把 last_reg 抹掉。
 						local last_reg = nil
-						vim.api.nvim_create_autocmd("RecordingLeave", {
-							callback = function()
-								last_reg = vim.fn.reg_recording()
-							end,
-						})
 						return {
 							function()
 								local reg = vim.fn.reg_recording()
