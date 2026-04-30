@@ -31,6 +31,7 @@ return {
 					-- racket parser 主要处理 #lang / Racket 特有的 syntax sugar
 					"scheme",
 					"racket",
+					"d2",
 				},
 				auto_install = true,
 			})
