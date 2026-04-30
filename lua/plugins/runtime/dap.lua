@@ -120,10 +120,12 @@ local function add_watch_from_source()
 		return
 	end
 	local ok, dapui = pcall(require, "dapui")
-	if ok and dapui.elements and dapui.elements.watches then
-		dapui.elements.watches.add(expr)
-		vim.notify(("Watch: %s"):format(expr), vim.log.levels.INFO)
+	if not (ok and dapui.elements and dapui.elements.watches) then
+		vim.notify("dap-ui watches not ready — open DAP UI first (<leader>vd)", vim.log.levels.WARN)
+		return
 	end
+	dapui.elements.watches.add(expr)
+	vim.notify(("Watch: %s"):format(expr), vim.log.levels.INFO)
 end
 
 return {

@@ -49,13 +49,17 @@ return {
 			set({ "n", "x" }, "<A-Right>", mc.nextCursor, { desc = "MC: Next Cursor" })
 
 			-- ── 退出 ─────────────────────────────────────────────────
+			-- 没光标时不能完全吃掉 <esc>：要把它 feed 出去，让 floating window /
+			-- 通知 /  picker 等能正常被 <esc> 关闭。
+			local esc = vim.api.nvim_replace_termcodes("<esc>", true, true, true)
 			set("n", "<esc>", function()
 				if mc.hasCursors() then
 					mc.clearCursors()
 				else
 					vim.cmd("nohlsearch")
+					vim.api.nvim_feedkeys(esc, "n", false)
 				end
-			end)
+			end, { desc = "MC: clear cursors / nohlsearch" })
 		end,
 	},
 }

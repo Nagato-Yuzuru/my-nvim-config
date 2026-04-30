@@ -173,7 +173,8 @@ return {
 	},
 	{
 		"AndrewRadev/switch.vim",
-		config = function()
+		ft = { "markdown" },
+		init = function()
 			vim.g.switch_custom_definitions = {
 				{ "> [!TODO]", "> [!WIP]", "> [!DONE]", "> [!FAIL]" },
 				{ "height", "width" },
@@ -260,7 +261,9 @@ return {
 		dependencies = { "godlygeek/tabular" },
 		ft = { "markdown" },
 		init = function()
-			vim.g.vim_markdown_folding_disabled = 0
+			-- 折叠由 treesitter / nvim-ufo 提供，不让 vim-markdown 抢
+			-- 'foldexpr' / 'foldmethod'，否则一打开 .md 两边互相覆盖。
+			vim.g.vim_markdown_folding_disabled = 1
 			vim.g.vim_markdown_conceal = 0
 			vim.g.vim_markdown_math = 1
 			vim.g.vim_markdown_frontmatter = 1

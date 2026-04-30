@@ -69,6 +69,5 @@ map("n", "<C-x>2", function()
 end, { desc = "Split below" })
 
 vim.keymap.set("c", "<C-x><C-e>", function()
-	local cedit = vim.api.nvim_get_option("cedit")
-	return vim.api.nvim_replace_termcodes(cedit, true, true, true)
+	return vim.api.nvim_replace_termcodes(vim.o.cedit, true, true, true)
 end, { expr = true })

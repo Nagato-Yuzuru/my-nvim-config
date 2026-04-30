@@ -6,10 +6,13 @@ vim.api.nvim_create_autocmd("User", {
 	pattern = "VeryLazy",
 	once = true,
 	callback = function()
-		local caps = vim.lsp.protocol.make_client_capabilities()
-		pcall(function()
-			caps = vim.tbl_deep_extend("force", caps, require("blink.cmp").get_lsp_capabilities())
-		end)
+		-- VeryLazy 已经在 blink.cmp 之后触发；blink 装不进来是真故障，
+		-- 不要 pcall 吞掉。
+		local caps = vim.tbl_deep_extend(
+			"force",
+			vim.lsp.protocol.make_client_capabilities(),
+			require("blink.cmp").get_lsp_capabilities()
+		)
 		-- nvim-ufo 的 LSP provider 要求显式声明 lineFoldingOnly，
 		-- 否则 jsonls / yamlls 等服务端不会返回 foldingRange。
 		caps.textDocument = caps.textDocument or {}
