@@ -71,7 +71,8 @@ return {
 					end, { buffer = buf, silent = true, desc = "Racket: raco docs (browser)" })
 				end
 				local specs = {
-					{ "<localleader>p", group = "Paredit", buffer = buf },
+					{ "<localleader>p",   group = "Paredit",        buffer = buf },
+					{ "<localleader>pd",  group = "Paredit: Delete", buffer = buf },
 				}
 				if ft == "racket" then
 					vim.list_extend(specs, {
@@ -137,33 +138,64 @@ return {
 	},
 
 	-- 2) nvim-paredit — 结构化括号编辑
+	--
+	-- use_default_keys = false：完全由下面的 keys 表控制，避免默认键（如
+	-- <localleader>@ splice、<localleader>o/O raise）漏进 which-key。
+	-- 之前用 opts={keys={...string...}} 是错的：api 引用必须是函数，opts 函数
+	-- 在插件加载后才调用，这时 require("nvim-paredit.api") 才可用。
 	{
 		"julienvincent/nvim-paredit",
 		ft = PAREDIT_FT,
-		opts = {
-			-- 把所有 paredit 操作收进 ,p* 子前缀（buffer-local，由插件自己挂）。
-			-- 默认 keys 大量占用 <localleader>>/< 等单符号，会和 conjure 撞。
-			keys = {
-				[",p>"] = { "api.slurp_forwards", "Slurp forwards" },
-				[",p<"] = { "api.barf_forwards", "Barf forwards" },
-				[",pP"] = { "api.slurp_backwards", "Slurp backwards" },
-				[",pB"] = { "api.barf_backwards", "Barf backwards" },
-				[",pw"] = { "api.wrap.wrap_element_under_cursor", "Wrap element" },
-				[",pW"] = { "api.wrap.wrap_enclosing_form_under_cursor", "Wrap enclosing form" },
-				[",pr"] = { "api.raise_element", "Raise element" },
-				[",pR"] = { "api.raise_form", "Raise form" },
-				[",pdf"] = { "api.delete_form", "Delete form" },
-				[",pde"] = { "api.delete_element", "Delete element" },
-				-- 移动到下一/上一 element / form——比 vim 的 W/B 在嵌套结构里精确得多
-				["E"] = { "api.move_to_next_element_tail", "Next element tail" },
-				["W"] = { "api.move_to_next_element_head", "Next element head" },
-				["B"] = { "api.move_to_prev_element_head", "Prev element head" },
-				["gE"] = { "api.move_to_prev_element_tail", "Prev element tail" },
-				["("] = { "api.move_to_parent_form_start", "Parent form start" },
-				[")"] = { "api.move_to_parent_form_end", "Parent form end" },
-			},
-			-- 这些 ft 启用 paredit 的 buffer-local 操作
-			filetypes = PAREDIT_FT,
-		},
+		config = function()
+			local api = require("nvim-paredit.api")
+			local no = { repeatable = false }
+			local no_nxov = vim.tbl_extend("force", no, { mode = { "n", "x", "o", "v" } })
+			local no_nxv  = vim.tbl_extend("force", no, { mode = { "n", "x", "v" } })
+			local no_ov   = vim.tbl_extend("force", no, { mode = { "o", "v" } })
+
+			require("nvim-paredit").setup({
+				use_default_keys = false,
+				filetypes = PAREDIT_FT,
+				keys = {
+					-- 结构编辑：全部在 <localleader>p 下
+					-- slurp = 把相邻兄弟元素吸进括号；barf = 把括号内元素推出去
+					["<localleader>p>"]  = { api.slurp_forwards,                "Slurp forwards (absorb next sibling)" },
+					["<localleader>p<"]  = { api.barf_forwards,                 "Barf forwards (expel last element)" },
+					["<localleader>pP"]  = { api.slurp_backwards,               "Slurp backwards (absorb prev sibling)" },
+					["<localleader>pB"]  = { api.barf_backwards,                "Barf backwards (expel first element)" },
+					["<localleader>pw"]  = { api.wrap_element_under_cursor,      "Wrap element in ()" },
+					["<localleader>pW"]  = { api.wrap_enclosing_form_under_cursor, "Wrap enclosing form in ()" },
+					["<localleader>pr"]  = { api.raise_element,                 "Raise element (replace parent with element)" },
+					["<localleader>pR"]  = { api.raise_form,                    "Raise form (replace parent with form)" },
+					["<localleader>pS"]  = { api.unwrap_form_under_cursor,       "Splice (remove delimiters, keep contents)" },
+					["<localleader>pdf"] = { api.delete_form,                   "Delete form" },
+					["<localleader>pde"] = { api.delete_element,                "Delete element" },
+
+					-- 拖拽：在兄弟列表内移动元素/pair/form（>/<前缀，vim 风格）
+					[">e"] = { api.drag_element_forwards,  "Drag element right" },
+					["<e"] = { api.drag_element_backwards, "Drag element left" },
+					[">p"] = { api.drag_pair_forwards,     "Drag pair right" },
+					["<p"] = { api.drag_pair_backwards,    "Drag pair left" },
+					[">f"] = { api.drag_form_forwards,     "Drag form right" },
+					["<f"] = { api.drag_form_backwards,    "Drag form left" },
+
+					-- 导航：E/W/B/gE 比 vim 的 w/b 在嵌套结构里精确
+					["E"]  = vim.tbl_extend("force", { api.move_to_next_element_tail, "Next element tail" },  no_nxov),
+					["W"]  = vim.tbl_extend("force", { api.move_to_next_element_head, "Next element head" },  no_nxov),
+					["B"]  = vim.tbl_extend("force", { api.move_to_prev_element_head, "Prev element head" },  no_nxov),
+					["gE"] = vim.tbl_extend("force", { api.move_to_prev_element_tail, "Prev element tail" },  no_nxov),
+					["("]  = vim.tbl_extend("force", { api.move_to_parent_form_start, "Parent form start" },  no_nxv),
+					[")"]  = vim.tbl_extend("force", { api.move_to_parent_form_end,   "Parent form end" },    no_nxv),
+
+					-- 文本对象：af/if form，aF/iF 顶层 form，ae/ie element
+					["af"] = vim.tbl_extend("force", { api.select_around_form,           "Around form" },           no_ov),
+					["if"] = vim.tbl_extend("force", { api.select_in_form,               "In form" },               no_ov),
+					["aF"] = vim.tbl_extend("force", { api.select_around_top_level_form, "Around top-level form" }, no_ov),
+					["iF"] = vim.tbl_extend("force", { api.select_in_top_level_form,     "In top-level form" },     no_ov),
+					["ae"] = vim.tbl_extend("force", { api.select_element,               "Around element" },        no_ov),
+					["ie"] = vim.tbl_extend("force", { api.select_element,               "In element" },            no_ov),
+				},
+			})
+		end,
 	},
 }
