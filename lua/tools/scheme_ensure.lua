@@ -86,6 +86,12 @@ local TOOLS = {
 		end,
 		hint = "raco pkg install fmt   # provides `raco fmt` Racket formatter",
 	},
+	["sicp (raco pkg)"] = {
+		check = function()
+			return has_racket_pkg("sicp")
+		end,
+		hint = "raco pkg install sicp   # #lang sicp support",
+	},
 	guile = {
 		check = function()
 			return has_exec("guile")
@@ -121,7 +127,7 @@ local TOOLS = {
 -- 每个 filetype 关心哪些工具（不是所有 .scm 都需要 Steel 工具链；racket 这边
 -- 也不需要碰 Guile。scheme buffer 取保守的并集，因为没有更精确的项目分辨方法）
 local TOOLS_BY_FT = {
-	racket = { "racket", "raco", "racket-langserver (raco pkg)", "fmt (raco pkg)" },
+	racket = { "racket", "raco", "racket-langserver (raco pkg)", "fmt (raco pkg)", "sicp (raco pkg)" },
 	scheme = { "guile", "guile-lsp-server", "steel", "steel-language-server", "schemat" },
 }
 

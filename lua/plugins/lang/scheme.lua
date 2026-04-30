@@ -29,19 +29,18 @@ return {
 		"Olical/conjure",
 		ft = CONJURE_FT,
 		init = function()
-			-- 把 conjure 默认 <localleader>* 前缀整体收进 ,c*，留出 ,p* 给 paredit、
-			-- ,t* 给将来的测试 runner 等。<localleader> = "," 已在 init.lua 设好。
-			vim.g["conjure#mapping#prefix"] = ",c"
-			-- 仅启用我们关心的三个客户端，避免无关 ft 被它接管
+			-- 动态读 maplocalleader，避免硬编码 ","——如果将来改 localleader，前缀跟着变。
+			-- 前缀 = <localleader>c，留出 <localleader>p 给 paredit。
+			vim.g["conjure#mapping#prefix"] = vim.g.maplocalleader .. "c"
+			-- 仅启用我们关心的客户端，避免无关 ft 被它接管
 			vim.g["conjure#filetypes"] = CONJURE_FT
-			-- 不要在 lisp buffer 里覆盖 K，让 nvim 原生 hover 走 LSP（K = vim.lsp.buf.hover）
+			-- K 保留给 LSP hover（vim.lsp.buf.hover），不让 conjure 覆盖
 			vim.g["conjure#mapping#doc_word"] = false
-			-- log buffer 默认垂直右开，宽屏更舒服
+			-- HUD（浮动 popup）保持启用，提供 eval 即时反馈。
+			-- 持久 log split 用 <localleader>cls（下）/ <localleader>clv（右）手动开。
 			vim.g["conjure#log#botright"] = true
 
-			-- 顺手挂上 scheme 工具链探测——init 在 startup 时跑，autocmd 提前注册，
-			-- 第一个 .scm/.rkt 打开时立刻触发，比放到 conjure 的 config 里更可靠
-			-- （后者要等 conjure 真的加载完）。
+			-- 工具链探测：init 时提前注册 autocmd，第一个 .scm/.rkt 打开时立刻触发。
 			vim.api.nvim_create_autocmd("FileType", {
 				group = vim.api.nvim_create_augroup("UserSchemeEnsure", { clear = true }),
 				pattern = CONJURE_FT,
@@ -49,6 +48,91 @@ return {
 					require("tools.scheme_ensure").check_for_ft(vim.bo[ev.buf].filetype)
 				end,
 			})
+		end,
+		config = function()
+			-- which-key desc：Conjure 内部自己注册键位（无 desc），用 wk.add() 补描述。
+			-- PAREDIT_FT 也在这里一并处理（= CONJURE_FT ∪ {lisp}），省一个 autocmd。
+			-- vim.schedule 确保 which-key（VeryLazy）已加载再调用 add()。
+			local function setup_wk(buf)
+				local ok, wk = pcall(require, "which-key")
+				if not ok then
+					return
+				end
+				local ft = vim.bo[buf].filetype
+				-- gK：raco docs 开浏览器，作为 K（LSP hover）的补充。
+				-- <C-k>：手动触发签名提示；racket-langserver 对 Invoked 返回 null，
+				-- 实际签名提示靠 blink auto-trigger（输入 space/)/] 时自动弹出）。
+				vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help,
+					{ buffer = buf, noremap = true, silent = true, desc = "LSP: Signature Help" }
+				)
+				if ft == "racket" then
+					vim.keymap.set("n", "gK", function()
+						vim.fn.system({ "raco", "docs", "--", vim.fn.expand("<cword>") })
+					end, { buffer = buf, silent = true, desc = "Racket: raco docs (browser)" })
+				end
+				local specs = {
+					{ "<localleader>p", group = "Paredit", buffer = buf },
+				}
+				if ft == "racket" then
+					vim.list_extend(specs, {
+						{ "gK", desc = "Racket: raco docs (browser)", buffer = buf },
+					})
+				end
+				if vim.tbl_contains(CONJURE_FT, ft) then
+					vim.list_extend(specs, {
+						{ "<localleader>c", group = "Conjure", buffer = buf },
+						{ "<localleader>ce", group = "Eval", buffer = buf },
+						{ "<localleader>cee", desc = "Eval current form", buffer = buf },
+						{ "<localleader>cer", desc = "Eval root form", buffer = buf },
+						{ "<localleader>cew", desc = "Eval word", buffer = buf },
+						{ "<localleader>cep", desc = "Eval previous", buffer = buf },
+						{ "<localleader>cem", desc = "Eval marked form", buffer = buf },
+						{ "<localleader>cef", desc = "Eval file", buffer = buf },
+						{ "<localleader>ceb", desc = "Eval buffer", buffer = buf },
+						{ "<localleader>ce!", desc = "Eval replace form", buffer = buf },
+						{ "<localleader>cE", desc = "Eval motion (operator)", buffer = buf, mode = "n" },
+						{ "<localleader>cE", desc = "Eval visual", buffer = buf, mode = "v" },
+						{ "<localleader>cec", group = "Eval (comment)", buffer = buf },
+						{ "<localleader>cece", desc = "Eval current form (comment)", buffer = buf },
+						{ "<localleader>cecr", desc = "Eval root form (comment)", buffer = buf },
+						{ "<localleader>cecw", desc = "Eval word (comment)", buffer = buf },
+						{ "<localleader>cc", group = "REPL", buffer = buf },
+						{ "<localleader>ccs", desc = "REPL: start", buffer = buf },
+						{ "<localleader>ccS", desc = "REPL: stop", buffer = buf },
+						{ "<localleader>cg", group = "Navigate", buffer = buf },
+						{ "<localleader>cgd", desc = "Go to definition", buffer = buf },
+						{ "<localleader>cl", group = "Log", buffer = buf },
+						{ "<localleader>cls", desc = "Log: split", buffer = buf },
+						{ "<localleader>clv", desc = "Log: vsplit", buffer = buf },
+						{ "<localleader>clt", desc = "Log: tab", buffer = buf },
+						{ "<localleader>cle", desc = "Log: buffer", buffer = buf },
+						{ "<localleader>clg", desc = "Log: toggle", buffer = buf },
+						{ "<localleader>clq", desc = "Log: close", buffer = buf },
+						{ "<localleader>cll", desc = "Log: jump to latest", buffer = buf },
+						{ "<localleader>clr", desc = "Log: soft reset", buffer = buf },
+						{ "<localleader>clR", desc = "Log: hard reset", buffer = buf },
+					})
+				end
+				wk.add(specs)
+			end
+
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("UserSchemeWK", { clear = true }),
+				pattern = PAREDIT_FT,
+				callback = function(ev)
+					vim.schedule(function()
+						setup_wk(ev.buf)
+					end)
+				end,
+			})
+			-- 已打开的 buffer（触发插件加载的那个）
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				if vim.tbl_contains(PAREDIT_FT, vim.bo[buf].filetype) then
+					vim.schedule(function()
+						setup_wk(buf)
+					end)
+				end
+			end
 		end,
 	},
 

@@ -104,10 +104,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
 		end)
 
-		-- Hover (K) and insert-mode signature_help (<C-k>) follow Neovim 0.11
-		-- LspAttach community defaults. The signature_help line below is kept
-		-- explicit as a safety net against upstream default changes; it is NOT
-		-- a divergence from the default.
+		-- K 必须显式绑定：ftplugin（如 racket.vim 把 K 映射到 raco docs）在
+		-- FileType 时先跑，会把 Neovim 0.11 的默认覆盖掉。LspAttach 在 FileType
+		-- 之后触发，这里显式 set 就能盖回来。
+		map("n", "K", vim.lsp.buf.hover, "LSP: Hover")
+		-- racket-langserver 对手动触发（Invoked）返回 null——只有 blink 在输入
+		-- 触发字符（space / ) / ]）时的 auto-trigger 有签名提示。
+		-- #lang sicp 完全没有签名提示：server 不支持该方言的 signatureHelp。
 		map("i", "<C-k>", vim.lsp.buf.signature_help, "LSP: Signature Help")
 		-- Navigation: g* follows community defaults (mirrors .ideavimrc §Navigation).
 		-- gd: Goto Definition    | gD: Goto Type Definition

@@ -48,13 +48,8 @@ return {
 				{ "<localleader>m", group = "Markdown" },
 				{ "<localleader>c", group = "Crates (Cargo.toml)" },
 				{ "<localleader>t", group = "Typst" },
-				-- Scheme 系（lua/plugins/lang/scheme.lua）：Conjure REPL eval + nvim-paredit
-				-- 结构化编辑。按键由插件自身用 desc 注册到 buffer，which-key 只需提供
-				-- 组名 + cond 让它们在对应 buffer 出现并不污染其它 ft。
-				-- 注意：和 "Crates (Cargo.toml)" 在 ,c 处共存——后者没加 cond 是历史原因
-				-- （label 已说明 Cargo.toml 专用），duplicate 仅是 informational warning。
-				{ "<localleader>c", group = "Conjure (Eval / REPL)", cond = ft_in("scheme", "racket", "lisp") },
-				{ "<localleader>p", group = "Paredit (struct edit)", cond = ft_in("scheme", "racket", "lisp") },
+				-- Scheme 系组名（<localleader>c / <localleader>p）以 buffer-local 形式在
+				-- lua/plugins/lang/scheme.lua 的 config() 里注册，不在这里重复声明。
 			})
 		end,
 	},
