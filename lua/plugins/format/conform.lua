@@ -21,7 +21,10 @@ return {
 				desc = "Format file",
 			},
 		},
-		config = function()
+		-- 不能用纯 `opts`：formatters_by_ft 表是从 tools.mason_ensure 运行时取
+		-- 的，而 ts/js/markdown 的 picker 还要看 buffer 路径动态决定 formatter。
+		-- 接 opts 参数走形式，方便其它 spec 用 `optional = true` 增量扩展。
+		config = function(_, opts)
 			local conform = require("conform")
 			local formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft()
 
@@ -53,7 +56,7 @@ return {
 			end
 			formatters_by_ft.markdown = pick_md_formatter
 
-			conform.setup({
+			conform.setup(vim.tbl_deep_extend("force", {
 				formatters_by_ft = formatters_by_ft,
 				formatters = {
 					-- mdformat 默认校验 "格式化前后 HTML 渲染一致"，但歧义字符（列表中的裸 `*` 等）
@@ -89,7 +92,7 @@ return {
 					end
 					return { timeout_ms = 1000, lsp_fallback = true }
 				end,
-			})
+			}, opts or {}))
 			vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
 
 			vim.api.nvim_create_user_command("FormatDisable", function(args)

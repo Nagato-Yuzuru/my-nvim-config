@@ -101,6 +101,7 @@ nmap <leader>nS <Action>(ActivateStructureToolWindow)
 " Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua):
 "   <leader>ss  → workspace symbols    — use Shift+Shift (Search Everywhere)
 "   <leader>sc  → commands / actions   — use Shift+Shift, "Actions" tab
+"   <leader>sk  → keymaps picker       — use Help → Find Action
 " IdeaVim deliberately doesn't mirror these: Search Everywhere already covers
 " the same ground with a single entry point, so duplicating them as leader
 " bindings would just add noise.

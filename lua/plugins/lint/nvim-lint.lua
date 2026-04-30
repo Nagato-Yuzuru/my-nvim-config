@@ -1,7 +1,10 @@
 return {
 	{
 		"mfussenegger/nvim-lint",
-		event = "VeryLazy",
+		-- VeryLazy 触发太晚：会错过启动时打开的第一个 buffer 的 BufReadPost。
+		-- BufReadPre / BufNewFile 在第一个文件加载前就把 plugin 挂上，下面的
+		-- BufReadPost 自动命中。
+		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local lint = require("lint")
 			local mason_ensure = require("tools.mason_ensure")
@@ -119,9 +122,6 @@ return {
 				)
 			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
 
-			vim.schedule(function()
-				lint.try_lint()
-			end)
 		end,
 	},
 }
