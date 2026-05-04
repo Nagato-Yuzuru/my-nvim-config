@@ -22,6 +22,11 @@ return {
 		filter_kind = false,
 	},
 	cmd = { "AerialToggle", "AerialOpen", "AerialClose", "AerialNavToggle" },
+	-- Two entry points, two namespaces:
+	--   <leader>ns  transient picker  → mirrors IdeaVim FileStructurePopup
+	--                                   (Navigation extras, no g* equivalent)
+	--   <leader>vs  persistent sidebar → mirrors IdeaVim ActivateStructureToolWindow
+	--                                   (Views namespace, tool-window semantics)
 	keys = {
 		{
 			"<leader>ns",
@@ -31,7 +36,7 @@ return {
 			desc = "Structure (Picker)",
 		},
 		{
-			"<leader>nS",
+			"<leader>vs",
 			"<cmd>AerialToggle!<cr>",
 			desc = "Structure (Sidebar)",
 		},

@@ -105,11 +105,10 @@ nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
 
 " Structure / Outline — mirrors lua/plugins/ui/aerial.lua on the Neovim side.
-" Lowercase = transient popup, uppercase = persistent sidebar. Same semantic
-" on both sides; the backing widgets differ (JetBrains popup/tool window vs
-" aerial picker/sidebar).
+" <leader>ns is the transient popup (Navigation extras namespace, no g* equivalent).
+" The persistent sidebar lives at <leader>vs in section "3) Views" below — its
+" semantics is "open a tool window", which is the Views-namespace contract.
 nmap <leader>ns <Action>(FileStructurePopup)
-nmap <leader>nS <Action>(ActivateStructureToolWindow)
 
 " Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua):
 "   <leader>ss  → workspace symbols    — use Shift+Shift (Search Everywhere)
@@ -160,7 +159,7 @@ nmap gr <Action>(FindUsages)
 "   nb  → supertypes / GotoSuperClass
 "   nt  → GotoTest
 "   nf  → FindInPath (search, not jump)
-"   ns/nS → structure popup / sidebar (not jump; see leader shortcuts above)
+"   ns  → structure popup (transient; persistent sidebar moved to <leader>vs)
 " GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
 " class-level, not method-level — keep parity with Neovim side.
 map <leader>nb <Action>(GotoSuperClass)
@@ -184,9 +183,30 @@ nmap <leader>vP <Action>(ActivateProblemsViewToolWindow)
 nmap <leader>vD <Action>(ToggleDistractionFreeMode)
 nmap <leader>vF <Action>(ToggleFullScreen)
 nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
-" <leader>vr / <leader>vd panel toggles mirror Neovim:
-"   vr → :OverseerToggle    (lua/plugins/runtime/overseer.lua)
-"   vd → require'dapui'.toggle  (lua/plugins/runtime/dap.lua)
+" Views panel toggles that mirror Neovim:
+"   vp → Snacks.explorer            (lua/plugins/ui/snacks.lua)
+"   vs → :AerialToggle!             (lua/plugins/ui/aerial.lua)
+"   vr → :OverseerToggle            (lua/plugins/runtime/overseer.lua)
+"   vd → require'dapui'.toggle      (lua/plugins/runtime/dap.lua)
+"   vt → :TodoTrouble                (lua/plugins/ui/todo-comments.lua)
+"        nvim 同时在 <leader>st 暴露 Snacks picker —— 心智模型是
+"        "Search 用 picker / View 用 panel"。IdeaVim 这边没有 <leader>s*
+"        命名空间（用 Search Everywhere 替代），所以只对齐 vt = panel。
+"   vP → :Trouble diagnostics …     (lua/plugins/ui/trouble.lua)
+"   vm → :BookmarksTree (alias of <leader>M) for cross-editor parity.
+"        Canonical entry on the nvim side is <leader>M (master-singleton
+"        convention: uppercase single letter = total/master menu, mirrors
+"        <leader>R for refactoring). <leader>vm is an alias so JetBrains
+"        muscle memory still works on the nvim side.
+"        Picker form lives at <leader>sm (nvim-only — <leader>s* namespace
+"        is nvim-only since IDE uses Search Everywhere; backed by telescope
+"        due to LintaoAmons hard dep).
+" Asymmetries (intentional, not bound on the nvim side):
+"   vc  → Commit Tool Window  (nvim uses lazygit via <localleader>G instead)
+"   vD  → Distraction Free    (no zen-mode plugin installed)
+"   vF  → FullScreen          (terminal-multiplexer level — out of nvim scope)
+" nvim-only extras with no IdeaVim equivalent:
+"   vn  → Snacks.notifier.show_history  (lua/plugins/ui/snacks.lua)
 
 
 " 4)  Generate
@@ -321,9 +341,14 @@ nmap <leader>mM <Action>(ToggleBookmarkWithMnemonic)
 nmap <leader>mn <Action>(GotoNextBookmarkInEditor)
 nmap <leader>mN <Action>(GotoPreviousBookmark)
 "
+" Search namespace — nvim-only (the <leader>s* namespace itself is nvim-only
+" because IDE uses Search Everywhere); search by keyword, picker UI:
+"   <leader>sm  → :BookmarksGoto      fuzzy picker over bookmarks
+"                                     (telescope-backed, hard dep — see
+"                                      lua/plugins/edit/marks.lua lines 38–52)
+"
 " nvim-only extras (no precise IdeaVim equivalent; the <leader>M IDE panel
 " covers similar ground interactively):
-"   <leader>mo  → :BookmarksGoto      fuzzy picker over bookmarks
 "   <leader>ml  → :BookmarksLists     switch active list (nvim multi-list)
 "   <leader>ma  → :BookmarksCommands  bookmark command palette
 "   <leader>mg  → :BookmarksGrep      grep inside bookmarked files
