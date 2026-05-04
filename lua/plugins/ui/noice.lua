@@ -29,7 +29,6 @@ return {
 		},
 		dependencies = {
 			"MunifTanjim/nui.nvim",
-			"rcarriga/nvim-notify", -- 可选：noice 依赖的通知后端
 		},
 	},
 }

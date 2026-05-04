@@ -62,17 +62,14 @@ return {
 				-- gK：raco docs 开浏览器，作为 K（LSP hover）的补充。
 				-- <C-k>：手动触发签名提示；racket-langserver 对 Invoked 返回 null，
 				-- 实际签名提示靠 blink auto-trigger（输入 space/)/] 时自动弹出）。
-				vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help,
-					{ buffer = buf, noremap = true, silent = true, desc = "LSP: Signature Help" }
-				)
 				if ft == "racket" then
 					vim.keymap.set("n", "gK", function()
 						vim.fn.system({ "raco", "docs", "--", vim.fn.expand("<cword>") })
 					end, { buffer = buf, silent = true, desc = "Racket: raco docs (browser)" })
 				end
 				local specs = {
-					{ "<localleader>p",   group = "Paredit",        buffer = buf },
-					{ "<localleader>pd",  group = "Paredit: Delete", buffer = buf },
+					{ "<localleader>p", group = "Paredit", buffer = buf },
+					{ "<localleader>pd", group = "Paredit: Delete", buffer = buf },
 				}
 				if ft == "racket" then
 					vim.list_extend(specs, {
@@ -150,8 +147,8 @@ return {
 			local api = require("nvim-paredit.api")
 			local no = { repeatable = false }
 			local no_nxov = vim.tbl_extend("force", no, { mode = { "n", "x", "o", "v" } })
-			local no_nxv  = vim.tbl_extend("force", no, { mode = { "n", "x", "v" } })
-			local no_ov   = vim.tbl_extend("force", no, { mode = { "o", "v" } })
+			local no_nxv = vim.tbl_extend("force", no, { mode = { "n", "x", "v" } })
+			local no_ov = vim.tbl_extend("force", no, { mode = { "o", "v" } })
 
 			require("nvim-paredit").setup({
 				use_default_keys = false,
@@ -159,41 +156,51 @@ return {
 				keys = {
 					-- 结构编辑：全部在 <localleader>p 下
 					-- slurp = 把相邻兄弟元素吸进括号；barf = 把括号内元素推出去
-					["<localleader>p>"]  = { api.slurp_forwards,                "Slurp forwards (absorb next sibling)" },
-					["<localleader>p<"]  = { api.barf_forwards,                 "Barf forwards (expel last element)" },
-					["<localleader>pP"]  = { api.slurp_backwards,               "Slurp backwards (absorb prev sibling)" },
-					["<localleader>pB"]  = { api.barf_backwards,                "Barf backwards (expel first element)" },
-					["<localleader>pw"]  = { api.wrap_element_under_cursor,      "Wrap element in ()" },
-					["<localleader>pW"]  = { api.wrap_enclosing_form_under_cursor, "Wrap enclosing form in ()" },
-					["<localleader>pr"]  = { api.raise_element,                 "Raise element (replace parent with element)" },
-					["<localleader>pR"]  = { api.raise_form,                    "Raise form (replace parent with form)" },
-					["<localleader>pS"]  = { api.unwrap_form_under_cursor,       "Splice (remove delimiters, keep contents)" },
-					["<localleader>pdf"] = { api.delete_form,                   "Delete form" },
-					["<localleader>pde"] = { api.delete_element,                "Delete element" },
+					["<localleader>p>"] = { api.slurp_forwards, "Slurp forwards (absorb next sibling)" },
+					["<localleader>p<"] = { api.barf_forwards, "Barf forwards (expel last element)" },
+					["<localleader>pP"] = { api.slurp_backwards, "Slurp backwards (absorb prev sibling)" },
+					["<localleader>pB"] = { api.barf_backwards, "Barf backwards (expel first element)" },
+					["<localleader>pw"] = { api.wrap_element_under_cursor, "Wrap element in ()" },
+					["<localleader>pW"] = { api.wrap_enclosing_form_under_cursor, "Wrap enclosing form in ()" },
+					["<localleader>pr"] = {
+						api.raise_element,
+						"Raise element (replace parent with element)",
+					},
+					["<localleader>pR"] = { api.raise_form, "Raise form (replace parent with form)" },
+					["<localleader>pS"] = {
+						api.unwrap_form_under_cursor,
+						"Splice (remove delimiters, keep contents)",
+					},
+					["<localleader>pdf"] = { api.delete_form, "Delete form" },
+					["<localleader>pde"] = { api.delete_element, "Delete element" },
 
 					-- 拖拽：在兄弟列表内移动元素/pair/form（>/<前缀，vim 风格）
-					[">e"] = { api.drag_element_forwards,  "Drag element right" },
+					[">e"] = { api.drag_element_forwards, "Drag element right" },
 					["<e"] = { api.drag_element_backwards, "Drag element left" },
-					[">p"] = { api.drag_pair_forwards,     "Drag pair right" },
-					["<p"] = { api.drag_pair_backwards,    "Drag pair left" },
-					[">f"] = { api.drag_form_forwards,     "Drag form right" },
-					["<f"] = { api.drag_form_backwards,    "Drag form left" },
+					[">p"] = { api.drag_pair_forwards, "Drag pair right" },
+					["<p"] = { api.drag_pair_backwards, "Drag pair left" },
+					[">f"] = { api.drag_form_forwards, "Drag form right" },
+					["<f"] = { api.drag_form_backwards, "Drag form left" },
 
 					-- 导航：E/W/B/gE 比 vim 的 w/b 在嵌套结构里精确
-					["E"]  = vim.tbl_extend("force", { api.move_to_next_element_tail, "Next element tail" },  no_nxov),
-					["W"]  = vim.tbl_extend("force", { api.move_to_next_element_head, "Next element head" },  no_nxov),
-					["B"]  = vim.tbl_extend("force", { api.move_to_prev_element_head, "Prev element head" },  no_nxov),
-					["gE"] = vim.tbl_extend("force", { api.move_to_prev_element_tail, "Prev element tail" },  no_nxov),
-					["("]  = vim.tbl_extend("force", { api.move_to_parent_form_start, "Parent form start" },  no_nxv),
-					[")"]  = vim.tbl_extend("force", { api.move_to_parent_form_end,   "Parent form end" },    no_nxv),
+					["E"] = vim.tbl_extend("force", { api.move_to_next_element_tail, "Next element tail" }, no_nxov),
+					["W"] = vim.tbl_extend("force", { api.move_to_next_element_head, "Next element head" }, no_nxov),
+					["B"] = vim.tbl_extend("force", { api.move_to_prev_element_head, "Prev element head" }, no_nxov),
+					["gE"] = vim.tbl_extend("force", { api.move_to_prev_element_tail, "Prev element tail" }, no_nxov),
+					["("] = vim.tbl_extend("force", { api.move_to_parent_form_start, "Parent form start" }, no_nxv),
+					[")"] = vim.tbl_extend("force", { api.move_to_parent_form_end, "Parent form end" }, no_nxv),
 
 					-- 文本对象：af/if form，aF/iF 顶层 form，ae/ie element
-					["af"] = vim.tbl_extend("force", { api.select_around_form,           "Around form" },           no_ov),
-					["if"] = vim.tbl_extend("force", { api.select_in_form,               "In form" },               no_ov),
-					["aF"] = vim.tbl_extend("force", { api.select_around_top_level_form, "Around top-level form" }, no_ov),
-					["iF"] = vim.tbl_extend("force", { api.select_in_top_level_form,     "In top-level form" },     no_ov),
-					["ae"] = vim.tbl_extend("force", { api.select_element,               "Around element" },        no_ov),
-					["ie"] = vim.tbl_extend("force", { api.select_element,               "In element" },            no_ov),
+					["af"] = vim.tbl_extend("force", { api.select_around_form, "Around form" }, no_ov),
+					["if"] = vim.tbl_extend("force", { api.select_in_form, "In form" }, no_ov),
+					["aF"] = vim.tbl_extend(
+						"force",
+						{ api.select_around_top_level_form, "Around top-level form" },
+						no_ov
+					),
+					["iF"] = vim.tbl_extend("force", { api.select_in_top_level_form, "In top-level form" }, no_ov),
+					["ae"] = vim.tbl_extend("force", { api.select_element, "Around element" }, no_ov),
+					["ie"] = vim.tbl_extend("force", { api.select_element, "In element" }, no_ov),
 				},
 			})
 		end,

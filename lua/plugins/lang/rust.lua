@@ -18,7 +18,9 @@
 return {
 	{
 		"saecki/crates.nvim",
-		event = { "BufRead Cargo.toml" },
+		-- BufNewFile 也要带上：`cargo init` 出新项目第一次开 Cargo.toml 时
+		-- 没有 BufRead 事件，只有 BufNewFile —— 不加这条 crates.nvim 不会激活。
+		event = { "BufRead Cargo.toml", "BufNewFile Cargo.toml" },
 		dependencies = { "nvim-lua/plenary.nvim" },
 		opts = {
 			-- 补全走 lsp.enabled = true（in-process LSP）→ blink.cmp 经 LSP 渠道吃。
