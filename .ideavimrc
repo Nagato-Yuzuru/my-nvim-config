@@ -31,6 +31,19 @@ Plug 'terryma/vim-multiple-cursors'
 "" -- Emacs C-x prefix keymap
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
+nmap K <Action>(QuickJavaDoc)
+
+" -- Tab management asymmetry
+" JetBrains 没有 vim 那种"tabpage = workspace 容器"的概念——IDE 的 tab 是
+" file-level（≈ vim buffer），同一个项目窗口里所有 file tab 共享同一套 tool
+" window 布局，没法像 vim 那样为每个 tab 维护独立的 split layout + 名字。
+" 所以以下 nvim 侧的键位 IdeaVim 这边故意不绑：
+"   <C-x>R    重命名当前 tab（lua/core/keymaps.lua，存在 t:tabname，bufferline
+"             custom_areas 渲染）—— JetBrains 没有可命名的 workspace 单位，
+"             最接近的是 Tool Window 布局存档（"Window > Store/Restore Layout"），
+"             但语义不同，强行映射只会误导。
+" tab 创建/切换那几个 (<C-x>T / <C-x><Tab> / <C-x><S-Tab> / <C-x>X) 同理：
+" JetBrains 用 "New Window"（独立 IDE 窗口）和文件 tab 已经覆盖大部分场景。
 
 " -- LSP hover / signature help: both sides use community defaults
 " normal K          → Quick Documentation  (IdeaVim native)

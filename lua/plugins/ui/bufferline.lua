@@ -20,6 +20,22 @@ return {
 				right_mouse_command = function(n)
 					require("mini.bufremove").delete(n, false)
 				end,
+				-- 当前 tab 若被 <C-x>R 命过名，把名字渲染在 tabline 最右——bufferline
+				-- 自带的 1/2 编号 indicator 不支持 per-tab 名称（无公开 API），且
+				-- 编号 + <n>gt 已经足够当 picker，这里只补"我现在在哪个 workspace"
+				-- 的视觉锚点。
+				custom_areas = {
+					-- 字段名是 fg/bg/link（参考 bufferline/custom_area.lua），不是
+					-- README 那个老例子里的 guifg/guibg。link 让我们直接借用一个
+					-- 现成 HL group，省得手动抽 #rrggbb，主题切换时也跟着变。
+					right = function()
+						local name = vim.t.tabname
+						if not name or name == "" then
+							return {}
+						end
+						return { { text = " [" .. name .. "] ", link = "Special" } }
+					end,
+				},
 			},
 		},
 		keys = {
