@@ -167,6 +167,13 @@ return {
 
 			-- === UI / 面板焦点 ===
 			{ "<leader>vd", function() require("dapui").toggle() end, desc = "Toggle DAP UI" },
+			-- 被其它 panel 挤过尺寸后，把 dap-ui 弹回原始 layout 比例。
+			-- 走 `dapui.open({ reset = true })`：内部会把 area_state.size 重置回
+			-- init_size（dapui/windows/layout.lua:84），其它逻辑 no-op（is_open 跳过）。
+			-- 试过 WinClosed 自动触发的版本——snacks picker 等一些插件关窗时 buffer
+			-- 会被立刻 wipe，buf 失效让 autocmd 走不到 schedule；又抓不到一个对所有
+			-- 关窗路径都稳定的事件，干脆只留手动键。
+			{ "<leader>d=", function() require("dapui").open({ reset = true }) end, desc = "Reset DAP UI sizes" },
 			-- 面板聚焦：s/t/b/w 是 layout 左侧四板，c/r 是底部两板。
 			-- 助记：Scopes / sTack / Breakpoints / Watches / Console / Repl
 			{ "<leader>dvs", function() focus_dapui_panel("scopes") end,      desc = "Focus Scopes panel" },

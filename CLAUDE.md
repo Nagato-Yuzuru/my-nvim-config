@@ -50,7 +50,9 @@ can tell you **what**; these two points are the **why**:
    Do **not** re-introduce them as aliases. `<leader>n*` only survives
    for jumps with **no** `g*` counterpart: `<leader>nb` supertypes (both
    sides), IdeaVim-only `<leader>nt` GotoTest / `<leader>nf` FindInPath.
-   `<leader>ns`/`<leader>nS` are structure views, not jumps.
+   `<leader>ns` is the structure popup (transient picker, not a jump);
+   the persistent structure sidebar lives at `<leader>vs` in the Views
+   namespace, since "open a tool window" is the `<leader>v*` contract.
 
 ### The `<C-x>` handling — an intentional asymmetry
 

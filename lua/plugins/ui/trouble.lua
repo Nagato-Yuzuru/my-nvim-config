@@ -1,6 +1,10 @@
 return {
 	"folke/trouble.nvim",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
+	-- 让任何 :Trouble * 调用都能触发 lazy-load —— 防止其它插件
+	-- （如 todo-comments 的 :TodoTrouble 走 :Trouble todo）在 trouble
+	-- 还没加载时撞 E492。keys 触发器只覆盖具体快捷键，不覆盖命令调用。
+	cmd = "Trouble",
 	opts = {
 		focus = true,
 		follow = false, -- 不自动跟随光标跳转，需手动确认（<cr> / l）

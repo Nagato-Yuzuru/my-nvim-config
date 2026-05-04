@@ -23,14 +23,23 @@
 --    user-defined lists.
 --
 --    Mirrors .ideavimrc "7) Mark" section:
---      <leader>M   :BookmarksTree        (IdeaVim: Bookmarks panel)
+--      <leader>M   :BookmarksTree        master / tree view (IdeaVim: Bookmarks panel)
+--      <leader>vm  :BookmarksTree        alias of <leader>M (IdeaVim parity:
+--                                        ActivateBookmarksToolWindow lives at vm there;
+--                                        master singleton stays canonical, this is
+--                                        the cross-editor convenience alias)
 --      <leader>mm  :BookmarksMark        (IdeaVim: ToggleBookmark)
 --      <leader>mM  :BookmarksDesc        (IdeaVim: ToggleBookmarkWithMnemonic)
 --      <leader>mn  :BookmarksGotoNext    (IdeaVim: GotoNextBookmarkInEditor)
 --      <leader>mN  :BookmarksGotoPrev    (IdeaVim: GotoPreviousBookmark)
 --
+--    Search namespace (search by keyword, picker UI):
+--      <leader>sm  :BookmarksGoto        fuzzy picker over all bookmarks
+--                                        (search intent → s* namespace; backed
+--                                         by Telescope due to LintaoAmons hard
+--                                         dep — see notes below)
+--
 --    nvim-only extras (no IdeaVim equivalent; documented in .ideavimrc):
---      <leader>mo  :BookmarksGoto        fuzzy picker (telescope)
 --      <leader>ml  :BookmarksLists       switch active bookmark list
 --      <leader>ma  :BookmarksCommands    command palette (bookmarks)
 --      <leader>mg  :BookmarksGrep        grep inside bookmarked files
@@ -51,7 +60,7 @@
 -- invisible in the day-to-day workflow and only surfaces when you hit a
 -- bookmark command.
 --
--- Side benefit: since telescope is present anyway, `<leader>mo` is bound
+-- Side benefit: since telescope is present anyway, `<leader>sm` is bound
 -- to :BookmarksGoto for a proper fuzzy picker over bookmark descriptions.
 -- Snacks' ui_select integration (enabled in plugins/ui/snacks.lua) still
 -- routes LintaoAmons' internal vim.ui.select prompts (list switcher,
@@ -115,12 +124,17 @@ return {
 		keys = {
 			-- Mirrors .ideavimrc "7) Mark" section
 			{ "<leader>M", "<cmd>BookmarksTree<cr>", desc = "Bookmark: tree view" },
+			-- Alias of <leader>M for IdeaVim parity (ActivateBookmarksToolWindow
+			-- is at <leader>vm there). Master singleton remains the canonical entry;
+			-- this just removes the cross-editor asymmetry.
+			{ "<leader>vm", "<cmd>BookmarksTree<cr>", desc = "Bookmark: tree view (alias of <leader>M)" },
 			{ "<leader>mm", "<cmd>BookmarksMark<cr>", desc = "Bookmark: toggle / rename" },
 			{ "<leader>mM", "<cmd>BookmarksDesc<cr>", desc = "Bookmark: add description" },
 			{ "<leader>mn", "<cmd>BookmarksGotoNext<cr>", desc = "Bookmark: next" },
 			{ "<leader>mN", "<cmd>BookmarksGotoPrev<cr>", desc = "Bookmark: prev" },
+			-- Search namespace: search bookmarks by keyword (picker intent).
+			{ "<leader>sm", "<cmd>BookmarksGoto<cr>", desc = "Search bookmarks (picker)" },
 			-- nvim-only extras (no IdeaVim equivalent)
-			{ "<leader>mo", "<cmd>BookmarksGoto<cr>", desc = "Bookmark: fuzzy goto (telescope)" },
 			{ "<leader>ml", "<cmd>BookmarksLists<cr>", desc = "Bookmark: switch list" },
 			{ "<leader>ma", "<cmd>BookmarksCommands<cr>", desc = "Bookmark: commands" },
 			{ "<leader>mg", "<cmd>BookmarksGrep<cr>", desc = "Bookmark: grep in files" },
