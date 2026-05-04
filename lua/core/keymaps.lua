@@ -60,6 +60,24 @@ map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
 map("n", "<C-x><S-Tab>", ":tabprevious<CR>", { desc = "Prev tabpage" })
 map("n", "<C-x>X", ":tabclose<CR>", { desc = "Close tabpage" })
 
+-- Rename tab. nvim-only: JetBrains 的 tab 是 file-level（≈ buffer），没有
+-- workspace 容器的语义可以重命名；asymmetry 在 .ideavimrc 里有注释。
+-- 名字存在 t:tabname，bufferline custom_areas 渲染（plugins/ui/bufferline.lua）。
+map("n", "<C-x>R", function()
+	vim.ui.input({ prompt = "Tab name: ", default = vim.t.tabname or "" }, function(input)
+		if input == nil then
+			return
+		end
+		if input ~= "" then
+			vim.t.tabname = input
+		elseif vim.t.tabname then
+			-- vim.t.x = nil 走 nvim_tabpage_del_var，未设过会抛——只有存在时才清
+			vim.t.tabname = nil
+		end
+		vim.cmd("redrawtabline")
+	end)
+end, { desc = "Rename current tab" })
+
 map("n", "<C-x>3", function()
 	vim.cmd.vsplit()
 end, { desc = "Split right" })
