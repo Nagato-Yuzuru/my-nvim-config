@@ -1,26 +1,37 @@
 -- 全局 LSP 配置：capabilities / enable / LspAttach keymaps
--- 所有 per-server 配置在顶层 lsp/*.lua，由 vim.lsp.enable() 自动加载
+-- 所有 per-server 配置在顶层 lsp/*.lua，由 vim.lsp.enable() 自动加载。
+-- 例外：rust-analyzer 由 rustaceanvim 接管（见 plugins/lang/rust.lua），
+-- 不在 vim.lsp.enable 列表里，顶层 lsp/rust_analyzer.lua 也已删除。
 
--- 全局 capabilities（VeryLazy 后 blink.cmp 已加载）
+local M = {}
+
+-- 构造与项目里所有 LSP 客户端共享的 capabilities：
+--   * blink.cmp 的补全 caps（强制 require —— 装不进来是真故障，不 pcall 吞掉）
+--   * nvim-ufo 要求的 lineFoldingOnly（否则 jsonls / yamlls 等服务端不会返回 foldingRange）
+-- 同时被下面的 VeryLazy `vim.lsp.config("*", ...)` 和 rustaceanvim 的
+-- `server.capabilities`（在 plugins/lang/rust.lua）复用 —— 避免两份独立的
+-- caps 构造逻辑。rustaceanvim 自己 `vim.lsp.start()` 启动 rust-analyzer，
+-- **不**走 `vim.lsp.config("*")`，所以必须显式塞 caps 进去。
+function M.make_capabilities()
+	local caps = vim.tbl_deep_extend(
+		"force",
+		vim.lsp.protocol.make_client_capabilities(),
+		require("blink.cmp").get_lsp_capabilities()
+	)
+	caps.textDocument = caps.textDocument or {}
+	caps.textDocument.foldingRange = {
+		dynamicRegistration = false,
+		lineFoldingOnly = true,
+	}
+	return caps
+end
+
+-- 全局 capabilities（VeryLazy 时 blink.cmp 已加载）
 vim.api.nvim_create_autocmd("User", {
 	pattern = "VeryLazy",
 	once = true,
 	callback = function()
-		-- VeryLazy 已经在 blink.cmp 之后触发；blink 装不进来是真故障，
-		-- 不要 pcall 吞掉。
-		local caps = vim.tbl_deep_extend(
-			"force",
-			vim.lsp.protocol.make_client_capabilities(),
-			require("blink.cmp").get_lsp_capabilities()
-		)
-		-- nvim-ufo 的 LSP provider 要求显式声明 lineFoldingOnly，
-		-- 否则 jsonls / yamlls 等服务端不会返回 foldingRange。
-		caps.textDocument = caps.textDocument or {}
-		caps.textDocument.foldingRange = {
-			dynamicRegistration = false,
-			lineFoldingOnly = true,
-		}
-		vim.lsp.config("*", { capabilities = caps })
+		vim.lsp.config("*", { capabilities = M.make_capabilities() })
 	end,
 })
 
@@ -63,7 +74,7 @@ vim.lsp.enable({
 	"vtsls",
 	"eslint",
 	"helm_ls",
-	"rust_analyzer",
+	-- rust_analyzer 由 rustaceanvim 接管（见 plugins/lang/rust.lua）
 	"tinymist",
 })
 
@@ -128,3 +139,5 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		end, "Goto Base (supertypes)")
 	end,
 })
+
+return M
