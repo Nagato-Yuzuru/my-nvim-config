@@ -1,5 +1,5 @@
 return {
-	{ "michaeljsmith/vim-indent-object" },
+	{ "michaeljsmith/vim-indent-object", event = "VeryLazy" },
 
 	-- matchup.vim (增强 % 匹配)
 	{

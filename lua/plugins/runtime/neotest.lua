@@ -32,24 +32,24 @@
 -- extra_args 直接透传给底层 framework。
 local presets_by_ft = {
 	python = {
-		{ label = "Verbose (-v)",       args = { "-v" } },
-		{ label = "Fail-fast (-x)",     args = { "-x" } },
+		{ label = "Verbose (-v)", args = { "-v" } },
+		{ label = "Fail-fast (-x)", args = { "-x" } },
 		{ label = "Last failed (--lf)", args = { "--lf" } },
 	},
 	go = {
-		{ label = "Verbose (-v)",            args = { "-v" } },
-		{ label = "Fail-fast (-failfast)",   args = { "-failfast" } },
-		{ label = "No cache (-count=1)",     args = { "-count=1" } },
+		{ label = "Verbose (-v)", args = { "-v" } },
+		{ label = "Fail-fast (-failfast)", args = { "-failfast" } },
+		{ label = "No cache (-count=1)", args = { "-count=1" } },
 	},
 	rust = {
-		{ label = "Verbose (--verbose)",             args = { "--verbose" } },
-		{ label = "Fail-fast (--fail-fast)",         args = { "--fail-fast" } },
-		{ label = "No fail-fast (--no-fail-fast)",   args = { "--no-fail-fast" } },
+		{ label = "Verbose (--verbose)", args = { "--verbose" } },
+		{ label = "Fail-fast (--fail-fast)", args = { "--fail-fast" } },
+		{ label = "No fail-fast (--no-fail-fast)", args = { "--no-fail-fast" } },
 	},
 	javascript = {
-		{ label = "Verbose",               args = { "--verbose" } },
-		{ label = "Bail (--bail)",         args = { "--bail" } },
-		{ label = "Only failures",         args = { "--onlyFailures" } },
+		{ label = "Verbose", args = { "--verbose" } },
+		{ label = "Bail (--bail)", args = { "--bail" } },
+		{ label = "Only failures", args = { "--onlyFailures" } },
 	},
 }
 presets_by_ft.typescript = presets_by_ft.javascript
@@ -120,10 +120,7 @@ end
 
 local function drop_stuck()
 	if not captured_client then
-		vim.notify(
-			"neotest: client not captured yet (run setup / a test first)",
-			vim.log.levels.WARN
-		)
+		vim.notify("neotest: client not captured yet (run setup / a test first)", vim.log.levels.WARN)
 		return
 	end
 
@@ -144,9 +141,7 @@ local function drop_stuck()
 				--                   (rustaceanvim 发 update_running 给 file id，
 				--                   cargo 编译失败时 result 永远不回)
 				-- 排除 dir：dir 是合成节点，自己没 running 状态。
-				if pos.type ~= "dir"
-					and captured_client:is_running(pos.id, { adapter = adapter_id })
-				then
+				if pos.type ~= "dir" and captured_client:is_running(pos.id, { adapter = adapter_id }) then
 					total = total + 1
 					table.insert(labels, ("  • [%s] %s"):format(pos.type, pos.name or pos.id))
 					synth[pos.id] = {
@@ -155,7 +150,9 @@ local function drop_stuck()
 						errors = {},
 					}
 					-- 顺手对真在跑的进程发一下 stop——已退出就 no-op
-					pcall(function() nt.run.stop(pos.id) end)
+					pcall(function()
+						nt.run.stop(pos.id)
+					end)
 				end
 			end
 			if next(synth) then
@@ -180,9 +177,11 @@ return {
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"nvim-neotest/nvim-nio",
-			"antoinemadec/FixCursorHold.nvim",
 			-- 语言 adapter（Go / Python / TS-Jest / Rust）
-			"nvim-neotest/neotest-go",
+			-- Go 用 fredrikaverpil/neotest-golang 而非 nvim-neotest/neotest-go：
+			-- 后者 2024-05 起停滞，table tests / nearest / dap-go 集成都有
+			-- 已知 bug；neotest-golang 是 2025 活跃维护版（LazyVim 也已切换）。
+			"fredrikaverpil/neotest-golang",
 			"nvim-neotest/neotest-python",
 			"nvim-neotest/neotest-jest",
 			-- Rust adapter 来自 rustaceanvim（rouge8/neotest-rust 已 archived）。
@@ -195,22 +194,30 @@ return {
 		keys = {
 			{
 				"<leader>tt",
-				function() require("neotest").run.run() end,
+				function()
+					require("neotest").run.run()
+				end,
 				desc = "Run nearest test",
 			},
 			{
 				"<leader>tT",
-				function() require("neotest").run.run(vim.fn.expand("%")) end,
+				function()
+					require("neotest").run.run(vim.fn.expand("%"))
+				end,
 				desc = "Run tests in file",
 			},
 			{
 				"<leader>tl",
-				function() require("neotest").run.run_last() end,
+				function()
+					require("neotest").run.run_last()
+				end,
 				desc = "Run last test",
 			},
 			{
 				"<leader>td",
-				function() require("neotest").run.run({ strategy = "dap" }) end,
+				function()
+					require("neotest").run.run({ strategy = "dap" })
+				end,
 				desc = "Debug nearest test",
 			},
 			{
@@ -220,17 +227,23 @@ return {
 			},
 			{
 				"<leader>ts",
-				function() require("neotest").summary.toggle() end,
+				function()
+					require("neotest").summary.toggle()
+				end,
 				desc = "Toggle test summary",
 			},
 			{
 				"<leader>to",
-				function() require("neotest").output.open({ enter = true, auto_close = true }) end,
+				function()
+					require("neotest").output.open({ enter = true, auto_close = true })
+				end,
 				desc = "Show test output",
 			},
 			{
 				"<leader>tO",
-				function() require("neotest").output_panel.toggle() end,
+				function()
+					require("neotest").output_panel.toggle()
+				end,
 				desc = "Toggle output panel",
 			},
 			{
@@ -242,24 +255,32 @@ return {
 				-- 见文件顶部 drop_stuck 注释块。这条键替代了原版的
 				-- `require("neotest").run.stop()`——后者只对光标位置生效，
 				-- 解不了"summary 里某 test 跨文件卡死"的实际诉求。
-				function() drop_stuck() end,
+				function()
+					drop_stuck()
+				end,
 				desc = "Stop & drop stuck tests",
 			},
 			{
 				"<leader>tw",
-				function() require("neotest").watch.toggle(vim.fn.expand("%")) end,
+				function()
+					require("neotest").watch.toggle(vim.fn.expand("%"))
+				end,
 				desc = "Toggle watch mode",
 			},
 			-- 失败导航：和 [d/]d (LSP + lint) 彻底分开的专用流。
 			-- 原想用 ]t/[t 走 bracket 惯例，但 todo-comments.nvim 已占。
 			{
 				"<leader>tn",
-				function() require("neotest").jump.next({ status = "failed" }) end,
+				function()
+					require("neotest").jump.next({ status = "failed" })
+				end,
 				desc = "Next failed test",
 			},
 			{
 				"<leader>tp",
-				function() require("neotest").jump.prev({ status = "failed" }) end,
+				function()
+					require("neotest").jump.prev({ status = "failed" })
+				end,
 				desc = "Prev failed test",
 			},
 		},
@@ -292,10 +313,7 @@ return {
 				local function render_files(adapter_id, files)
 					for _, file_path in pairs(files) do
 						local bufnr = vim.fn.bufnr(file_path)
-						if bufnr > 0
-							and vim.fn.buflisted(bufnr) ~= 0
-							and vim.api.nvim_buf_is_valid(bufnr)
-						then
+						if bufnr > 0 and vim.fn.buflisted(bufnr) ~= 0 and vim.api.nvim_buf_is_valid(bufnr) then
 							local results = client:get_results(adapter_id)
 							local tree = client:get_position(file_path, { adapter = adapter_id })
 							if tree then
@@ -305,8 +323,7 @@ return {
 									local pos = node:data()
 									if pos.range and pos.type == "test" then
 										local has_result = results[pos.id] ~= nil
-										local is_running =
-											client:is_running(pos.id, { adapter = adapter_id })
+										local is_running = client:is_running(pos.id, { adapter = adapter_id })
 										if not has_result and not is_running then
 											local lnum = pos.range[1] + 1
 											if lnum <= line_count then
@@ -358,9 +375,9 @@ return {
 
 			require("neotest").setup({
 				adapters = {
-					require("neotest-go")({
-						experimental = { test_table = true },
-						args = { "-count=1", "-race" },
+					require("neotest-golang")({
+						-- table tests 在 neotest-golang 默认就支持，不需要 experimental flag
+						go_test_args = { "-count=1", "-race" },
 					}),
 					require("neotest-python")({
 						-- runner 优先级：pytest > unittest；用 .venv 里的解释器
