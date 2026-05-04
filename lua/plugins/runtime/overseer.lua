@@ -6,8 +6,11 @@
 --   <leader>oR   rerun last task
 --   <leader>oo   task action menu
 --   <leader>oc   cancel running task
+--   <leader>os   ad-hoc shell command (tracked)   ← nvim-only, IDE side uses Run Anything
 --
 -- Overseer 默认探测 npm/cargo/just/make 等 task，按 buffer root 自动列出。
+-- <leader>os 用 expandcmd() 解析 % / <cfile> / ~ 等占位符（和 :! 一致），
+-- 任务进 panel 后享受 default component alias（duration / notify / dispose）。
 
 return {
 	{
@@ -55,21 +58,43 @@ return {
 				end,
 				desc = "Cancel running tasks",
 			},
+			{
+				"<leader>os",
+				function()
+					local raw = vim.fn.input({ prompt = "Shell $ ", completion = "shellcmd" })
+					if not raw or raw == "" then
+						return
+					end
+					local ok, cmd = pcall(vim.fn.expandcmd, raw)
+					if not ok then
+						vim.notify(cmd, vim.log.levels.ERROR)
+						return
+					end
+					local overseer = require("overseer")
+					local task = overseer.new_task({
+						name = cmd,
+						cmd = cmd,
+						components = { "default" },
+					})
+					task:start()
+					overseer.open()
+				end,
+				desc = "Run shell command (tracked)",
+			},
 		},
 		opts = {
 			task_list = {
 				direction = "bottom",
 				min_height = 12,
 				max_height = 20,
-				default_detail = 1,
+				-- 渲染走 task_list.render 函数（默认 format_standard 已含 duration / output summary）
+				-- 旧的 display_duration / on_output_summarize component 已废弃，不再用 component 定渲染
 			},
-			-- 默认模板：自动发现 npm/cargo/make/just/shell 等
+			-- 默认模板：自动发现 npm/cargo/make/just 等（无 generic shell 模板，ad-hoc 走 <leader>os）
 			templates = { "builtin" },
-			-- 与 dap 协作：debugger 跑测试时，task 输出不被静音
+			-- default component alias —— 仅保留行为类组件，渲染由 task_list.render 接管
 			component_aliases = {
 				default = {
-					{ "display_duration", detail_level = 2 },
-					"on_output_summarize",
 					"on_exit_set_status",
 					{ "on_complete_notify", system = "unfocused" },
 					"on_complete_dispose",
