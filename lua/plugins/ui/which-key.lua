@@ -38,6 +38,7 @@ return {
 				{ "<leader>m", group = "Mark" },
 				{ "<leader>c", group = "Code" },
 				{ "<leader><leader>", group = "Motion (Flash)" },
+				{ "gp", group = "Preview (LSP)" },
 				{ "<C-x>", group = "Window / Buffer" },
 				{ "<localleader>g", group = "Git" },
 				{ "<localleader>l", group = "LeetCode" },
