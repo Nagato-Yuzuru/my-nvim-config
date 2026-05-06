@@ -20,11 +20,8 @@ return {
 			"OverseerToggle",
 			"OverseerOpen",
 			"OverseerClose",
-			"OverseerInfo",
-			"OverseerBuild",
-			"OverseerQuickAction",
+			"OverseerShell",
 			"OverseerTaskAction",
-			"OverseerClearCache",
 		},
 		keys = {
 			{ "<leader>vr", "<cmd>OverseerToggle<cr>", desc = "Toggle Overseer panel" },
@@ -42,7 +39,7 @@ return {
 				end,
 				desc = "Rerun last task",
 			},
-			{ "<leader>oo", "<cmd>OverseerQuickAction<cr>", desc = "Task action menu" },
+			{ "<leader>oo", "<cmd>OverseerTaskAction<cr>", desc = "Task action menu" },
 			{
 				"<leader>oc",
 				function()
