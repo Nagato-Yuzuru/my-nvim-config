@@ -155,6 +155,17 @@ nmap gd <Action>(GotoDeclaration)
 nmap gD <Action>(GotoTypeDeclaration)
 nmap gi <Action>(GotoImplementation)
 nmap gr <Action>(FindUsages)
+" gp* — preview namespace, mirrors lua/plugins/lsp/preview.lua (goto-preview).
+"   gpd / gpD / gpi → preview definition / type-def / implementation in float
+"   gpc             → close all preview windows (recursive stack panic-exit)
+" IdeaVim side is intentionally unbound: JetBrains has the equivalent built in
+" as Quick Definition Lookup (Opt+Space / Ctrl+Shift+I), which IdeaVim does
+" NOT intercept — it works in any mode and doesn't need a leader binding. If
+" the IDE default is rebound, fix it in IDE Keymap, not here.
+" gpr (preview references) intentionally not bound on either side: references
+" go through gr → FindUsages (IDE) / Trouble (nvim), which is better for
+" browsing many candidates than a transient float.
+
 " <leader>n* — extras that have no standard g* default:
 "   nb  → supertypes / GotoSuperClass
 "   nt  → GotoTest
@@ -207,6 +218,15 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 "   vF  → FullScreen          (terminal-multiplexer level — out of nvim scope)
 " nvim-only extras with no IdeaVim equivalent:
 "   vn  → Snacks.notifier.show_history  (lua/plugins/ui/snacks.lua)
+"   vM  → toggle code minimap           (lua/plugins/ui/neominimap.lua)
+"        On JetBrains the equivalent is the CodeGlance plugin (or built-in
+"        Settings → Editor → General → Appearance → "Show code lens on the
+"        scrollbar"); both render in the gutter outside IdeaVim's reach, so
+"        no <leader>vM mirror here. Default-on on the nvim side to match
+"        CodeGlance's always-visible behavior.
+"   <C-x>m → toggle focus into/out of minimap (nvim-only; <C-x> chord prefix
+"        is IDE-routed, see top-of-file note. JetBrains has no native
+"        equivalent — minimap there isn't a focusable window.)
 
 
 " 4)  Generate
