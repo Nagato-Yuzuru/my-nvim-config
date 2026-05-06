@@ -32,6 +32,19 @@ vim.api.nvim_create_autocmd("User", {
 	once = true,
 	callback = function()
 		vim.lsp.config("*", { capabilities = M.make_capabilities() })
+
+		-- 关掉 Neovim 0.11+ 内核自带的 gr*/gO LSP 默认键。
+		-- 我们已有 gd/gi/gD + <leader>rn/<leader>ca/<leader>vs 等价物（见 CLAUDE.md
+		-- "Navigation g* — two intentional decisions"），留着只会让 `gr`（Trouble
+		-- references, 见 plugins/ui/trouble.lua）每次都要等 timeoutlen 消歧。
+		-- 注意：这些默认是 **全局** 映射（:nmap gr 输出无 `@` 标记），删除时
+		-- 不能传 { buffer = ... }。pcall 兜底，因为不同 nvim 版本 gr* 集合会变
+		-- （grx codelens 是 0.11 后期才加的）。
+		for _, lhs in ipairs({ "grn", "gra", "grr", "gri", "grt", "grx" }) do
+			pcall(vim.keymap.del, "n", lhs)
+		end
+		pcall(vim.keymap.del, "x", "gra")
+		pcall(vim.keymap.del, "n", "gO")
 	end,
 })
 
@@ -95,6 +108,9 @@ do
 	end
 end
 
+-- Codelens 自动刷新的 augroup（按 buffer 注册 autocmd，模块级声明便于二次 attach 时复用）。
+local codelens_augroup = vim.api.nvim_create_augroup("UserLspCodelens", { clear = true })
+
 -- LspAttach: 快捷键 + inlay hints
 vim.api.nvim_create_autocmd("LspAttach", {
 	group = vim.api.nvim_create_augroup("UserLspKeymaps", { clear = true }),
@@ -131,12 +147,61 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
 		map("n", "gD", vim.lsp.buf.type_definition, "Goto Type Definition")
 		map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
-		-- <leader>rn is handled by inc-rename.nvim (plugins/lsp/inc-rename.lua)
+		-- Refactor 命名空间。**只绑 LSP CodeActionKind 真正能区分的入口**——
+		-- 不为缺粒度的 IdeaVim 动作做语义重复的 alias（绑 6 个键到同一个 extract
+		-- 菜单算 muscle-memory 假象，不实质）。LSP 标准 kind 只有 4 层：
+		-- refactor / refactor.extract / refactor.inline / refactor.rewrite，对应：
+		--
+		-- 故意不绑（接受 IdeaVim 与 LSP 的能力差）：
+		--   <leader>r{v,c,f,m,i,p}（IntroduceVariable / Constant / Field /
+		--     ExtractMethod / Interface / Parameter）—— LSP 都归 refactor.extract
+		--     一层，无法键级直达；想要这些请走 <leader>re 后从菜单里挑
+		--   <leader>rs (ChangeSignature) —— LSP 无专门 kind，server 散落在
+		--     refactor.rewrite，gopls 当前也不暴露；想要请走 <leader>rr 主菜单
+		--   <leader>rd / rj / rM —— LSP 完全无对应物（SafeDelete / Jupyter / Move）
+		local refactor_kind = function(only)
+			return function()
+				vim.lsp.buf.code_action({ context = { only = only, diagnostics = {} } })
+			end
+		end
+		-- <leader>rn 由 inc-rename.nvim 处理（plugins/lsp/inc-rename.lua）
+		map_if("textDocument/codeAction", { "n", "x" }, "<leader>re",
+			refactor_kind({ "refactor.extract" }), "Refactor: Extract …")
+		map_if("textDocument/codeAction", { "n", "x" }, "<leader>rl",
+			refactor_kind({ "refactor.inline" }), "Refactor: Inline")
+		map_if("textDocument/codeAction", { "n", "x" }, "<leader>rr",
+			refactor_kind({ "refactor" }), "Refactor: All …")
+		-- <leader>R 是 IdeaVim 的 RefactoringMenu，和 <leader>rr 实质同一个入口；
+		-- 两个都保留以对齐 .ideavimrc（IdeaVim 那边也是双键并存）。
+		map_if("textDocument/codeAction", { "n", "x" }, "<leader>R",
+			refactor_kind({ "refactor" }), "Refactor: All …")
 		map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
+		-- Codelens：运行光标行的 lens（gopls test runner / rustaceanvim Run|Debug /
+		-- vtsls "N references" / clangd parameters 等）。代替了上游被我们关掉的 `grx`。
+		-- IdeaVim 侧无对应键——JetBrains 的 lens 走 gutter 图标 + IDE Run/Debug 快捷键
+		-- (Shift+F10 等)，不通过 IdeaVim mapping。这是 CLAUDE.md 允许的"genuinely
+		-- nvim-only"非对称项。
+		map_if("textDocument/codeLens", "n", "<leader>cl", vim.lsp.codelens.run, "Run Code Lens")
 		-- <leader>n* — extras that have no standard g* counterpart:
 		map_if("textDocument/prepareTypeHierarchy", "n", "<leader>nb", function()
 			vim.lsp.buf.typehierarchy("supertypes")
 		end, "Goto Base (supertypes)")
+
+		-- Codelens auto-refresh：没有 refresh 调用的话 virtual_text 不会渲染，<leader>cl
+		-- 也就没东西可跑。BufEnter/InsertLeave/BufWritePost 是社区惯用的触发集——覆盖
+		-- 打开 / 编辑后离开插入 / 保存三种修改契机，**故意避开 CursorHold**（updatetime
+		-- 一低就是高频抖动，对大型 TS 项目会让 vtsls 闷到冒烟）。
+		if client and client:supports_method("textDocument/codeLens") then
+			vim.api.nvim_clear_autocmds({ group = codelens_augroup, buffer = bufnr })
+			vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+				group = codelens_augroup,
+				buffer = bufnr,
+				callback = function()
+					vim.lsp.codelens.refresh({ bufnr = bufnr })
+				end,
+			})
+			vim.lsp.codelens.refresh({ bufnr = bufnr })
+		end
 	end,
 })
 
