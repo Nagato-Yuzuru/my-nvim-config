@@ -95,6 +95,13 @@ map <A-n> <Action>(SelectNextOccurrence)
 map <A-S-n> <Action>(SelectAllOccurrences)
 map <A-x> <Action>(FindNextOccurrence)
 map <A-p> <Action>(UnselectPreviousOccurrence)
+" nvim-side asymmetry: <A-p> is also bound as a buffer-local "toggle preview popup"
+" inside the snacks.explorer list (lua/plugins/ui/snacks.lua) and the trouble list
+" (lua/plugins/ui/trouble.lua). Both are sidebar tools that don't exist as IdeaVim
+" surfaces — JetBrains has its own Project tool window and Problems view — so there's
+" no IDE Action to mirror here. Multi-cursor semantics are unaffected: those buffers
+" don't accept multi-cursor anyway, so the buffer-local override is invisible outside
+" them. Recorded here so the parity map stays a single source of truth for <A-p>.
 
 
 map  <A-j>   <Action>(EditorCloneCaretBelow)

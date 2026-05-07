@@ -285,10 +285,17 @@ local function explorer_focused()
 		return false
 	end
 	local cur = vim.api.nvim_get_current_win()
-	if p.list and p.list.win and cur == p.list.win.win then
+	-- Mirror valid_float()'s nvim_win_is_valid pattern. snacks's Win
+	-- wrapper (p.list.win / p.input.win) holds the underlying winid in
+	-- its `.win` field, which can briefly outlive the window during
+	-- teardown — check it's actually live before comparing.
+	local function focused_on(w)
+		return w and w.win and vim.api.nvim_win_is_valid(w.win) and cur == w.win
+	end
+	if focused_on(p.list and p.list.win) then
 		return true
 	end
-	if p.input and p.input.win and cur == p.input.win.win then
+	if focused_on(p.input and p.input.win) then
 		return true
 	end
 	if valid_float() and cur == Preview.state.win then
