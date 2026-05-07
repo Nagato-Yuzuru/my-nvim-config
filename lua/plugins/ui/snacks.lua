@@ -275,7 +275,9 @@ local function current_explorer_item(picker)
 	return picker:current() --[[@as snacks.picker.explorer.Item?]]
 end
 
--- Hand focus back to the explorer list (used by <A-w> and q in float).
+-- Hand focus back to the explorer list (used by `q` in float). The
+-- regular list ↔ float cycle uses vim-native <C-w>p; this helper exists
+-- for `q` which has different semantics (close float, then focus list).
 local function focus_list()
 	local p = explorer_picker()
 	if p and vim.api.nvim_win_is_valid(p.list.win.win) then
@@ -314,12 +316,16 @@ end
 
 -- Float-side keymaps. The float buffer is a scratch with bufhidden =
 -- "wipe", so these buffer-local maps die with it — no cleanup needed.
+--
+-- We deliberately do NOT bind the cycle-back key here. Vim's native
+-- <C-w>p (previous window) does the right thing from the float — its
+-- "previous" is the list, since that's where focus came from. Adding a
+-- buffer-local override would just duplicate vim's semantics.
 ---@param buf number
 local function bind_float_keys(buf)
 	local map = function(lhs, rhs, desc)
 		vim.keymap.set("n", lhs, rhs, { buffer = buf, nowait = true, silent = true, desc = desc })
 	end
-	map("<A-w>", focus_list, "Preview: back to explorer")
 	map("q", function()
 		close_float()
 		focus_list()
@@ -380,7 +386,8 @@ end
 
 -- ---- snacks actions ----
 
--- <A-p>: trouble's `p` semantics — toggle the preview popup.
+-- <A-p>: toggle the preview popup. Same key on the trouble side
+-- (plugins/ui/trouble.lua) — symmetric across both sidebar tools.
 ---@param picker snacks.Picker
 function Preview.toggle(picker)
 	if valid_float() then
@@ -401,15 +408,28 @@ function Preview.toggle_auto(picker)
 	end
 end
 
--- <A-w> in list: focus the float (two-state cycle). Falls through to
--- snacks's default cycle_win when no float, so input ↔ list still works.
----@param picker snacks.Picker
-function Preview.focus(picker)
+-- <C-w>p in list: focus the float (cycle into preview). The reverse leg
+-- (preview → list) uses vim-native <C-w>p from the float — see
+-- bind_float_keys above. Same key in both directions = one cycle.
+--
+-- snacks-only — no equivalent on the trouble side. trouble's preview
+-- is ephemeral by design (auto-closes on list WinLeave); fighting that
+-- to enable focus-into-preview needs an autocmd-suppression hack plus
+-- ideally a force-scratch monkey-patch to keep it read-only when
+-- focused, which proved too invasive. trouble keeps its native flow.
+--
+-- We're shadowing vim's built-in <C-w>p inside the explorer list buffer
+-- only; outside this buffer, <C-w>p still does the native "previous
+-- window" thing. The fallback below — `wincmd p` when no float exists —
+-- defers to that native semantic so the shadow doesn't cost the user
+-- anything in that state.
+---@param _picker snacks.Picker
+function Preview.focus(_picker)
 	if valid_float() then
 		---@diagnostic disable-next-line: need-check-nil  -- valid_float() guards this
 		vim.api.nvim_set_current_win(Preview.state.win)
 	else
-		require("snacks.picker.actions").cycle_win(picker)
+		vim.cmd("wincmd p")
 	end
 end
 
@@ -547,11 +567,11 @@ return {
 									["zM"] = "explorer_close_all",
 									-- Floating preview popup. p stays as explorer_paste —
 									-- file-manager paste convention wins.
-									["<A-p>"] = "preview_toggle", -- trouble's `p`: toggle popup.
-									["P"] = "preview_toggle_auto", -- trouble's `P`: toggle auto-preview.
+									["<A-p>"] = "preview_toggle", -- toggle popup; same key on trouble side.
+									["P"] = "preview_toggle_auto", -- toggle auto-preview (trouble's `P` semantics).
 									["<C-f>"] = "preview_scroll_down", -- override snacks default.
 									["<C-b>"] = "preview_scroll_up",
-									["<A-w>"] = "preview_focus", -- two-state cycle: list ↔ float.
+									["<C-w>p"] = "preview_focus", -- cycle into preview; reverse uses vim-native <C-w>p from float.
 									["<CR>"] = "preview_confirm", -- open at preview position.
 									["l"] = "preview_confirm",
 								},
