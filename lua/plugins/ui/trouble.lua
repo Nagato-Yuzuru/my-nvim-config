@@ -24,6 +24,28 @@ return {
 				wrap = true,
 			},
 		},
+		-- Move trouble's "toggle preview popup" from `p` to `<A-p>` to
+		-- match snacks-explorer (plugins/ui/snacks.lua: `["<A-p>"] =
+		-- "preview_toggle"`). Same key, same semantics in both sidebar
+		-- tools — one set of muscle memory.
+		--
+		-- The default `p` is freed up; we don't repurpose it here so it
+		-- falls through to whatever vim-default applies in the trouble
+		-- list buffer (effectively no-op).
+		--
+		-- We do **not** add a focus-into-preview binding. trouble's
+		-- design treats preview as ephemeral — it's auto-closed on list
+		-- WinLeave (trouble/view/init.lua:133-146). Working around that
+		-- needs autocmd-suppression hacks plus, ideally, force-scratch
+		-- to keep the preview read-only when focused; the latter is too
+		-- invasive (replaces trouble's Preview.create wholesale). For
+		-- "browse / yank context", trouble's intended path is `<CR>`
+		-- to commit + `<C-o>` to return.
+		---@type table<string, trouble.Action.spec|false>
+		keys = {
+			p = false, -- disable default; rebound below.
+			["<A-p>"] = "preview",
+		},
 	},
 	keys = {
 		{
