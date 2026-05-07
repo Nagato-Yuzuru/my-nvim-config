@@ -265,6 +265,16 @@ local function explorer_picker()
 	return Snacks.picker.get({ source = "explorer" })[1]
 end
 
+-- picker:current() is typed as snacks.picker.Item? (the base item type),
+-- but our actions only run inside the explorer source — at runtime it's
+-- always an explorer item or nil. This wraps the type narrowing so call
+-- sites stay free of inline `--[[@as ...]]` clutter.
+---@param picker snacks.Picker
+---@return snacks.picker.explorer.Item?
+local function current_explorer_item(picker)
+	return picker:current() --[[@as snacks.picker.explorer.Item?]]
+end
+
 -- Hand focus back to the explorer list (used by <A-w> and q in float).
 local function focus_list()
 	local p = explorer_picker()
@@ -376,7 +386,7 @@ function Preview.toggle(picker)
 	if valid_float() then
 		close_float()
 	else
-		Preview.update(picker:current())
+		Preview.update(current_explorer_item(picker))
 	end
 end
 
@@ -387,7 +397,7 @@ function Preview.toggle_auto(picker)
 	Preview.auto = not Preview.auto
 	vim.notify("Explorer auto-preview: " .. (Preview.auto and "ON" or "OFF"), vim.log.levels.INFO)
 	if Preview.auto then
-		Preview.update(picker:current())
+		Preview.update(current_explorer_item(picker))
 	end
 end
 
