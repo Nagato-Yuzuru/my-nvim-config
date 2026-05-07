@@ -88,6 +88,12 @@ end
 --   P      toggle auto-preview mode (on_change-driven follow vs frozen)
 -- p stays bound to explorer_paste — file-manager paste convention wins.
 --
+-- Default: auto-preview OFF, no float on explorer entry. Press <A-p> to
+-- snapshot the current item; press P to enable cursor-tracking. Rationale:
+-- ambient auto-open caused spurious pops whenever on_change re-fired in
+-- the background (matcher re-runs, focus returning from another picker).
+-- Making the open explicit kills that whole class of surprises.
+--
 -- The preview buffer is a read-only scratch copy (not the user's real
 -- file buffer):
 --   * `modifiable` / `readonly` are buffer-local — setting them on the
@@ -107,9 +113,9 @@ end
 
 ---@class explorer.Preview
 ---@field state     explorer.Preview.State?
----@field auto      boolean    when true, on_change updates the float live
+---@field auto      boolean    when true, on_change updates the float live (default false)
 ---@field skip_file string?    one-shot suppression for the next on_change
-local Preview = { state = nil, auto = true, skip_file = nil }
+local Preview = { state = nil, auto = false, skip_file = nil }
 -- skip_file is set by commit_from_preview to absorb snacks's trailing-
 -- edge throttle re-fire (snacks/util/init.lua:327 — _show_preview is
 -- wrapped in a 60ms throttle that fires once more after the timer
@@ -265,6 +271,32 @@ local function explorer_picker()
 	return Snacks.picker.get({ source = "explorer" })[1]
 end
 
+-- Is the explorer the user's current interaction context? Used to gate
+-- auto-preview updates: when focus has moved away (another picker, the
+-- main editor), explorer's on_change still re-fires in the background
+-- (matcher re-runs, picker regaining bookkeeping after another picker
+-- closes) and would otherwise shuffle the float behind the user's back.
+-- The float window itself counts as focused — the user is still
+-- interacting with the explorer subsystem.
+---@return boolean
+local function explorer_focused()
+	local p = explorer_picker()
+	if not p then
+		return false
+	end
+	local cur = vim.api.nvim_get_current_win()
+	if p.list and p.list.win and cur == p.list.win.win then
+		return true
+	end
+	if p.input and p.input.win and cur == p.input.win.win then
+		return true
+	end
+	if valid_float() and cur == Preview.state.win then
+		return true
+	end
+	return false
+end
+
 -- picker:current() is typed as snacks.picker.Item? (the base item type),
 -- but our actions only run inside the explorer source — at runtime it's
 -- always an explorer item or nil. This wraps the type narrowing so call
@@ -373,6 +405,12 @@ function Preview.on_change(_, item)
 		return
 	end
 	if skip and item.file == skip then
+		return
+	end
+	-- Focus gate: skip when explorer isn't the current interaction
+	-- context. Background re-fires (matcher re-runs after another picker
+	-- closes, etc.) shouldn't pop or update the preview.
+	if not explorer_focused() then
 		return
 	end
 	if Preview.auto then
