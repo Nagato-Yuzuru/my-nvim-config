@@ -180,6 +180,13 @@ nmap gr <Action>(FindUsages)
 "   ns  → structure popup (transient; persistent sidebar moved to <leader>vs)
 " GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
 " class-level, not method-level — keep parity with Neovim side.
+"
+" Asymmetry — Neovim only:
+"   <leader>n{h,j,k,l} → treewalker.nvim AST walker (sticky hydra)
+"     h=parent  j=next sibling  k=prev sibling  l=drill into child
+"   No JetBrains equivalent — IDE has Move Statement Up/Down (Cmd+Shift+↑/↓)
+"   for swap but no AST sibling/parent walk. Not bound here; reserve
+"   <leader>n{h,j,k,l} on the IDE side for possible future use.
 map <leader>nb <Action>(GotoSuperClass)
 map <leader>nt <Action>(GotoTest)
 map <leader>nf <Action>(FindInPath)
