@@ -108,5 +108,31 @@ return {
 				{ "<Esc>", nil, { exit = true, desc = "Exit" } },
 			},
 		})
+
+		-- ── Treewalker ─────────────────────────────────────────────────────
+		-- body = `<leader>n`，复用既有 "Navigation extras" 命名空间。
+		-- `invoke_on_body = false`（默认）让单按 `<leader>n` 不进 hydra：
+		--   <leader>nb / ns / nt / nf  → fall through 到既有单发动作
+		--   <leader>nh / nj / nk / nl  → head 命中，walker 移动 + 进 hydra
+		-- 进入后裸 h/j/k/l 继续走，任何非 head 键 red 语义干净退出。
+		--
+		-- 入口选 `<leader>n` 不选 `[`/`]`，是因为 `[/]` 自带 forward/backward
+		-- 语义会和 hjkl 方向打架（`]k` 看上去 = "forward + up" 矛盾）；而
+		-- `<leader>n` = "navigation"（中性词），加 hjkl 方向无歧义。
+		Hydra({
+			name = "Treewalker",
+			mode = "n",
+			body = "<leader>n",
+			config = {
+				timeout = 1500,
+			},
+			heads = {
+				{ "h", "<cmd>Treewalker Left<cr>", { desc = "Parent" } },
+				{ "j", "<cmd>Treewalker Down<cr>", { desc = "Next sibling" } },
+				{ "k", "<cmd>Treewalker Up<cr>", { desc = "Prev sibling" } },
+				{ "l", "<cmd>Treewalker Right<cr>", { desc = "Drill in" } },
+				{ "<Esc>", nil, { exit = true, desc = "Exit" } },
+			},
+		})
 	end,
 }

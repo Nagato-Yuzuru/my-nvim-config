@@ -36,20 +36,27 @@ return {
 		end
 
 		-- Move to next/prev node by kind.
-		-- Note: lowercase `]c`/`[c` is claimed by gitsigns (hunk nav), so class
-		-- nav uses uppercase `]C`/`[C`. `[i` shadows the rarely-used builtin
-		-- "search word in included files" — intentional.
+		--
+		-- Convention: `]<lowercase>` = jump to next START of that text-object;
+		-- `[<lowercase>` = previous start. NO end-variant bindings (no `]F`/`]L`
+		-- /etc.) — uniform across all five kinds (function/loop/class/conditional
+		-- /argument). `]f` (next function start) is the better "skip past
+		-- current" key anyway, and end positioning without an operation is rare
+		-- (use `vaf`/`daf` text-objects for ops; use matchup `%` to cycle within
+		-- a block).
+		--
+		-- Exceptions to the lowercase rule:
+		--   `]C`/`[C` class — uppercase to avoid gitsigns claiming `]c`/`[c`.
+		--   `[i` conditional — shadows vim's builtin "search word in included
+		--                      files" (`:help [i`); intentional, that builtin
+		--                      is rarely useful outside C-with-headers workflows.
 		local moves = {
 			["]f"] = { move.goto_next_start, "@function.outer", "Next function start" },
-			["]F"] = { move.goto_next_end, "@function.outer", "Next function end" },
 			["[f"] = { move.goto_previous_start, "@function.outer", "Prev function start" },
-			["[F"] = { move.goto_previous_end, "@function.outer", "Prev function end" },
 			["]a"] = { move.goto_next_start, "@parameter.outer", "Next argument" },
 			["[a"] = { move.goto_previous_start, "@parameter.outer", "Prev argument" },
 			["]l"] = { move.goto_next_start, "@loop.outer", "Next loop start" },
-			["]L"] = { move.goto_next_end, "@loop.outer", "Next loop end" },
 			["[l"] = { move.goto_previous_start, "@loop.outer", "Prev loop start" },
-			["[L"] = { move.goto_previous_end, "@loop.outer", "Prev loop end" },
 			["]C"] = { move.goto_next_start, "@class.outer", "Next class" },
 			["[C"] = { move.goto_previous_start, "@class.outer", "Prev class" },
 			["]i"] = { move.goto_next_start, "@conditional.outer", "Next conditional" },
