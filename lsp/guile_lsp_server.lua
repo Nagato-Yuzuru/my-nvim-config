@@ -3,7 +3,7 @@
 -- 安装：mason 不提供。macOS 上 brew 没现成包，最稳妥是源码编译：
 --   git clone https://codeberg.org/rgherdt/scheme-lsp-server
 --   make && make install   # 需要 guile + scheme 基础设施
--- 或者通过 guix install guile-lsp-server。具体路径由 lua/tools/scheme_ensure.lua
+-- 或者通过 guix install guile-lsp-server。具体路径由 lua/tools/scheme_toolchain.lua
 -- 在打开 .scm 时探测并提示。
 --
 -- filetypes 只声明 scheme：Steel 也走 .scm，但它有自己独立的 LSP（见
