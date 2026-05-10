@@ -259,6 +259,14 @@ return {
 			-- 绑定这些动作（见 CLAUDE.md）。
 			-- 描述风格对齐 `,g*` (Git) / `,l*` (LeetCode) 的 "domain: action" 风格，
 			-- 方便 which-key 在 `,` 根菜单里一眼看出这一坨是 session-scoped debug。
+			--
+			-- 键位用 CLI-debugger 助记符，不用 F-keys：`,n`/`,s`/`,f` 直接对应
+			-- pdb / dlv / gdb 的 `n` (next/step over) / `s` (step into) / `f`
+			-- (finish/step out)；`,c` continue、`,p` pause、`,u` run-to-cursor
+			-- (until)、`,r` toggle REPL、`,e` inspect expression、`,h` hover
+			-- 变量、`,w` add watch、`,j`/`,k` frame down/up、`,R` restart、
+			-- `,q` terminate。F-keys (JetBrains 风格) 故意不绑：leader/localleader
+			-- 用 Vim 语法、跨键盘布局可达。
 			local actions = {
 				c = { fn = function() dap.continue() end,                      desc = "Debug: Continue" },
 				n = { fn = function() dap.step_over() end,                     desc = "Debug: Step over (next)" },
