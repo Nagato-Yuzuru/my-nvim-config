@@ -46,3 +46,4 @@ require("lazy").setup({
 })
 
 require("core.lsp")
+require("core.diagnostic")
