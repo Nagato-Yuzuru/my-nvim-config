@@ -17,6 +17,7 @@ local M = {}
 -- `server.capabilities`（在 plugins/lang/rust.lua）复用 —— 避免两份独立的
 -- caps 构造逻辑。rustaceanvim 自己 `vim.lsp.start()` 启动 rust-analyzer，
 -- **不**走 `vim.lsp.config("*")`，所以必须显式塞 caps 进去。
+---@return lsp.ClientCapabilities
 function M.make_capabilities()
 	local caps = vim.tbl_deep_extend(
 		"force",

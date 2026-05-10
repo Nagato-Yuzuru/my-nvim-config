@@ -2,6 +2,7 @@
 -- mason 包 `js-debug-adapter`；type 名 "pwa-node" 是上游约定（pwa = preview /
 -- pretty web apps，新一代 vscode-js-debug 全部走 pwa-* 前缀）。
 
+---@type DapSpec
 return {
 	type = "pwa-node",
 	mason = "js-debug-adapter",

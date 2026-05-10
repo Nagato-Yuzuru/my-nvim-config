@@ -1,6 +1,7 @@
 -- Go 调试器 (delve)
 -- mason 包 `delve` 提供 `dlv` 二进制；mason 启动时已把 mason/bin 加入 PATH。
 
+---@type DapSpec
 return {
 	type = "delve",
 	mason = "delve",

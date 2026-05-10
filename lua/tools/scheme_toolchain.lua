@@ -19,12 +19,19 @@
 --      `racket --lib racket-langserver`，靠 raco 找到包，executable 永远 0。
 -- 探测结果会缓存（避免每次 LSP 启动判定都 fork raco 子进程）。
 
+---@class SchemeTool
+---@field check fun(): boolean true 表示工具已安装
+---@field hint string 缺失时 vim.notify 显示的安装命令
+
 local M = {}
 
+---@param bin string
+---@return boolean
 local function has_exec(bin)
 	return vim.fn.executable(bin) == 1
 end
 
+---@type table<string, boolean>
 local racket_pkg_cache = {}
 
 -- 探测 Racket 包是否安装。`raco pkg show <pkg>` 总是 exit 0（不论包在不在），
@@ -38,6 +45,8 @@ local racket_pkg_cache = {}
 --
 -- 检测：扫每一缩进行，取第一列（剥掉 `*` 自动安装标记）。匹配 pkg 名 = 安装。
 -- `[none]` 行第一列就是 `[none]`，不会撞包名。表头 `Package[*=auto]` 同理。
+---@param pkg string
+---@return boolean
 local function has_racket_pkg(pkg)
 	if racket_pkg_cache[pkg] ~= nil then
 		return racket_pkg_cache[pkg]
@@ -65,6 +74,7 @@ end
 
 -- 工具描述：display name → { check fn, install hint }。
 -- check 返回 true 时认为已安装。
+---@type table<string, SchemeTool>
 local TOOLS = {
 	racket = {
 		check = function()
@@ -130,6 +140,7 @@ local TOOLS = {
 
 -- 每个 filetype 关心哪些工具（不是所有 .scm 都需要 Steel 工具链；racket 这边
 -- 也不需要碰 Guile。scheme buffer 取保守的并集，因为没有更精确的项目分辨方法）
+---@type table<string, string[]>
 local TOOLS_BY_FT = {
 	racket = { "racket", "raco", "racket-langserver (raco pkg)", "fmt (raco pkg)", "sicp (raco pkg)" },
 	scheme = { "guile", "guile-lsp-server", "steel", "steel-language-server", "schemat" },
@@ -137,6 +148,8 @@ local TOOLS_BY_FT = {
 
 -- 暴露给 core/lsp.lua 用：在 vim.lsp.enable 之前判断 LSP 后端是否可用，
 -- 避免 racket_langserver / steel_language_server 启动失败刷屏。
+---@param name string TOOLS 表中的 display name
+---@return boolean
 function M.is_installed(name)
 	local t = TOOLS[name]
 	if not t then
@@ -145,8 +158,10 @@ function M.is_installed(name)
 	return t.check()
 end
 
+---@type table<string, boolean>
 local notified = {}
 
+---@param ft string
 function M.check_for_ft(ft)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
