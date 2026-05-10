@@ -302,23 +302,29 @@ return {
 			-- 通过 neotest.config.consumers 注册 —— neotest.setup() 内部会拿
 			-- vim.tbl_extend("error", builtin, user) 合并，名字别撞内置即可
 			-- (run/summary/output/output_panel/status/diagnostic/jump/state/watch)。
+			-- 注意：所有 vim.fn / vim.api 调用都走 nio.fn / nio.api 代理。
+			-- neotest 的 client.listeners.* 在 nvim-nio 协程里跑（"fast context"），
+			-- 直接调 vim.fn.bufnr 之类会触发 E5560；nio.fn / nio.api 内部 yield 到
+			-- 主循环再 resume，是 neotest 官方 consumer（status / diagnostic）的标
+			-- 准做法。
 			local function pending_consumer(client)
+				local nio = require("nio")
 				local sign_group = "neotest-pending"
 				local sign_name = "neotest_pending"
-				vim.fn.sign_define(sign_name, {
+				nio.fn.sign_define(sign_name, {
 					text = "◌",
 					texthl = "DiagnosticHint",
 				})
 
 				local function render_files(adapter_id, files)
 					for _, file_path in pairs(files) do
-						local bufnr = vim.fn.bufnr(file_path)
-						if bufnr > 0 and vim.fn.buflisted(bufnr) ~= 0 and vim.api.nvim_buf_is_valid(bufnr) then
+						local bufnr = nio.fn.bufnr(file_path)
+						if bufnr > 0 and nio.fn.buflisted(bufnr) ~= 0 and nio.api.nvim_buf_is_valid(bufnr) then
 							local results = client:get_results(adapter_id)
 							local tree = client:get_position(file_path, { adapter = adapter_id })
 							if tree then
-								vim.fn.sign_unplace(sign_group, { buffer = bufnr })
-								local line_count = vim.api.nvim_buf_line_count(bufnr)
+								nio.fn.sign_unplace(sign_group, { buffer = bufnr })
+								local line_count = nio.api.nvim_buf_line_count(bufnr)
 								for _, node in tree:iter_nodes() do
 									local pos = node:data()
 									if pos.range and pos.type == "test" then
@@ -327,7 +333,7 @@ return {
 										if not has_result and not is_running then
 											local lnum = pos.range[1] + 1
 											if lnum <= line_count then
-												vim.fn.sign_place(0, sign_group, sign_name, bufnr, {
+												nio.fn.sign_place(0, sign_group, sign_name, bufnr, {
 													lnum = lnum,
 													priority = 100,
 												})
