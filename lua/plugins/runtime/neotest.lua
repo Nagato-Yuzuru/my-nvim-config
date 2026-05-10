@@ -285,6 +285,23 @@ return {
 			},
 		},
 		config = function()
+			-- Panel q-to-close：neotest 自己没给 summary / output_panel 绑 close
+			-- 键（mappings 字段全是 action-on-position，没有 close action），
+			-- 但这两个都是常驻 split 面板，与 Trouble / dap-ui 同质——按 q 一键关
+			-- 是社区共识。FileType autocmd 上挂 buffer-local nmap，buftype 已经是
+			-- "nofile"（neotest 自己设）所以 :close 安全；不影响测试源文件 buffer。
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("UserNeotestPanelClose", { clear = true }),
+				pattern = { "neotest-summary", "neotest-output-panel" },
+				callback = function(ev)
+					vim.keymap.set("n", "q", "<cmd>close<cr>", {
+						buffer = ev.buf,
+						silent = true,
+						desc = "Close neotest panel",
+					})
+				end,
+			})
+
 			-- Custom consumer：在被发现但还没跑过的 test 行放一个 "pending" 标志。
 			--
 			-- 官方 status consumer (lua/neotest/consumers/status.lua) 只为
@@ -419,6 +436,16 @@ return {
 				},
 				summary = {
 					open = "botright vsplit | vertical resize 50",
+					-- 加 vim-fold 助记键（z*）。neotest 的 expand 是 toggle
+					-- （component.lua:32-34），所以 za/zo/zc 都映射到同一个 action 是
+					-- 正确的——在 closed 节点按 zo 即"打开"，open 节点按 zc 即"关闭"。
+					-- zA 走 expand_all（递归展开 cursor 下的子树）。
+					-- 不绑 zR/zM —— vim 那两个是 buffer-wide，neotest 没有"全部折叠"
+					-- 公开 API（expanded_positions 是组件内部 state），强造会伸手摸私有。
+					mappings = {
+						expand = { "<CR>", "<2-LeftMouse>", "za", "zo", "zc" },
+						expand_all = { "e", "zA" },
+					},
 				},
 				output = { open_on_run = false },
 				quickfix = { open = false },
