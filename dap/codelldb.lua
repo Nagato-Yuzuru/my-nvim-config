@@ -2,6 +2,16 @@
 -- mason 包 `codelldb`，覆盖 C / C++ / Rust。
 -- 用 codelldb 而不是 lldb-vscode：前者 setup 简单，对 Rust 的 pretty-printers
 -- 支持更好。
+--
+-- 为什么 c/cpp/rust 共用一份 spec：`dap/<adapter>.lua` 按 **adapter** 拆分
+-- （镜像 `lsp/<server>.lua` 按 server 拆分），不按语言。codelldb 是单一
+-- 二进制，对三种语言的 adapter spec 完全一致，没必要拆三份。
+--
+-- Trigger to split: 当某语言需要 distinct configurations（例如 Rust 想要
+-- `cargo run` 集成、或 program 自动指向 target/debug/<crate>），把它拆成
+-- 独立文件（如 `dap/rust.lua`），两边都保留 `type = "codelldb"` —— 后载入
+-- 的会用同一份 adapter spec 覆盖（无害），各文件下的 configurations 仍按
+-- 各自 filetypes 注册到 `dap.configurations`。
 
 ---@type DapSpec
 return {
