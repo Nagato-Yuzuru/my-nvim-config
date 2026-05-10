@@ -11,8 +11,15 @@
 -- 真正的 schema 加载（require schemastore）发生在用户调用 :SchemaSelect 时。
 -- 装载也无需 lazy spec —— init.lua 直接 require 后调 setup() 即可。
 
+---@class SchemaEntry
+---@field name string display name shown in the picker
+---@field description? string short description (truncated at 50 chars in the menu)
+---@field url string schema URL or sentinel "__custom__"
+
 local M = {}
 
+---@param url string
+---@param name? string defaults to url
 local function apply_schema_url(url, name)
 	name = name or url
 	local ft = vim.bo.filetype
@@ -31,12 +38,14 @@ end
 
 local function select_schema_and_insert()
 	local status, schemastore = pcall(require, "schemastore")
+	---@type SchemaEntry[]
 	local options = {}
 
 	if status then
 		options = vim.list_extend({}, schemastore.json.schemas() or {})
 	end
 
+	---@type SchemaEntry[]
 	local schemas = require("plugins.schemas.cloud_native_schema")
 	for i = #schemas, 1, -1 do
 		table.insert(options, 1, schemas[i])

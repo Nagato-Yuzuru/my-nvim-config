@@ -48,6 +48,7 @@ local function find_python()
 	return sys ~= "" and sys or "python3"
 end
 
+---@type DapSpec
 return {
 	type = "python",
 	mason = "debugpy",

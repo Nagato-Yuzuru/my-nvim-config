@@ -1,19 +1,21 @@
 -- DAP loader：扫描顶层 `dap/*.lua`，把每个 adapter 注入 nvim-dap 的
 -- adapters / configurations 表。**镜像 lsp/ 的 per-server 拆分模型**。
 --
--- 每个 dap/<name>.lua 必须 return 一个 spec table：
---   {
---     type                  = "delve",            -- key in dap.adapters；configs 通过 `type` 字段引用
---     mason                 = "delve",            -- 可选：mason 包名（缺省则不自动安装）
---     filetypes             = { "go" },           -- 把 configurations 注册到哪些 ft
---     adapter               = { ... },            -- nvim-dap adapter spec
---     configurations        = { ... },            -- list of debug configurations
---     exception_breakpoints = { "uncaught" },     -- 可选：启动 session 时默认开的 filter 列表
---                                                 -- （filter 名是 adapter-specific，见各 dap/*.lua）
---   }
---
+-- 每个 dap/<name>.lua 必须 return 一个 DapSpec（见下方 class 定义）。
 -- setup() 由 plugins/runtime/dap.lua 在 nvim-dap 加载完后调用，并把收集到的
 -- mason 包列表回传给 mason 安装入口。
+
+---@class DapSpec
+---@field type string nvim-dap adapters key; configurations[].type 引用此值
+---@field mason? string mason-registry 包名（缺省则不自动安装）
+---@field filetypes string[] 把 configurations 注册到哪些 filetype
+---@field adapter table nvim-dap adapter spec（executable / server / pipe）
+---@field configurations table[] debug configurations 列表
+---@field exception_breakpoints? string[] adapter-specific filter 名列表（启动 session 时默认订阅）
+
+---@class DapMasonPkg
+---@field name string mason package name
+---@field bin? string PATH probe binary (nil = 仅靠 mason 装)
 
 local M = {}
 
@@ -23,8 +25,10 @@ local M = {}
 --   * apply_function_breakpoints()      发 setFunctionBreakpoints 请求
 -- plugins/runtime/dap.lua 在 event_initialized 里会调 apply，让断点跟新
 -- session 一起恢复。
+---@type table<string, true>
 local function_breakpoints = {}
 
+---@param name string?
 function M.toggle_function_breakpoint(name)
 	if not name or name == "" then
 		return
@@ -55,6 +59,7 @@ function M.apply_function_breakpoints()
 	session:request("setFunctionBreakpoints", { breakpoints = bps })
 end
 
+---@return string[] sorted function-breakpoint names
 function M.list_function_breakpoints()
 	local list = {}
 	for fname in pairs(function_breakpoints) do
@@ -64,6 +69,7 @@ function M.list_function_breakpoints()
 	return list
 end
 
+---@return DapMasonPkg[] mason packages collected from all dap/*.lua specs
 function M.setup()
 	local ok_dap, dap = pcall(require, "dap")
 	if not ok_dap then
@@ -72,6 +78,7 @@ function M.setup()
 	end
 
 	local dap_dir = vim.fn.stdpath("config") .. "/dap"
+	---@type DapMasonPkg[]
 	local mason_pkgs = {}
 
 	if vim.fn.isdirectory(dap_dir) == 0 then
@@ -79,6 +86,7 @@ function M.setup()
 	end
 
 	for _, file in ipairs(vim.fn.glob(dap_dir .. "/*.lua", true, true)) do
+		---@type boolean, DapSpec|string
 		local ok, spec = pcall(dofile, file)
 		if not ok or type(spec) ~= "table" then
 			vim.notify(
@@ -117,6 +125,8 @@ end
 --   executable 型 => adapter.command
 --   server 型     => adapter.executable.command
 --   其它（纯远端 server 等）=> nil，表示无法探测 PATH、只能交给 mason
+---@param spec DapSpec
+---@return string?
 function M.adapter_bin(spec)
 	local a = spec.adapter
 	if type(a) ~= "table" then
@@ -136,6 +146,7 @@ end
 -- 在 PATH 上拿得到（go install 来的 dlv、brew 装的 codelldb、mason 上次装好
 -- 的都算），命中就跳过 mason 安装。mason 启动时会把 `~/.local/share/nvim/
 -- mason/bin` 追加到 PATH，所以 mason 先前装过的二进制也会在这一步命中。
+---@param pkgs DapMasonPkg[]
 function M.ensure_mason(pkgs)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return

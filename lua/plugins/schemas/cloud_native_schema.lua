@@ -1,3 +1,4 @@
+---@type SchemaEntry[]
 return {
 	{
 		name = "Kubernetes",

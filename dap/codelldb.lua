@@ -3,6 +3,7 @@
 -- 用 codelldb 而不是 lldb-vscode：前者 setup 简单，对 Rust 的 pretty-printers
 -- 支持更好。
 
+---@type DapSpec
 return {
 	type = "codelldb",
 	mason = "codelldb",

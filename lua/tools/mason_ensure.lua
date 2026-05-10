@@ -1,9 +1,22 @@
 -- Mason 安装原语 -----------------------------------------------------------
 
+---@class LspTool
+---@field server string vim.lsp.enable identifier (matches lsp/<server>.lua)
+---@field bin string PATH-probe binary name; if executable() == 1 the mason install is skipped
+---@field mason string mason-registry package name
+---@field external_owner? string when set, vim.lsp.enable will NOT auto-start this server (a non-vim plugin owns its lifecycle)
+
+---@class MasonTool
+---@field bin string PATH-probe binary name
+---@field mason string mason-registry package name
+
+---@param bin string
+---@return boolean
 local function has_exec(bin)
 	return vim.fn.executable(bin) == 1
 end
 
+---@param pkg_name string
 local function ensure_mason_pkg(pkg_name)
 	local ok, mr = pcall(require, "mason-registry")
 	if not ok then
@@ -26,6 +39,8 @@ local function ensure_mason_pkg(pkg_name)
 end
 
 -- 根据 "name → {bin, mason}" 映射，缺失时自动安装
+---@param list string[] tool names to ensure
+---@param tool_map table<string, MasonTool> name → spec
 local function ensure_tools(list, tool_map)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
@@ -56,6 +71,7 @@ end
 --     单独把它列进 vim.lsp.enable。
 --   * 三个 Scheme 系 LSP（racket / guile / steel）也不在本表：它们走
 --     scheme_toolchain.lua 的 presence-check + 手动安装提示。
+---@type LspTool[]
 local LSP_TOOLS = {
 	{ server = "lua_ls",       bin = "lua-language-server",          mason = "lua-language-server" },
 	{ server = "pyright",      bin = "pyright-langserver",           mason = "pyright" },
@@ -82,6 +98,7 @@ local LSP_TOOLS = {
 }
 
 -- Formatter / Linter binary → Mason 包映射
+---@type table<string, MasonTool>
 local TOOL_MAP = {
 	stylua = { bin = "stylua", mason = "stylua" },
 	ruff_format = { bin = "ruff", mason = "ruff" },
@@ -97,6 +114,7 @@ local TOOL_MAP = {
 	typstyle = { bin = "typstyle", mason = "typstyle" },
 }
 
+---@type table<string, string[]>
 local FORMATTERS_BY_FT = {
 	lua = { "stylua" },
 	python = { "ruff_format" },
@@ -131,6 +149,7 @@ local FORMATTERS_BY_FT = {
 	scheme = { "schemat" },
 }
 
+---@type table<string, string[]>
 local LINTERS_BY_FT = {
 	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
@@ -159,6 +178,7 @@ end
 
 -- 返回 LSP_TOOLS 中应交给 `vim.lsp.enable` 启动的 server 名列表
 -- （即所有未被外部插件接管的条目；rust_analyzer 因 external_owner 被剔除）。
+---@return string[]
 function M.lsp_servers_for_native_enable()
 	local servers = {}
 	for _, t in ipairs(LSP_TOOLS) do
@@ -170,6 +190,7 @@ function M.lsp_servers_for_native_enable()
 end
 
 -- 打开某 filetype 时按需安装对应 formatter/linter（FileType autocmd 调用）
+---@param ft string
 function M.ensure_for_ft(ft)
 	local seen = {}
 	for _, name in ipairs(FORMATTERS_BY_FT[ft] or {}) do
@@ -184,15 +205,21 @@ function M.ensure_for_ft(ft)
 	end
 end
 
+-- 返回类型用 union 兼容 conform 的 `formatters_by_ft`（允许 fun(bufnr):string[]
+-- 取代静态 string[]）；存储侧只放 string[]，但 caller 拿到后会插入 picker 函数
+-- （见 plugins/format/conform.lua 的 ts/js / markdown 分流），union 让那种赋值不报型。
+---@return table<string, string[] | fun(bufnr: integer): string[]>
 function M.get_formatters_by_ft()
 	return vim.deepcopy(FORMATTERS_BY_FT)
 end
+---@return table<string, string[]>
 function M.get_linters_by_ft()
 	return vim.deepcopy(LINTERS_BY_FT)
 end
 
 -- 按工具名按需安装（供需要"路径触发"的工具使用，如 actionlint 仅在
 -- .github/workflows/* 下才想装）
+---@param name string TOOL_MAP key
 function M.ensure_tool(name)
 	ensure_tools({ name }, TOOL_MAP)
 end
