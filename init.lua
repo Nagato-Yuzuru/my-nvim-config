@@ -45,5 +45,6 @@ require("lazy").setup({
 	},
 })
 
-require("core.lsp")
+require("core.lsp").setup()
 require("core.diagnostic")
+require("plugins.schemas.picker").setup()

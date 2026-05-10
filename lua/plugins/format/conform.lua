@@ -66,7 +66,7 @@ return {
 					-- Scheme / Racket：两者都不在 conform 内置 formatter 列表里，手动声明。
 					-- 安装路径：raco fmt 由 sorawee/fmt 提供（raco pkg install fmt），
 					--          schemat 由 raymond-w-ko/schemat 提供（cargo install schemat）。
-					-- 缺失时静默跳过（has_exec 在 lua/tools/scheme_ensure.lua 会提示）。
+					-- 缺失时静默跳过（has_exec 在 lua/tools/scheme_toolchain.lua 会提示）。
 					raco_fmt = {
 						command = "raco",
 						args = { "fmt", "-" },

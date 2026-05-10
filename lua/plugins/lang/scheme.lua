@@ -45,7 +45,7 @@ return {
 				group = vim.api.nvim_create_augroup("UserSchemeEnsure", { clear = true }),
 				pattern = CONJURE_FT,
 				callback = function(ev)
-					require("tools.scheme_ensure").check_for_ft(vim.bo[ev.buf].filetype)
+					require("tools.scheme_toolchain").check_for_ft(vim.bo[ev.buf].filetype)
 				end,
 			})
 		end,

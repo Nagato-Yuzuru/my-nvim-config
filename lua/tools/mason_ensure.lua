@@ -40,29 +40,45 @@ end
 
 -- 工具清单 -------------------------------------------------------------------
 
--- LSP servers（由 mason.nvim 触发安装）
+-- LSP servers：mason 安装清单 + vim.lsp.enable 启用清单的**单一真相**。
+--
+-- 字段：
+--   server        : vim.lsp.enable 用的 server 名（对应 lsp/<server>.lua）
+--   bin           : PATH 探测 / executable() 用的二进制名（已在 PATH 时跳过 mason）
+--   mason         : mason-registry 包名（缺失时 ensure_lsp 自动装）
+--   external_owner: 可选。设了表示该 server 不由 vim.lsp.enable 启动，而是某
+--                   外部插件接管启动逻辑（字符串 = 插件名/原因）。core/lsp.lua
+--                   过滤这些条目，避免 mason 装好却仍被 vim 原生 enable 误启
+--                   ——以及反过来"以为它没装"的两源真相风险。
+--
+-- 注意：
+--   * `ty` 不在本表内：用 `uv tool install ty` 装，不走 mason。core/lsp.lua
+--     单独把它列进 vim.lsp.enable。
+--   * 三个 Scheme 系 LSP（racket / guile / steel）也不在本表：它们走
+--     scheme_toolchain.lua 的 presence-check + 手动安装提示。
 local LSP_TOOLS = {
-	{ bin = "lua-language-server", mason = "lua-language-server" },
-	{ bin = "pyright-langserver", mason = "pyright" },
-	{ bin = "ruff", mason = "ruff" },
-	{ bin = "gopls", mason = "gopls" },
-	{ bin = "vscode-json-language-server", mason = "json-lsp" },
-	{ bin = "yaml-language-server", mason = "yaml-language-server" },
-	{ bin = "bash-language-server", mason = "bash-language-server" },
-	{ bin = "taplo", mason = "taplo" },
-	{ bin = "marksman", mason = "marksman" },
-	{ bin = "clangd", mason = "clangd" },
-	{ bin = "terraform-ls", mason = "terraform-ls" },
-	{ bin = "docker-langserver", mason = "dockerfile-language-server" },
-	{ bin = "just-lsp", mason = "just-lsp" },
-	{ bin = "deno", mason = "deno" },
-	{ bin = "vtsls", mason = "vtsls" },
-	{ bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
-	{ bin = "helm_ls", mason = "helm-ls" },
-	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 是兜底
-	{ bin = "rust-analyzer", mason = "rust-analyzer" },
+	{ server = "lua_ls",       bin = "lua-language-server",          mason = "lua-language-server" },
+	{ server = "pyright",      bin = "pyright-langserver",           mason = "pyright" },
+	{ server = "ruff",         bin = "ruff",                         mason = "ruff" },
+	{ server = "gopls",        bin = "gopls",                        mason = "gopls" },
+	{ server = "jsonls",       bin = "vscode-json-language-server",  mason = "json-lsp" },
+	{ server = "yamlls",       bin = "yaml-language-server",         mason = "yaml-language-server" },
+	{ server = "bashls",       bin = "bash-language-server",         mason = "bash-language-server" },
+	{ server = "taplo",        bin = "taplo",                        mason = "taplo" },
+	{ server = "marksman",     bin = "marksman",                     mason = "marksman" },
+	{ server = "clangd",       bin = "clangd",                       mason = "clangd" },
+	{ server = "terraformls",  bin = "terraform-ls",                 mason = "terraform-ls" },
+	{ server = "dockerls",     bin = "docker-langserver",            mason = "dockerfile-language-server" },
+	{ server = "just_ls",      bin = "just-lsp",                     mason = "just-lsp" },
+	{ server = "denols",       bin = "deno",                         mason = "deno" },
+	{ server = "vtsls",        bin = "vtsls",                        mason = "vtsls" },
+	{ server = "eslint",       bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
+	{ server = "helm_ls",      bin = "helm_ls",                      mason = "helm-ls" },
+	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 兜底安装；
+	-- 但 vim.lsp.enable 不启它——rustaceanvim 自己 vim.lsp.start，见 plugins/lang/rust.lua。
+	{ server = "rust_analyzer", bin = "rust-analyzer",               mason = "rust-analyzer", external_owner = "rustaceanvim" },
 	-- tinymist：Typst LSP + 预览后端（typst-preview.nvim 复用同一份二进制）
-	{ bin = "tinymist", mason = "tinymist" },
+	{ server = "tinymist",     bin = "tinymist",                     mason = "tinymist" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
@@ -110,7 +126,7 @@ local FORMATTERS_BY_FT = {
 	typst = { "typstyle" },
 	-- Scheme 系：raco_fmt / schemat 都不在 mason，TOOL_MAP 也没登记，
 	-- 所以 ensure_tools 会跳过它们；formatter 命令本体在 plugins/format/conform.lua
-	-- 里定义，缺失时由 plugins/lang/scheme.lua 触发的 scheme_ensure 提示安装。
+	-- 里定义，缺失时由 plugins/lang/scheme.lua 触发的 scheme_toolchain 提示安装。
 	racket = { "raco_fmt" },
 	scheme = { "schemat" },
 }
@@ -139,6 +155,18 @@ function M.ensure_lsp()
 		end, LSP_TOOLS),
 		map
 	)
+end
+
+-- 返回 LSP_TOOLS 中应交给 `vim.lsp.enable` 启动的 server 名列表
+-- （即所有未被外部插件接管的条目；rust_analyzer 因 external_owner 被剔除）。
+function M.lsp_servers_for_native_enable()
+	local servers = {}
+	for _, t in ipairs(LSP_TOOLS) do
+		if t.server and not t.external_owner then
+			table.insert(servers, t.server)
+		end
+	end
+	return servers
 end
 
 -- 打开某 filetype 时按需安装对应 formatter/linter（FileType autocmd 调用）

@@ -1,9 +1,13 @@
--- Scheme 工具链非 Mason 安装探测
+-- Scheme 工具链 presence-check + advisor（**不**安装任何东西）
 --
+-- 不和 mason_ensure.lua 共享名字（过去叫 scheme_ensure，名字制造伪对称）：
+-- 合约根本不同——
+--   * mason_ensure：installer，静默通过 mason-registry 装包。
+--   * scheme_toolchain：presence-checker + 一次性 notify 准确的安装命令。
 -- mason-registry 里没有 racket-langserver / guile-lsp-server / steel-language-server
--- / schemat / raco fmt，所以走不了 tools/mason_ensure.lua 那条路。
--- 这里只做 "缺什么 → 一次性 notify 准确的安装命令"，不自动 cargo install /
--- raco pkg install——那些写到全局工具链的动作不该在 nvim 启动时偷偷跑。
+-- / schemat / raco fmt，所以走不了 mason_ensure 那条路；同时 cargo install /
+-- raco pkg install 这种写到全局工具链的动作不该在 nvim 启动时偷偷跑——所以这个
+-- 模块**只**做检测和提示，不安装。
 --
 -- 触发：plugins/lang/scheme.lua 里的 FileType 自动命令调一次 check_for_ft(ft)。
 -- 同一 filetype 一次 session 只 notify 一次。CI / NO_AUTO_INSTALL 时短路。
