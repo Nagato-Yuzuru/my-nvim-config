@@ -11,6 +11,31 @@ return {
 
 			lint.linters_by_ft = mason_ensure.get_linters_by_ft()
 
+			-- zsh `-n`（no-exec syntax check）：zsh 没有可靠 LSP / shellcheck 支持，
+			-- 用解释器自己的 parse-only 模式抓硬语法错。zsh 是系统二进制，不进 Mason。
+			-- 走 `/dev/stdin`：nvim-lint 把 buffer 内容喂进 stdin，zsh 把 /dev/stdin
+			-- 当文件路径读，输出带行号的 `/dev/stdin:LINE: msg` —— 这样 lint 不依
+			-- 赖磁盘内容，InsertLeave 时也能拿到未保存改动的实时诊断。
+			-- （裸 `zsh -n` 读 stdin 不输出行号，所以必须走 /dev/stdin。）
+			lint.linters.zsh_n = {
+				cmd = "zsh",
+				stdin = true,
+				args = { "-n", "/dev/stdin" },
+				append_fname = false,
+				stream = "stderr",
+				ignore_exitcode = true,
+				-- 不捕 file:nvim-lint 会按 file 字段筛 buffer,zsh 输出的路径
+				-- (绝对、可能含 /private 前缀或 symlink)经常跟 expand('%:p') 不
+				-- 等,捕了反而被过滤掉。直接让 nvim-lint 绑当前 buffer。
+				parser = require("lint.parser").from_pattern(
+					"[^:]+:(%d+): (.+)",
+					{ "lnum", "message" },
+					nil,
+					{ ["source"] = "zsh -n", ["severity"] = vim.diagnostic.severity.ERROR }
+				),
+			}
+			lint.linters_by_ft.zsh = { "zsh_n" }
+
 			-- golangci-lint v2 override：
 			-- 上游 adapter 的 getArgs() 在模块 dofile 时跑一次 `go env GOMOD`
 			-- 来决定后续传"目录"还是"文件路径"，结果**永久缓存**。如果首次
