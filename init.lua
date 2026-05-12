@@ -7,6 +7,26 @@ vim.g.maplocalleader = ","
 require("core.options")
 require("core.keymaps")
 
+-- Firenvim 早分支：浏览器拉起的 nvim 必须在 ~3s 内 attach UI，否则报
+-- "Neovim died without answering"。这里关掉启动期的 Mason 自动安装
+-- （mason_ensure.lua 认这个环境变量），并精简浮窗里的 UI 噪音。
+if vim.g.started_by_firenvim then
+	vim.env.NO_AUTO_INSTALL = "1"
+	vim.opt.laststatus     = 0
+	vim.opt.showtabline    = 0
+	vim.opt.cmdheight      = 1
+	vim.opt.signcolumn     = "no"
+	vim.opt.number         = false
+	vim.opt.relativenumber = false
+	vim.opt.wrap           = true
+	vim.opt.linebreak      = true
+	vim.opt.guifont        = "JetBrainsMono Nerd Font:h14"
+	-- 实时回写到网页 textarea
+	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+		callback = function() vim.cmd("silent! write") end,
+	})
+end
+
 -- Lazy.nvim bootstrap
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
