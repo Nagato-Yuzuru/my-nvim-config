@@ -3,6 +3,7 @@ return {
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		event = "VeryLazy",
+		cond = function() return not vim.g.started_by_firenvim end,
 		opts = {
 			options = {
 				theme = "tokyonight",

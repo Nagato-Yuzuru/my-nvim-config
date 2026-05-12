@@ -2,6 +2,7 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		event = "VeryLazy",
+		cond = function() return not vim.g.started_by_firenvim end,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 			{ "echasnovski/mini.bufremove", version = false }, -- 更靠谱的关缓冲
