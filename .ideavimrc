@@ -4,6 +4,9 @@
 " Find more examples here: https://jb.gg/share-ideavimrc
 
 let mapleader = " "
+let maplocalleader = ","
+" Mirrors vim.g.maplocalleader = "," in ~/.config/nvim/init.lua — keeps
+" <localleader>* bindings (git, typst, …) typeable as `,*` on both sides.
 "" -- Suggested options --
 " Show a few lines of context around the cursor. Note that this makes the
 " text scroll if you mouse-click near the start or end of the window.
@@ -136,6 +139,10 @@ nmap <leader>ns <Action>(FileStructurePopup)
 
 " 1)  Refactoring
 " 需要在选中模式下工作的填写成map
+" <leader>ca = quick-fixes + intentions + code actions (mirror of
+" vim.lsp.buf.code_action in lua/core/lsp.lua). Kept outside <leader>r*
+" because that namespace is reserved for deterministic refactorings.
+map <leader>ca <Action>(ShowIntentionActions)
 map <leader>R <Action>(RefactoringMenu)
 map <leader>rn <Action>(RenameElement)
 nmap <leader>rs <Action>(ChangeSignature)
