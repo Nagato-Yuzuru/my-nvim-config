@@ -5,6 +5,7 @@
 ---@field bin string PATH-probe binary name; if executable() == 1 the mason install is skipped
 ---@field mason string mason-registry package name
 ---@field external_owner? string when set, vim.lsp.enable will NOT auto-start this server (a non-vim plugin owns its lifecycle)
+---@field verify_cmd? string[] optional liveness probe (e.g. `--version`); if it exits non-zero the bin is treated as missing and mason fallback kicks in. Needed for rustup proxies that exist on PATH but fail at exec when the matching toolchain component isn't installed.
 
 ---@class MasonTool
 ---@field bin string PATH-probe binary name
@@ -14,6 +15,18 @@
 ---@return boolean
 local function has_exec(bin)
 	return vim.fn.executable(bin) == 1
+end
+
+-- Run a liveness probe and report whether it exited 0. Output discarded.
+-- Used to distinguish a working bin from a broken rustup-proxy symlink.
+---@param cmd string[]
+---@return boolean
+local function probe_ok(cmd)
+	local ok, handle = pcall(vim.system, cmd, { text = true }, nil)
+	if not ok then
+		return false
+	end
+	return handle:wait(2000).code == 0
 end
 
 ---@param pkg_name string
@@ -47,8 +60,15 @@ local function ensure_tools(list, tool_map)
 	end
 	for _, name in ipairs(list) do
 		local t = tool_map[name]
-		if t and not has_exec(t.bin) then
-			ensure_mason_pkg(t.mason)
+		if t then
+			local present = has_exec(t.bin)
+			if present and t.verify_cmd and not probe_ok(t.verify_cmd) then
+				-- bin on PATH but probe fails (typical: rustup proxy without component) → fall through to mason
+				present = false
+			end
+			if not present then
+				ensure_mason_pkg(t.mason)
+			end
 		end
 	end
 end
@@ -92,7 +112,11 @@ local LSP_TOOLS = {
 	{ server = "helm_ls",      bin = "helm_ls",                      mason = "helm-ls" },
 	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 兜底安装；
 	-- 但 vim.lsp.enable 不启它——rustaceanvim 自己 vim.lsp.start，见 plugins/lang/rust.lua。
-	{ server = "rust_analyzer", bin = "rust-analyzer",               mason = "rust-analyzer", external_owner = "rustaceanvim" },
+	-- verify_cmd: ~/.cargo/bin/rust-analyzer 是 rustup proxy symlink，PATH 探测会
+	-- 命中，但激活 toolchain 没装 rust-analyzer component 时 exec 立刻报
+	-- "Unknown binary 'rust-analyzer'"。跑一次 --version 把这种"虚假存在"识破，
+	-- 让 mason 兜底真正接管。
+	{ server = "rust_analyzer", bin = "rust-analyzer",               mason = "rust-analyzer", external_owner = "rustaceanvim", verify_cmd = { "rust-analyzer", "--version" } },
 	-- tinymist：Typst LSP + 预览后端（typst-preview.nvim 复用同一份二进制）
 	{ server = "tinymist",     bin = "tinymist",                     mason = "tinymist" },
 }
