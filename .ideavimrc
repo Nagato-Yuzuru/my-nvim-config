@@ -120,13 +120,24 @@ nmap <leader>, <Action>(RecentFiles)
 " semantics is "open a tool window", which is the Views-namespace contract.
 nmap <leader>ns <Action>(FileStructurePopup)
 
-" Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua):
+" Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua +
+" lua/plugins/edit/rip-substitute.lua):
 "   <leader>ss  → workspace symbols    — use Shift+Shift (Search Everywhere)
 "   <leader>sc  → commands / actions   — use Shift+Shift, "Actions" tab
 "   <leader>sk  → keymaps picker       — use Help → Find Action
-" IdeaVim deliberately doesn't mirror these: Search Everywhere already covers
-" the same ground with a single entry point, so duplicating them as leader
-" bindings would just add noise.
+"   <leader>sb  → buffer lines fuzzy   — use Ctrl+F (Find in File) + fuzzy mode
+"   <leader>sB  → grep open buffers    — use Edit → Find → Find in Files (scope: open)
+"   <leader>sw  → grep word/selection  — use Ctrl+Shift+F on cursor word
+"   <leader>s/  → search history       — IDE keeps history in Find toolbar dropdown
+"   <leader>sr  → rip-substitute       — use Ctrl+R (Replace) / Ctrl+Shift+R (in path)
+" IdeaVim deliberately doesn't mirror these: Search Everywhere + native Find/
+" Replace already cover the same ground with a single entry point, so
+" duplicating them as leader bindings would just add noise.
+"
+" Note: nvim-side <leader>sr opens a PCRE2 popup substitution UI on top of
+" vim's native :s (which gets inccommand=split preview). IDE side has no
+" PCRE2-vs-vim split — Ctrl+R supports proper regex out of the box, so the
+" two-entry-point design only exists on the nvim side.
 
 
 "" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t

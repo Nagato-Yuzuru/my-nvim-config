@@ -675,6 +675,43 @@ return {
 				end,
 				desc = "Keymaps",
 			},
+			-- Buffer 内 fuzzy 搜索 —— `/` 的 picker 形态：先模糊找行，
+			-- 预览框在主窗口实时定位，回车跳转。和 `/` 互补：
+			--   /            精确正则 + n/N 串联 + hlslens 计数（结构化导航）
+			--   <leader>sb   模糊匹配 + 预览 + 一次性跳转（"我大概记得几个词"）
+			{
+				"<leader>sb",
+				function()
+					Snacks.picker.lines()
+				end,
+				desc = "Buffer Lines (fuzzy /)",
+			},
+			-- 跨已打开 buffer 的 live ripgrep —— 对 <leader>/ 的项目级 grep
+			-- 是补集：只想在当前打开的几个文件里找时用这个，避免被全项目噪音淹。
+			{
+				"<leader>sB",
+				function()
+					Snacks.picker.grep_buffers()
+				end,
+				desc = "Grep Open Buffers",
+			},
+			-- 光标下词 / visual 选区直接喂给 ripgrep，无输入步骤。
+			{
+				"<leader>sw",
+				function()
+					Snacks.picker.grep_word()
+				end,
+				mode = { "n", "x" },
+				desc = "Grep Word/Selection",
+			},
+			-- 历史搜索条目 picker —— 翻 `/` 历史时比 q/ 命令窗更直观。
+			{
+				"<leader>s/",
+				function()
+					Snacks.picker.search_history()
+				end,
+				desc = "Search History",
+			},
 			{
 				"<leader>vn",
 				function()
