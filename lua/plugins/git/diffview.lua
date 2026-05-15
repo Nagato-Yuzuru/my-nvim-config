@@ -1,5 +1,5 @@
 -- Diffview：分支级文件树 diff，与 gitsigns（hunk 级）互补。
--- neo-tree 的 git 状态来自 `git status`（vs index/HEAD），无法显示"vs main"的文件列表，
+-- snacks.explorer 的 git 状态来自 `git status`（vs index/HEAD），无法显示"vs main"的文件列表，
 -- 所以分支审视场景走 diffview。
 --
 -- <leader>vD  指定 base，打开 <base>...HEAD 的文件树 diff
