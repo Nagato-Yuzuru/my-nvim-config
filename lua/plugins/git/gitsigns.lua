@@ -42,7 +42,7 @@ return {
 				end, "Git: Diff vs HEAD")
 				-- 切换 hunk 计算的 base revision：默认是 index（未提交对比），
 				-- 切到 main/origin/main 后 signs、]c/[c、preview/stage_hunk 全部按 vs <base> 工作。
-				-- 仅影响 gitsigns；neo-tree 的 git 状态来自 `git status`，不受影响。
+				-- 仅影响 gitsigns；snacks.explorer 的 git 状态来自 `git status`，不受影响。
 				map("n", "<localleader>gB", function()
 					vim.ui.input({ prompt = "Diff base (空=恢复默认): ", default = "main" }, function(rev)
 						if rev == nil then

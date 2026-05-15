@@ -35,7 +35,7 @@ what's bound where.
 | Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua` (goto-preview)                       |
 | Navigation extras `<leader>n*` (no `g*` equivalent), plus `<leader>n{h,j,k,l}` walker hydra (nvim-only) | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (treewalker) |
 | Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua`                                       |
-| Views `<leader>v*`                                          | UI plugins in `lua/plugins/ui/` (neo-tree, trouble, toggleterm, …) |
+| Views `<leader>v*`                                          | Spread across `lua/plugins/{ui,git,runtime,edit}/` — `grep '<leader>v'` |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
 | Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped) | `lua/plugins/runtime/dap.lua`                                      |
@@ -46,9 +46,9 @@ what's bound where.
 
 The layout is self-describing — see `ls`. The non-obvious bits:
 
-- **Native LSP**: per-server configs in `lsp/<server>.lua`, enabled via
-  `vim.lsp.enable()` from `lua/core/lsp.lua`. Do **not** use
-  `lspconfig[server].setup()`.
+- **Native LSP only** — never `lspconfig[server].setup()`. Per-server
+  configs go in `lsp/<server>.lua`, enabled via `vim.lsp.enable()` from
+  `lua/core/lsp.lua`.
 - **DAP per-adapter** (mirrors `lsp/`): per-adapter specs in
   `dap/<adapter>.lua`, wired by `lua/core/dap.lua`. **Add a debugger by
   dropping a file in `dap/`** — never grow `lua/plugins/runtime/dap.lua`.
@@ -60,9 +60,9 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   from `lua/core/dap.lua` (not `mason-nvim-dap`). Skipped under
   `CI=true` / `NO_AUTO_INSTALL=1`.
 - **Picker is Snacks.nvim** — no Telescope.
-- **Modular plugin imports**: `init.lua` does `spec = { import =
-  "plugins.<domain>" }` so each subdirectory can be disabled
-  independently for bisection.
+- **Plugin domains are bisection units**: each `lua/plugins/<domain>/`
+  is imported separately in `init.lua` so any one can be commented out
+  to isolate breakage.
 
 ## Forbidding rules / retired designs
 
@@ -91,10 +91,8 @@ These constrain code that *isn't there*; comments have nowhere to live.
 
 ## Conventions
 
-- Plugin specs `return` a table (lazy.nvim format).
 - Non-plugin config in `lua/core/` only.
 - Prefer `opts` over `config` functions.
 - Lazy-load with `event` / `ft` / `cmd` / `keys`.
-- Tabs in Lua (matches existing style).
 - Always set `desc` on keymaps — which-key relies on it.
 - **Before merging any keymap/plugin change, re-check the parity map.**
