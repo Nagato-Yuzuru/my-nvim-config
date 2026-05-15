@@ -11,6 +11,10 @@ vim.opt.showmode = false -- lualine 已显示 mode
 vim.opt.ruler = false -- lualine 已显示位置
 vim.opt.cmdheight = 0 -- noice 接管 cmdline，隐藏原生命令行区域
 
+-- :s 增量预览 — 输入 :s/old/new 时实时高亮所有匹配并开 split 列出影响行，
+-- <CR> 落地、<Esc> 取消。零依赖、原生 vim 正则不变。
+vim.opt.inccommand = "split"
+
 -- K 在非 LSP buffer / hover popup 里的 fallback：默认 :Man 对现代工具几乎必 miss
 -- （pyright/tsserver/gopls 等都不提供 man page），改走 :help 更契合我们的日常栈
 vim.opt.keywordprg = ":help"
