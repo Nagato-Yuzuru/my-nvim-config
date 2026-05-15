@@ -29,11 +29,18 @@ return {
 			},
 			{ "<leader>vH", "<cmd>DiffviewFileHistory %<cr>", desc = "Diffview: file history" },
 		},
-		opts = {
-			enhanced_diff_hl = true,
-			view = {
-				merge_tool = { layout = "diff3_mixed" },
-			},
-		},
+		opts = function()
+			-- `q` 仅在“选择栏”退出 diffview：左侧 file_panel + 底部 file_history_panel。
+			-- diff 编辑窗口里 `q` 保持 Vim 默认的宏录制，不覆盖。
+			local q_close = { "n", "q", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" } }
+			return {
+				enhanced_diff_hl = true,
+				view = { merge_tool = { layout = "diff3_mixed" } },
+				keymaps = {
+					file_panel = { q_close },
+					file_history_panel = { q_close },
+				},
+			}
+		end,
 	},
 }
