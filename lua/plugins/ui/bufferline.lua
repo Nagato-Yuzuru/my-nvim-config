@@ -2,7 +2,9 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		event = "VeryLazy",
-		cond = function() return not vim.g.started_by_firenvim end,
+		cond = function()
+			return not vim.g.started_by_firenvim
+		end,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 			{ "echasnovski/mini.bufremove", version = false }, -- 更靠谱的关缓冲
@@ -67,7 +69,7 @@ return {
 				end,
 				desc = "Close current buffer",
 			},
-			{ "<C-x>)", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
+			{ "<C-x><C-0>", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
 			{ "<C-x>[", "<cmd>BufferLineCloseLeft<CR>", desc = "Close buffers to the left" },
 			{ "<C-x>]", "<cmd>BufferLineCloseRight<CR>", desc = "Close buffers to the right" },
 		},
