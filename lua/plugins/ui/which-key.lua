@@ -41,6 +41,7 @@ return {
 				{ "gp", group = "Preview (LSP)" },
 				{ "<C-x>", group = "Window / Buffer" },
 				{ "<localleader>g", group = "Git" },
+				{ "<localleader>d", group = "Diff (mini.diff)" },
 				{ "<localleader>l", group = "LeetCode" },
 				-- Obsidian 只在 markdown 这边有意义；不限 ft 的话 which-key 会在每个 buffer
 				-- 都把 ,o 提示成 "Obsidian"，加上 v3 的 icon 自动派生，落到 scheme/racket
