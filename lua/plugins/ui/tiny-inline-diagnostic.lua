@@ -17,6 +17,13 @@ return {
 			preset = "modern", -- modern | classic | minimal | powerline | ghost | simple | nonerdfont | amongus
 			transparent_bg = false,
 			transparent_cursorline = false,
+			-- 默认静默策略：只在光标所在行渲染气泡，其它有诊断的行只保留波浪线
+			-- (underline) + 侧栏图标。这样长文件不会被一堆胶囊撑乱。
+			-- ]d / [d 跳到下一条诊断后光标落在那行，气泡自动出现——等价于浮窗
+			-- 但更轻量（不抢焦点 / 不需要 CursorMoved 关）。
+			-- 临时全显：`:TinyInlineDiagnostic toggle_cursor_only`。
+			-- 气泡已含 code / related info（默认开），等价 open_float 信息量——
+			-- 想"聚焦窗口 yank 长文本"才需要按 <C-w>d。
 			hi = {
 				-- 沿用 Diagnostic* 系列高亮，跟随 colorscheme 切换自动重算
 				error = "DiagnosticError",
@@ -28,6 +35,16 @@ return {
 				mixing_color = "None",
 			},
 			options = {
+				-- 关键：只在光标行渲染气泡。其它行靠 underline + signs 提示存在。
+				show_diags_only_under_cursor = true,
+				-- 与 vim.diagnostic.open_float（含 <C-w>d）优雅共存：浮窗打开时
+				-- 气泡自动暂停（避免同一诊断渲染两遍），浮窗关掉时气泡恢复。
+				-- 日常不主动开浮窗——气泡已含 code / related info / 来源 / 消息，
+				-- 仅在需要"聚焦窗口 yank 长错误文本"的极少数场景按 <C-w>d。
+				override_open_float = true,
+				-- show_code (默认 true) 与 show_related (默认 enabled=true, max_count=3)
+				-- 不显式设——沿用默认即得到 `[E0308]` 诊断码 + 关联位置 `[file:line]`，
+				-- 与 open_float 信息等价。
 				-- 行尾胶囊里附带来源标签（gopls / golangci-lint / tsc / eslint…），
 				-- 同一行有多源时尤其重要——单源时省略避免噪音。
 				show_source = {
