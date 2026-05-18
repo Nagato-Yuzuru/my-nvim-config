@@ -24,12 +24,16 @@ vim.diagnostic.config({
 	update_in_insert = false,
 	virtual_text = false,
 	virtual_lines = false,
+	-- Sign icons：用 \u{} 转义直接落 Nerd Font codepoint，避免图标在文件 IO /
+	-- 工具传递时被悄悄吃掉。这四个都在 Nerd Font Codicons 区段 (U+EA60-EAFF)，
+	-- 任何 Nerd Font Symbols 包都有。
+	-- 想换其它图标参考 https://www.nerdfonts.com/cheat-sheet，挑好后填 U+xxxx。
 	signs = {
 		text = {
-			[vim.diagnostic.severity.ERROR] = "",
-			[vim.diagnostic.severity.WARN] = "",
-			[vim.diagnostic.severity.INFO] = "",
-			[vim.diagnostic.severity.HINT] = "",
+			[vim.diagnostic.severity.ERROR] = "\u{EA87}", --  error
+			[vim.diagnostic.severity.WARN] = "\u{EA6C}", --  warning
+			[vim.diagnostic.severity.INFO] = "\u{EA74}", --  info
+			[vim.diagnostic.severity.HINT] = "\u{EA61}", --  lightbulb
 		},
 	},
 	float = {
