@@ -16,14 +16,35 @@ return {
 			keymap = { -- 常用键位
 				preset = "none",
 				["<cr>"] = { "accept", "fallback" },
-				["<Tab>"] = { "accept", "fallback" }, -- 等价: select=true 再确认
+				-- Tab 链：菜单可见时接受 → 否则若 LuaSnip 可跳占位则跳 → 否则原生 <Tab>。
+				-- 接受函数补全会落到 (placeholder)，下一次 <Tab> 就是跳到下一个参数槽。
+				["<Tab>"] = {
+					"accept",
+					function(_)
+						local ok, ls = pcall(require, "luasnip")
+						if ok and ls.expand_or_jumpable() then
+							ls.expand_or_jump()
+							return true
+						end
+					end,
+					"fallback",
+				},
+				["<S-Tab>"] = {
+					"select_prev",
+					function(_)
+						local ok, ls = pcall(require, "luasnip")
+						if ok and ls.jumpable(-1) then
+							ls.jump(-1)
+							return true
+						end
+					end,
+					"fallback",
+				},
 				["<A-/>"] = { "show", "show_documentation" }, -- 触发补全/文档
-				--["<C-Esc>"] = { "hide" },                       -- 取消
 				["<C-p>"] = { "select_prev", "fallback" }, -- 上一个
 				["<C-n>"] = { "select_next", "fallback" }, -- 下一个
 				["<C-b>"] = { "scroll_documentation_up", "fallback" },
 				["<C-f>"] = { "scroll_documentation_down", "fallback" },
-				["<S-Tab>"] = { "select_prev", "fallback" },
 			},
 			appearance = { nerd_font_variant = "mono" },
 			sources = {
@@ -37,6 +58,34 @@ return {
 				documentation = {
 					auto_show = true,
 					window = { border = "rounded", winblend = 0 },
+				},
+				-- IDEA 风：菜单高亮首项，但**不**把候选写进 buffer。
+				-- 默认 v1 是 auto_insert = true —— 那种行为在 `buffer` 源（只有
+				-- insertText 没有 textEdit）下边界不稳，容易出现 "le" + 接受 "len"
+				-- = "lelen" 的拼接。改为只在 accept 时落地，IDEA 也是这个语义。
+				list = {
+					selection = { preselect = true, auto_insert = false },
+				},
+				-- 行内灰字预览首项——视觉上接近 IDEA 的"在光标处看到要补全的整体形状"。
+				ghost_text = { enabled = true },
+				-- 函数/方法补全自动补 (…)：
+				--   · LSP item 自带 snippet（gopls usePlaceholders）→ blink 直接展开
+				--   · LSP item 没 snippet → kind == Function/Method 时由 blink 补 ()
+				--   · semantic_token_based 在 server 支持 semantic tokens 时更准（不会给
+				--     变量误加括号），失败则回落到 kind 判定
+				accept = {
+					auto_brackets = {
+						enabled = true,
+						kind_resolution = {
+							enabled = true,
+							blocked_filetypes = { "typescriptreact", "javascriptreact" },
+						},
+						semantic_token_resolution = {
+							enabled = true,
+							blocked_filetypes = {},
+							timeout_ms = 400,
+						},
+					},
 				},
 			},
 			signature = { -- 插入时自动签名提示（与 insert <C-k> 手动触发互补）
