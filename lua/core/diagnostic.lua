@@ -6,7 +6,41 @@
 -- 固化。本文件作为后续诊断显示设置（vim.diagnostic.config）、toggle 等
 -- 的统一归宿。
 --
--- ── 当前内容：][d/D 跳转 + 自动浮窗 ─────────────────────────────────────
+-- ── 显示策略 ───────────────────────────────────────────────────────────
+-- IDEA / Error Lens 风：行内胶囊显示消息，字符级波浪线指字符位置。
+--   · underline       : 字符范围波浪线（LSP/linter 的 range 本就字符级）
+--   · signs           : 行首图标——多源时按 severity 排
+--   · virtual_text    : 关——由 plugins/ui/tiny-inline-diagnostic.lua 接管
+--                       （彩色圆角胶囊；远处行截断 + 光标行展开全部诊断）
+--   · virtual_lines   : 关——tiny-inline 的 show_all_diags_on_cursorline
+--                       已经覆盖了"光标行展开多行"这个需求
+--   · severity_sort   : 同一处多条诊断时 error 排最前
+--   · update_in_insert: 关闭——插入时频繁刷诊断会卡 + 视觉跳动
+-- 终端必须支持 undercurl 才看得到波浪线（WezTerm/Kitty/Ghostty/iTerm2 新版
+-- 都支持；老 Terminal.app 没有，会回落成普通下划线）。
+vim.diagnostic.config({
+	underline = true,
+	severity_sort = true,
+	update_in_insert = false,
+	virtual_text = false,
+	virtual_lines = false,
+	signs = {
+		text = {
+			[vim.diagnostic.severity.ERROR] = "",
+			[vim.diagnostic.severity.WARN] = "",
+			[vim.diagnostic.severity.INFO] = "",
+			[vim.diagnostic.severity.HINT] = "",
+		},
+	},
+	float = {
+		border = "rounded",
+		source = "if_many",
+		header = "",
+		prefix = "",
+	},
+})
+
+-- ── ][d/D 跳转 + 自动浮窗 ──────────────────────────────────────────────
 -- Neovim 0.11+ 默认绑定 ]d/[d/]D/[D 走 vim.diagnostic.jump，但**不传**
 -- float = true，所以光跳光标、不显示诊断信息。覆盖默认让每次跳完顺便弹
 -- 浮窗——避免还要再按 <C-w>d 看一眼。
