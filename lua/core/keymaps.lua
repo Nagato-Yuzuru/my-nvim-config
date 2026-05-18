@@ -49,11 +49,12 @@ map("n", "<C-w><S-K>", "<cmd>wincmd K<CR>", { desc = "Move window far up" })
 map("n", "<C-w><S-L>", "<cmd>wincmd L<CR>", { desc = "Move window far right" })
 map("n", "<C-w><S-R>", "<cmd>wincmd R<CR>", { desc = "Rotate windows up" })
 
+-- ` (Switch under cursor) 由 plugins/lang/markdown.lua 的 switch.vim
+-- spec 通过 lazy `keys =` 注册——按 ` 时按需载入插件并执行 :Switch。
+-- 不在这里全局 map 避免插件未加载时撞 E492。
+
 -- C-x
 
-map("n", "`", function()
-	vim.cmd([[Switch]])
-end, { desc = "Switch strings" })
 map("n", "<C-x>t", ":enew<CR>", { desc = "New buffer" })
 map("n", "<C-x>T", ":tabnew<CR>", { desc = "New tabpage (workspace)" })
 map("n", "<C-x><Tab>", ":tabnext<CR>", { desc = "Next tabpage" })
