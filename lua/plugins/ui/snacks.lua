@@ -523,6 +523,19 @@ return {
 		"folke/snacks.nvim",
 		priority = 1000,
 		lazy = false,
+		-- 预加载 notifier,绕过 snacks 装的 vim.notify 懒加载 shim
+		-- (snacks/init.lua:220-223)。该 shim 在第一次 vim.notify 调用时
+		-- 才 require('snacks.notifier');如果加载链里再触发一次 vim.notify
+		-- (例如某第三方插件命中 vim.deprecate),会递归 require 同一模块,
+		-- Lua 报 "loop or previous error loading module 'snacks.notifier'"。
+		-- 触发场景:<leader>tT → neotest → rustaceanvim 调 deprecated 的
+		-- client.request → vim.deprecate → vim.notify shim → 套娃。
+		config = function(_, opts)
+			require("snacks").setup(opts)
+			if opts.notifier and opts.notifier.enabled then
+				vim.notify = require("snacks.notifier").notify
+			end
+		end,
 		opts = {
 			-- Friendly help popup: rounded centered float with a title,
 			-- instead of the default dense grid docked at the bottom.
@@ -650,7 +663,8 @@ return {
 			{
 				"<leader>/",
 				function()
-					Snacks.picker.grep()
+					-- -P 切到 PCRE2 引擎，支持 lookbehind/lookahead 等 Rust regex 不支持的特性
+					Snacks.picker.grep({ args = { "-P" } })
 				end,
 				desc = "Grep",
 			},
