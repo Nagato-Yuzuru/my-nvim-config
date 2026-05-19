@@ -21,6 +21,9 @@ set commentary
 set exchange
 set argtextobj
 
+set which-key
+set notimeout
+set timeoutlen=5000
 " Don't use Ex mode, use Q for formatting.
 
 " block comment
