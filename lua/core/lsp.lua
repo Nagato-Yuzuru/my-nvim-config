@@ -89,6 +89,9 @@ function M.setup()
 	-- ty：通过 `uv tool install ty` 装，不走 mason，所以不在 LSP_TOOLS 里。
 	vim.lsp.enable("ty")
 
+	-- tsp_server：来自全局 `@typespec/compiler` npm 包，不走 mason。
+	vim.lsp.enable("tsp_server")
+
 	-- Scheme 系 LSP 按需启用——后端不在时不挂，避免刷 "Client X quit with exit code 1"。
 	-- 工具链探测在 lua/tools/scheme_toolchain.lua；FileType 触发的安装提示也走那里。
 	-- 装好工具后重启一次 nvim 就会启用对应 LSP（同一 session 内不动态启用，因为
