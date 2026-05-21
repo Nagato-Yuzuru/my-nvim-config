@@ -190,6 +190,22 @@ function M.setup()
 			end
 		end,
 	})
+
+	-- Semantic token vs treesitter injection 冲突的外科修复：
+	-- 默认 priority 下 `@lsp.type.string.<ft>`（125）会盖住 treesitter 注入
+	-- 的内嵌语言高亮（100），让 `# language=xxx` / 类似机制注入的代码看不到
+	-- 子语言着色。把这一组单独清空（无 fg/bg），其他 LSP token——deprecated
+	-- 删除线、参数 vs 局部变量、类型 vs 实例等——仍按 125 正常工作。
+	-- 普通字符串由 treesitter 的 `@string.<lang>` 在 100 兜底着色。
+	vim.api.nvim_create_autocmd("LspAttach", {
+		group = vim.api.nvim_create_augroup("UserLspClearStringToken", { clear = true }),
+		callback = function(args)
+			local ft = vim.bo[args.buf].filetype
+			if ft and ft ~= "" then
+				vim.api.nvim_set_hl(0, "@lsp.type.string." .. ft, {})
+			end
+		end,
+	})
 end
 
 return M
