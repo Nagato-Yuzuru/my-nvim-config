@@ -50,7 +50,8 @@ local MODE = { "n", "x", "o" }
 
 return {
 	{
-		"folke/flash.nvim",
+		url = "https://github.com/Nagato-Yuzuru/flash.nvim",
+		branch = "fix/motion-in-blink",
 		event = "VeryLazy",
 		---@type Flash.Config
 		opts = {
