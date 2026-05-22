@@ -81,31 +81,40 @@ function M.setup()
 		return bufnr, winid
 	end
 
-	-- 启用 LSP servers：mason 管理的清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生
+	-- 启用 LSP servers：清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生
 	-- （rust_analyzer 因 external_owner = "rustaceanvim" 被自动剔除——不再两处各自维护）。
-	-- 不在 mason 管理范围的 server 在下面单独 enable。
-	vim.lsp.enable(require("tools.mason_ensure").lsp_servers_for_native_enable())
-
-	-- ty：通过 `uv tool install ty` 装，不走 mason，所以不在 LSP_TOOLS 里。
-	vim.lsp.enable("ty")
-
-	-- tsp_server：来自全局 `@typespec/compiler` npm 包，不走 mason。
-	vim.lsp.enable("tsp_server")
-
-	-- Scheme 系 LSP 按需启用——后端不在时不挂，避免刷 "Client X quit with exit code 1"。
-	-- 工具链探测在 lua/tools/scheme_toolchain.lua；FileType 触发的安装提示也走那里。
-	-- 装好工具后重启一次 nvim 就会启用对应 LSP（同一 session 内不动态启用，因为
-	-- 探测结果已缓存且这个场景不值得做热重载）。
+	-- ty 和 tsp_server 也在 LSP_TOOLS 内，按常规 PATH-first / mason-fallback 处理。
+	local native_servers = require("tools.mason_ensure").lsp_servers_for_native_enable()
+	local scheme_servers = {} -- 按工具链探测结果追加
 	local toolchain = require("tools.scheme_toolchain")
 	if toolchain.is_installed("racket-langserver (raco pkg)") then
-		vim.lsp.enable("racket_langserver")
+		table.insert(scheme_servers, "racket_langserver")
 	end
 	if toolchain.is_installed("guile-lsp-server") then
-		vim.lsp.enable("guile_lsp_server")
+		table.insert(scheme_servers, "guile_lsp_server")
 	end
 	if toolchain.is_installed("steel-language-server") then
-		vim.lsp.enable("steel_language_server")
+		table.insert(scheme_servers, "steel_language_server")
 	end
+
+	-- 统一为所有"未自定义 root_dir"的 server 注入散文件/$HOME-safe 行为：
+	-- 没 marker 命中时走 single-file（on_dir(nil)）+ cmd cwd 钉到 cache 空目录，
+	-- 防 ruff/ty/lua_ls 这类服务器把 $HOME 当 fallback workspace。
+	-- 自定义了 root_dir 的（denols / eslint / vtsls 的互斥逻辑）会被跳过。
+	local all_servers = {}
+	vim.list_extend(all_servers, native_servers)
+	vim.list_extend(all_servers, scheme_servers)
+	require("tools.lsp_root").apply_safe_defaults(all_servers)
+
+	vim.lsp.enable(native_servers)
+	for _, s in ipairs(scheme_servers) do
+		vim.lsp.enable(s)
+	end
+
+	-- Scheme 系 LSP enable 已在上面统一处理（按 scheme_toolchain.is_installed 探测）；
+	-- 后端不在时不挂，避免刷 "Client X quit with exit code 1"。FileType 触发的安装
+	-- 提示走 lua/tools/scheme_toolchain.lua。装好工具后重启一次 nvim 就会启用对应
+	-- LSP（同一 session 内不动态启用，因为探测结果已缓存且这个场景不值得做热重载）。
 
 	-- LspAttach: 快捷键 + inlay hints
 	vim.api.nvim_create_autocmd("LspAttach", {
@@ -161,16 +170,36 @@ function M.setup()
 				end
 			end
 			-- <leader>rn 由 inc-rename.nvim 处理（plugins/lsp/inc-rename.lua）
-			map_if("textDocument/codeAction", { "n", "x" }, "<leader>re",
-				refactor_kind({ "refactor.extract" }), "Refactor: Extract …")
-			map_if("textDocument/codeAction", { "n", "x" }, "<leader>rl",
-				refactor_kind({ "refactor.inline" }), "Refactor: Inline")
-			map_if("textDocument/codeAction", { "n", "x" }, "<leader>rr",
-				refactor_kind({ "refactor" }), "Refactor: All …")
+			map_if(
+				"textDocument/codeAction",
+				{ "n", "x" },
+				"<leader>re",
+				refactor_kind({ "refactor.extract" }),
+				"Refactor: Extract …"
+			)
+			map_if(
+				"textDocument/codeAction",
+				{ "n", "x" },
+				"<leader>rl",
+				refactor_kind({ "refactor.inline" }),
+				"Refactor: Inline"
+			)
+			map_if(
+				"textDocument/codeAction",
+				{ "n", "x" },
+				"<leader>rr",
+				refactor_kind({ "refactor" }),
+				"Refactor: All …"
+			)
 			-- <leader>R 是 IdeaVim 的 RefactoringMenu，和 <leader>rr 实质同一个入口；
 			-- 两个都保留以对齐 .ideavimrc（IdeaVim 那边也是双键并存）。
-			map_if("textDocument/codeAction", { "n", "x" }, "<leader>R",
-				refactor_kind({ "refactor" }), "Refactor: All …")
+			map_if(
+				"textDocument/codeAction",
+				{ "n", "x" },
+				"<leader>R",
+				refactor_kind({ "refactor" }),
+				"Refactor: All …"
+			)
 			map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
 			-- Codelens：运行光标行的 lens（gopls test runner / rustaceanvim Run|Debug /
 			-- vtsls "N references" / clangd parameters 等）。代替了上游被我们关掉的 `grx`。
