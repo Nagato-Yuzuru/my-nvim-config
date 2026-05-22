@@ -45,6 +45,13 @@ return {
 						return
 					end
 					local ft = vim.bo[buf].filetype
+					-- chezmoi.vim 用传统 syntax/ 文件叠加 go-template 高亮；TS
+					-- highlight 一启会盖掉。复合 ft 如 `toml.chezmoitmpl` 上
+					-- get_lang 通常也返回 nil 自然跳过，但 ft="chezmoitmpl"
+					-- 单独出现时会查到 parser，需显式拦截。
+					if ft:find("chezmoitmpl") then
+						return
+					end
 					local lang = vim.treesitter.language.get_lang(ft)
 					if not lang then
 						return
