@@ -86,39 +86,44 @@ end
 --                   过滤这些条目，避免 mason 装好却仍被 vim 原生 enable 误启
 --                   ——以及反过来"以为它没装"的两源真相风险。
 --
--- 注意：
---   * `ty` 不在本表内：用 `uv tool install ty` 装，不走 mason。core/lsp.lua
---     单独把它列进 vim.lsp.enable。
---   * 三个 Scheme 系 LSP（racket / guile / steel）也不在本表：它们走
---     scheme_toolchain.lua 的 presence-check + 手动安装提示。
+-- 注意：三个 Scheme 系 LSP（racket / guile / steel）不在本表——它们走
+-- scheme_toolchain.lua 的 presence-check + 手动安装提示。
 ---@type LspTool[]
 local LSP_TOOLS = {
-	{ server = "lua_ls",       bin = "lua-language-server",          mason = "lua-language-server" },
-	{ server = "pyright",      bin = "pyright-langserver",           mason = "pyright" },
-	{ server = "ruff",         bin = "ruff",                         mason = "ruff" },
-	{ server = "gopls",        bin = "gopls",                        mason = "gopls" },
-	{ server = "jsonls",       bin = "vscode-json-language-server",  mason = "json-lsp" },
-	{ server = "yamlls",       bin = "yaml-language-server",         mason = "yaml-language-server" },
-	{ server = "bashls",       bin = "bash-language-server",         mason = "bash-language-server" },
-	{ server = "taplo",        bin = "taplo",                        mason = "taplo" },
-	{ server = "marksman",     bin = "marksman",                     mason = "marksman" },
-	{ server = "clangd",       bin = "clangd",                       mason = "clangd" },
-	{ server = "terraformls",  bin = "terraform-ls",                 mason = "terraform-ls" },
-	{ server = "dockerls",     bin = "docker-langserver",            mason = "dockerfile-language-server" },
-	{ server = "just_ls",      bin = "just-lsp",                     mason = "just-lsp" },
-	{ server = "denols",       bin = "deno",                         mason = "deno" },
-	{ server = "vtsls",        bin = "vtsls",                        mason = "vtsls" },
-	{ server = "eslint",       bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
-	{ server = "helm_ls",      bin = "helm_ls",                      mason = "helm-ls" },
+	{ server = "lua_ls", bin = "lua-language-server", mason = "lua-language-server" },
+	{ server = "pyright", bin = "pyright-langserver", mason = "pyright" },
+	{ server = "ruff", bin = "ruff", mason = "ruff" },
+	{ server = "gopls", bin = "gopls", mason = "gopls" },
+	{ server = "jsonls", bin = "vscode-json-language-server", mason = "json-lsp" },
+	{ server = "yamlls", bin = "yaml-language-server", mason = "yaml-language-server" },
+	{ server = "bashls", bin = "bash-language-server", mason = "bash-language-server" },
+	{ server = "taplo", bin = "taplo", mason = "taplo" },
+	{ server = "marksman", bin = "marksman", mason = "marksman" },
+	{ server = "clangd", bin = "clangd", mason = "clangd" },
+	{ server = "terraformls", bin = "terraform-ls", mason = "terraform-ls" },
+	{ server = "dockerls", bin = "docker-langserver", mason = "dockerfile-language-server" },
+	{ server = "just_ls", bin = "just-lsp", mason = "just-lsp" },
+	{ server = "denols", bin = "deno", mason = "deno" },
+	{ server = "vtsls", bin = "vtsls", mason = "vtsls" },
+	{ server = "eslint", bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
+	{ server = "helm_ls", bin = "helm_ls", mason = "helm-ls" },
 	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 兜底安装；
 	-- 但 vim.lsp.enable 不启它——rustaceanvim 自己 vim.lsp.start，见 plugins/lang/rust.lua。
 	-- verify_cmd: ~/.cargo/bin/rust-analyzer 是 rustup proxy symlink，PATH 探测会
 	-- 命中，但激活 toolchain 没装 rust-analyzer component 时 exec 立刻报
 	-- "Unknown binary 'rust-analyzer'"。跑一次 --version 把这种"虚假存在"识破，
 	-- 让 mason 兜底真正接管。
-	{ server = "rust_analyzer", bin = "rust-analyzer",               mason = "rust-analyzer", external_owner = "rustaceanvim", verify_cmd = { "rust-analyzer", "--version" } },
+	{
+		server = "rust_analyzer",
+		bin = "rust-analyzer",
+		mason = "rust-analyzer",
+		external_owner = "rustaceanvim",
+		verify_cmd = { "rust-analyzer", "--version" },
+	},
 	-- tinymist：Typst LSP + 预览后端（typst-preview.nvim 复用同一份二进制）
-	{ server = "tinymist",     bin = "tinymist",                     mason = "tinymist" },
+	{ server = "tinymist", bin = "tinymist", mason = "tinymist" },
+	{ server = "ty", bin = "ty", mason = "ty" },
+	{ server = "tsp_server", bin = "tsp-server", mason = "tsp-server" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
