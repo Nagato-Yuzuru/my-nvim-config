@@ -1,8 +1,10 @@
--- nvim-rip-substitute: PCRE2 + 增量预览 + 跨文件的 :s 加强版。
+-- nvim-rip-substitute: 当前 buffer 的 :s 加强版（PCRE2 + 增量预览）。
+-- 仅作用于当前 buffer —— 工作区级多文件替换走 <leader>sR（grug-far，见
+-- lua/plugins/edit/grug-far.lua）。
 --
 -- 入口策略：和 vim 原生 :s 完全独立，两个口子并存：
 --   :s/foo/bar/g          → vim 原生，vim 正则，inccommand=split 提供预览
---   <leader>sr            → 弹 popup，PCRE2 语法，buffer / cwd 可选
+--   <leader>sr            → 弹 popup，PCRE2 语法，作用于当前 buffer
 --
 -- 不 alias :s、不 cabbrev、不 hijack 命令行 —— 想用 PCRE2 就按 <leader>sr，
 -- 其他场景 :s 照旧。两套语法各走各的。
