@@ -49,6 +49,10 @@ set anyobject
 "   故 ideavim 侧 class jump 留在 ]c/[c——但已被 VcsShowNextChangeMarker 覆盖，
 "   class 跳转事实上不可用。要跳类用 Cmd-Up / Structure tool window 替代。
 set peekaboo                      " Vim Peekaboo (25776) — " / @ / <C-r> 弹 register 预览
+" lazy 模式：平时不亮，只在按下 f/F/t/T 那一刻才高亮当前行的最佳跳转字符。
+" 镜像 nvim 侧 eyeliner.nvim 的 highlight_on_key = true（lua/plugins/edit/eyeliner.lua）。
+" ⚠️ let g:* 必须放在 `set quickscope` 之前，与 anyobject 同一约束。
+let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
 set quickscope                    " IdeaVim-Quickscope (19417) — f/F/t/T 前高亮独特字符
 set keep-english-in-normal        " IdeaVimExtension (9615) — normal 模式自动切英文输入法
 
