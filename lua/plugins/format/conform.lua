@@ -56,6 +56,21 @@ return {
 			end
 			formatters_by_ft.markdown = pick_md_formatter
 
+			-- go: 仓库声明 `.golangci.{yml,yaml,toml}` 时走 `golangci-lint fmt`，按仓库
+			-- formatters 块（gofumpt / gci / golines / 自定义 import 分组）跑——保证
+			-- 编辑器、CI、`make fmt` 走同一条链路，杜绝风格漂移。
+			-- 否则 fallback 到 goimports（小仓库 / 临时脚本场景，至少把 import 排好）。
+			-- gopls 那边的 `gofumpt = true` 已经关掉，避免 LSP fallback 路径绕过这个 picker。
+			local function pick_go_formatter(bufnr)
+				if vim.fs.root(bufnr, { ".golangci.yml", ".golangci.yaml", ".golangci.toml" }) then
+					if vim.fn.executable("golangci-lint") == 1 then
+						return { "golangci-lint" }
+					end
+				end
+				return { "goimports" }
+			end
+			formatters_by_ft.go = pick_go_formatter
+
 			conform.setup(vim.tbl_deep_extend("force", {
 				formatters_by_ft = formatters_by_ft,
 				formatters = {

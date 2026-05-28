@@ -147,7 +147,11 @@ local TOOL_MAP = {
 local FORMATTERS_BY_FT = {
 	lua = { "stylua" },
 	python = { "ruff_format" },
-	-- gofumpt 由 golangci-lint formatter 处理，goimports 负责 import 管理
+	-- 实际 formatter 由 plugins/format/conform.lua 的 pick_go_formatter 运行时决定：
+	-- 仓库有 .golangci.{yml,yaml,toml} → golangci-lint fmt（按仓库 formatters 块跑
+	-- gofumpt / gci / golines / 自定义 import 分组），否则 fallback 到 goimports。
+	-- 这里登记 goimports 只是为了让 Mason 把 fallback 的二进制装上；golangci-lint
+	-- 已在 LINTERS_BY_FT 里登记，复用同一个二进制。
 	go = { "goimports" },
 	sh = { "shfmt" },
 	bash = { "shfmt" },
