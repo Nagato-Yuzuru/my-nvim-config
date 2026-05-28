@@ -152,18 +152,27 @@ function M.setup()
 			map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
 			map("n", "gD", vim.lsp.buf.type_definition, "Goto Type Definition")
 			map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
-			-- Refactor 命名空间。**只绑 LSP CodeActionKind 真正能区分的入口**——
-			-- 不为缺粒度的 IdeaVim 动作做语义重复的 alias（绑 6 个键到同一个 extract
-			-- 菜单算 muscle-memory 假象，不实质）。LSP 标准 kind 只有 4 层：
-			-- refactor / refactor.extract / refactor.inline / refactor.rewrite，对应：
+			-- Refactor 命名空间。原则："LSP 能做的优先 LSP；LSP 无键级粒度时 refactoring.nvim 补"。
+			--   refactoring.nvim → <leader>r{m,v,f}（treesitter，extract 三连）
+			--   LSP code action  → <leader>r{e,r,s,M} + <leader>R + <leader>ca
+			--   inc-rename.nvim  → <leader>rn（plugins/lsp/inc-rename.lua）
+			--   智能调度       → <leader>rl LSP-first 自动 fallback 到 refactoring.nvim
+			--                    inline_var（绑定见 plugins/edit/refactoring.lua）
 			--
-			-- 故意不绑（接受 IdeaVim 与 LSP 的能力差）：
-			--   <leader>r{v,c,f,m,i,p}（IntroduceVariable / Constant / Field /
-			--     ExtractMethod / Interface / Parameter）—— LSP 都归 refactor.extract
-			--     一层，无法键级直达；想要这些请走 <leader>re 后从菜单里挑
-			--   <leader>rs (ChangeSignature) —— LSP 无专门 kind，server 散落在
-			--     refactor.rewrite，gopls 当前也不暴露；想要请走 <leader>rr 主菜单
-			--   <leader>rd / rj / rM —— LSP 完全无对应物（SafeDelete / Jupyter / Move）
+			-- LSP 标准 CodeActionKind 只有 4 层：
+			-- refactor / refactor.extract / refactor.inline / refactor.rewrite。
+			--
+			-- 故意不绑（parity 原则：IdeaVim 有但 nvim 无对应物的键**留空**，
+			-- 避免同键不同义打架肌肉记忆）：
+			--   <leader>r{c,f,p,i,d,j,I}（IntroduceConstant / IntroduceField /
+			--   IntroduceParameter / ExtractInterface / SafeDelete /
+			--   ConvertPythonToJupyter / inline_func）
+			-- 想用 treesitter 路线的 inline / extract-to-file：
+			--   `:Refactor inline_var` / `inline_func` / `extract_func_to_file`
+			--
+			-- <leader>rs / rM 走 LSP refactor.rewrite / refactor.move——server 支持
+			-- 度参差（tsserver / ruff / rust-analyzer 较全；gopls 部分；很多语言无），
+			-- 不支持时弹 "No code actions available"，是预期行为。
 			local refactor_kind = function(only)
 				return function()
 					vim.lsp.buf.code_action({ context = { only = only, diagnostics = {} } })
@@ -177,12 +186,21 @@ function M.setup()
 				refactor_kind({ "refactor.extract" }),
 				"Refactor: Extract …"
 			)
+			-- <leader>rl 由 plugins/edit/refactoring.lua 接管为 LSP-first + treesitter
+			-- 自动 fallback 调度器；这里不再绑（buffer-local 会盖全局）。
 			map_if(
 				"textDocument/codeAction",
 				{ "n", "x" },
-				"<leader>rl",
-				refactor_kind({ "refactor.inline" }),
-				"Refactor: Inline"
+				"<leader>rs",
+				refactor_kind({ "refactor.rewrite" }),
+				"Refactor: Rewrite / change signature"
+			)
+			map_if(
+				"textDocument/codeAction",
+				{ "n", "x" },
+				"<leader>rM",
+				refactor_kind({ "refactor.move" }),
+				"Refactor: Move to file"
 			)
 			map_if(
 				"textDocument/codeAction",
