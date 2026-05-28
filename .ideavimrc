@@ -13,31 +13,51 @@ let maplocalleader = ","
 
 " Do incremental searching.
 set incsearch
-set surround
-set multiple-cursors
-set keep-english-in-normal
-set easymotion
-set commentary
-set exchange
-set argtextobj
-
-set which-key
 set notimeout
 set timeoutlen=5000
-" Don't use Ex mode, use Q for formatting.
 
-" block comment
+" === Plugins ===
+" 按是否需要装 Marketplace 插件分两组。名字以官方 emulated-plugins doc 为准：
+" https://github.com/JetBrains/ideavim/blob/master/doc/IdeaVim%20Plugins.md
 
-" multiple-cursors keymap
-" --- Enable IdeaVim plugins https://jb.gg/ideavim-plugins
-" Highlight copied text
-Plug 'machakann/vim-highlightedyank'
-Plug 'romainl/vim-cool'
-Plug 'terryma/vim-multiple-cursors'
-"" -- Emacs C-x prefix keymap
+" --- Built-in（IdeaVim 内嵌仿真，set 即生效，无需安装 Marketplace 插件）---
+set surround
+set multiple-cursors
+set commentary
+set exchange
+set highlightedyank
+set matchit
+set mini-ai                       " 新增 aq/iq（任意引号）+ ab/ib（任意括号）
+set vim-paragraph-motion          " { / } 跳过纯空白行
+
+" --- Marketplace（须先在 Settings → Plugins 装对应插件，否则 set 静默失效）---
+set easymotion                    " AceJump + IdeaVim-EasyMotion
+set which-key                     " Which-Key
+" Vim AnyObject (28333) — keys: a=arg f=func c=class l=loop
+"   i=conditional y=item n=indentBlock q=quote o=bracket u=subword
+"   d=document k=comment v=variable g=string m=lambda x=arg|item
+"   全部支持 a/i 前缀（around/inner）及 ]/[ 跳转。
+" 默认 i=item / y=conditional 与 nvim treesitter-textobjects 的约定（textobjects.lua:
+" ai/ii=@conditional）不一致——互换两键以对齐 muscle memory：
+" ⚠️ let g:* 必须放在 `set anyobject` 之前，否则插件激活时读不到。
+let g:anyobject_map_anyconditional = "i"
+let g:anyobject_map_anyitem = "y"
+set anyobject
+" 已知未对齐项（无法消除）：
+"   class jump：nvim 用 ]C/[C 大写避让 gitsigns；anyobject 的 jump key 与
+"   selection key 绑同一字符（c），改成大写会让 vac→vaC，破坏 selection 对齐。
+"   故 ideavim 侧 class jump 留在 ]c/[c——但已被 VcsShowNextChangeMarker 覆盖，
+"   class 跳转事实上不可用。要跳类用 Cmd-Up / Structure tool window 替代。
+set peekaboo                      " Vim Peekaboo (25776) — " / @ / <C-r> 弹 register 预览
+set quickscope                    " IdeaVim-Quickscope (19417) — f/F/t/T 前高亮独特字符
+set keep-english-in-normal        " IdeaVimExtension (9615) — normal 模式自动切英文输入法
+
+" -- Emacs C-x chord prefix: 让 <C-x> 给 chord 用（见下方 Tab management asymmetry
+" 注释块）；原生 decrement 落到 <C-S-A>。
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
 nmap K <Action>(QuickJavaDoc)
+
 
 " -- Tab management asymmetry
 " JetBrains 没有 vim 那种"tabpage = workspace 容器"的概念——IDE 的 tab 是
@@ -59,9 +79,6 @@ nmap K <Action>(QuickJavaDoc)
 " Mirror of lua/core/lsp.lua. Intentionally unbound here — nothing to do.
 
 " -- easymotion
-
-
-
 " Mirrors ~/.config/nvim/lua/plugins/edit/motion.lua (Flash.nvim).
 " <leader><leader>t/T on the Neovim side is Flash Treesitter — intentionally
 " left unbound here since IdeaVim has no equivalent node-based jump.
@@ -99,7 +116,10 @@ nmap <Plug>(easymotion-prefix) <Nop>
 
 map <A-n> <Action>(SelectNextOccurrence)
 map <A-S-n> <Action>(SelectAllOccurrences)
-map <A-x> <Action>(FindNextOccurrence)
+" <A-x>：multicursor.nvim 那侧是 matchSkipCursor —跳过当前匹配选下一个。
+" IdeaVim 的 multiple-cursors 仿真自带 <Plug>SkipOccurrence（见官方 doc
+" emulated-plugins 的 multiple-cursors 节）。走 <Plug> 而不是 <Action>。
+map <A-x> <Plug>SkipOccurrence
 map <A-p> <Action>(UnselectPreviousOccurrence)
 " nvim-side asymmetry: <A-p> is also bound as a buffer-local "toggle preview popup"
 " inside the snacks.explorer list (lua/plugins/ui/snacks.lua) and the trouble list
@@ -185,16 +205,7 @@ nmap gd <Action>(GotoDeclaration)
 nmap gD <Action>(GotoTypeDeclaration)
 nmap gi <Action>(GotoImplementation)
 nmap gr <Action>(FindUsages)
-" gp* — preview namespace, mirrors lua/plugins/lsp/preview.lua (goto-preview).
-"   gpd / gpD / gpi → preview definition / type-def / implementation in float
-"   gpc             → close all preview windows (recursive stack panic-exit)
-" IdeaVim side is intentionally unbound: JetBrains has the equivalent built in
-" as Quick Definition Lookup (Opt+Space / Ctrl+Shift+I), which IdeaVim does
-" NOT intercept — it works in any mode and doesn't need a leader binding. If
-" the IDE default is rebound, fix it in IDE Keymap, not here.
-" gpr (preview references) intentionally not bound on either side: references
-" go through gr → FindUsages (IDE) / Trouble (nvim), which is better for
-" browsing many candidates than a transient float.
+
 
 " <leader>n* — extras that have no standard g* default:
 "   nb  → supertypes / GotoSuperClass
@@ -267,18 +278,15 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 
 
 " 4)  Generate
+" <leader>G    — master menu (IDE 的 Generate 菜单)
+" <leader>g*   — 具体生成动作（OverrideMethods / Getter / Setter / Go-* / SurroundWith / Unwrap …）
 map <leader>G <Action>(Generate)
-
-" 8)  Git — <localleader>g* (low-frequency, tool-level ops)
-nmap <localleader>G <Action>(Vcs.QuickListPopupAction)
-nmap <localleader>gl <Action>(Vcs.ShowTabbedFileHistory)
 map <leader>go <Action>(OverrideMethods)
 map <leader>gi <Action>(ImplementMethods)
 map <leader>gc <Action>(GoGenerateConstructorAction)
 map <leader>gG <Action>(GoGenerateGetterAction)
 map <leader>gS <Action>(GoGenerateSetterAction)
 map <leader>gA <Action>(GoGenerateGetterSetterAction)
-" map <leader>gt <Action>(GenerateToString)
 map <leader>gd <Action>(GenerateDelegate)
 map <leader>gt <Action>(SurroundWith)
 map <leader>gT <Action>(SurroundWithLiveTemplate)
@@ -288,9 +296,12 @@ map <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
 map <leader>gf <Action>(GoGenerateFileAction)
 map <leader>gm <Action>(GoGenerateMethodAction)
 map <leader>gs <Action>(GoGenerateForStruct)
-"" Map \b to toggle the breakpoint on the current line
-"map \b <Action>(ToggleLineBreakpoint)
-" 5)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
+
+" 5)  Git — <localleader>g* (low-frequency VCS ops; <localleader>gd 在 Views 节)
+nmap <localleader>G <Action>(Vcs.QuickListPopupAction)
+nmap <localleader>gl <Action>(Vcs.ShowTabbedFileHistory)
+
+" 6)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
 "
 " Shared bindings (both sides):
 nmap <leader>D <Action>(DebugMainMenu)
@@ -316,7 +327,7 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " JetBrains the same operations are F8 / F7 / Shift-F8 via the IDE keymap.
 " This asymmetry is intentional — see CLAUDE.md "Runtime suite" section.
 
-" 5b) Test / Run — nvim-only namespace; on JetBrains the Run/Debug Tool
+" 6b) Test / Run — nvim-only namespace; on JetBrains the Run/Debug Tool
 " Window + run configurations cover the same workflow.
 "   <leader>tt   neotest run nearest        (IDE: gutter run icon / Ctrl-Shift-F10)
 "   <leader>tT   neotest run file
@@ -332,7 +343,7 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "   <leader>oo   overseer task action menu
 "   <leader>oc   overseer cancel running
 
-" 5c) Typst — nvim-only namespace (lua/plugins/lang/typst.lua + lsp/tinymist.lua).
+" 6c) Typst — nvim-only namespace (lua/plugins/lang/typst.lua + lsp/tinymist.lua).
 " Typst itself doesn't ship as a JetBrains-blessed language; preview/format/LSP
 " all run through tinymist on the Neovim side. On JetBrains use the third-party
 " "Typst" plugin if installed — its actions don't have stable IDs to map here.
@@ -346,7 +357,7 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " Format (.typ) goes through conform → typstyle on save (tools/mason_ensure.lua),
 " same gateway as every other filetype — <leader>ff still works.
 
-" 5d) Scheme / Racket / Steel — nvim-only namespace (lua/plugins/lang/scheme.lua).
+" 6d) Scheme / Racket / Steel — nvim-only namespace (lua/plugins/lang/scheme.lua).
 " The Lisp workflow is REPL-driven (Conjure on the Neovim side), structurally
 " different from JetBrains' file/project edit-and-run model. JetBrains has no
 " first-party Racket/Scheme/Steel plugin with stable Action IDs we can map to,
@@ -383,13 +394,13 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " through conform → <leader>ff on the Neovim side; on JetBrains use the third-
 " party Racket plugin's Reformat action if installed.
 
-" 6) Reformat
+" 7) Reformat
 map <leader>F <Action>(CodeFormatGroup)
 map <leader>ff <Action>(ReformatCode)
 map <leader>fF <Action>(ShowReformatFileDialog)
 map <leader>fS <Action>(osmedile.intellij.stringmanip.PopupChoiceAction)
 
-" 7)  Mark — mirrors lua/plugins/edit/marks.lua
+" 8)  Mark — mirrors lua/plugins/edit/marks.lua
 "
 " Core bindings (mirrored on both sides):
 nmap <leader>M <Action>(Bookmarks)
