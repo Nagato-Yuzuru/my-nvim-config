@@ -2,16 +2,16 @@
 --
 -- ► Per-adapter 配置在顶层 `dap/<adapter>.lua`（镜像 `lsp/<server>.lua`），
 --   由 `lua/core/dap.lua` 加载。新增 adapter = 在 `dap/` 下放一个文件，**不要**
---   在这里堆。详见 CLAUDE.md "Runtime suite" 段。
+--   在这里堆（CLAUDE.md "Architecture" 段同此约束）。
 --
 -- ► 安装走 mason-registry 直连（core.dap.ensure_mason），不依赖 mason-nvim-dap。
 --
--- 键位按"需要的时机"双层分布：
+-- 键位按"需要的时机"双层分布（完整表见下方 keys = {} 列表与文件后段的
+-- `actions` 表）：
 --   * 静态 <leader>d*  编辑态 / 生命周期 / 面板焦点（永远在）
 --   * 动态 ,*          运行态控制与观察（dap.listeners 在 session 内动态绑）
 -- 严格单归属：`dc/dn/ds/df/dr/de/dh/dj/dk/dR` 不在静态层，只在 session 内
 -- 通过 ,c/,n/,s/,f/,r/,e/,h/,j/,k/,R 生效。
--- 完整键位表见 CLAUDE.md "Runtime suite" 段。
 
 local function inspect_expr()
 	require("dapui")["eval"](nil, { enter = true })

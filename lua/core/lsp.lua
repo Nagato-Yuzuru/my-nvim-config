@@ -50,9 +50,10 @@ function M.setup()
 			require("tools.mason_ensure").ensure_lsp()
 
 			-- 3. 关掉 Neovim 0.11+ 内核自带的 gr*/gO LSP 默认键。
-			-- 我们已有 gd/gi/gD + <leader>rn/<leader>ca/<leader>vs 等价物（见 CLAUDE.md
-			-- "Navigation g* — two intentional decisions"），留着只会让 `gr`（Trouble
-			-- references, 见 plugins/ui/trouble.lua）每次都要等 timeoutlen 消歧。
+			-- 我们已有 gd/gi/gD + <leader>rn/<leader>ca/<leader>vs 等价物（见下方
+			-- LspAttach callback 里的 g* / <leader>r* / <leader>ca 绑定），留着只会
+			-- 让 `gr`（Trouble references, 见 plugins/ui/trouble.lua）每次都要等
+			-- timeoutlen 消歧。
 			-- 注意：这些默认是 **全局** 映射（:nmap gr 输出无 `@` 标记），删除时
 			-- 不能传 { buffer = ... }。pcall 兜底，因为不同 nvim 版本 gr* 集合会变
 			-- （grx codelens 是 0.11 后期才加的）。
