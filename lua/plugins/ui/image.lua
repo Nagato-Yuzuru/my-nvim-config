@@ -17,6 +17,7 @@ return {
 		max_height = 30,
 		max_width_window_percentage = nil,
 		max_height_window_percentage = 50,
+		tmux_show_only_in_active_window = true,
 		window_overlap_clear_enabled = true, -- 浮窗/补全弹出时自动清掉重叠的图片
 		window_overlap_clear_ft_ignore = {
 			"cmp_menu",
@@ -28,7 +29,6 @@ return {
 			"scrollview_sign",
 		},
 		editor_only_render_when_focused = false,
-		tmux_show_only_in_active_window = false,
 		integrations = {
 			markdown = {
 				enabled = true,
