@@ -29,6 +29,8 @@ what's bound where.
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |
 | Leader + clipboard + `J`/`K` visual move + `<C-x>` handling | `lua/core/keymaps.lua`                                             |
 | easymotion `<leader><leader>*`                              | `lua/plugins/edit/motion.lua` (flash.nvim)                         |
+| `set peekaboo` (`"` / `@` / `<C-r>` register preview)       | `lua/plugins/edit/registers.lua` (junegunn/vim-peekaboo)           |
+| `set quickscope` + `g:qs_highlight_on_keys` (lazy f/F/t/T hints) | `lua/plugins/edit/eyeliner.lua` (jinh0/eyeliner.nvim, `highlight_on_key=true`) — owns f/F/t/T; flash `modes.char` disabled to avoid shadowing |
 | multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
 | Refactor `<leader>r*`                                       | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` (treesitter extract) + inc-rename for `<leader>rn` |
 | Core navigation `g*` (`gd`/`gD`/`gi`/`gr`)                  | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/trouble.lua` (`gr`) |

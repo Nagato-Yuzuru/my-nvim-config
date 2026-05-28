@@ -15,7 +15,12 @@
 --
 -- Native keys enhanced (not overridden):
 --   / ?          -> modes.search hooks in flash labels during regular search
---   f F t T ; ,  -> modes.char enhances with labels when multiple matches exist
+--
+-- f/F/t/T are intentionally NOT enhanced by flash here — eyeliner.nvim
+-- (lua/plugins/edit/eyeliner.lua) owns those keys to provide quickscope-
+-- style pre-press hints, matching IdeaVim's `set quickscope`. Flash's
+-- char-mode keymaps would shadow eyeliner's (and vice versa), so only
+-- one can win — we picked eyeliner for cross-editor parity.
 
 ---Build a vim regex that restricts matches to the cursor's current line.
 ---Called at keypress time so the line number is always fresh.
@@ -72,13 +77,8 @@ return {
 			modes = {
 				-- Hook `/` and `?` so labels appear next to every search match.
 				search = { enabled = true },
-				-- Enhance `f/F/t/T`: when there are multiple matches on the line,
-				-- each gets a label. Single-match behavior stays identical to vim.
-				char = {
-					enabled = true,
-					jump_labels = true,
-					multi_line = false, -- keep vim line-only semantics
-				},
+				-- f/F/t/T are owned by eyeliner.nvim (see header comment).
+				char = { enabled = false },
 			},
 		},
 		keys = {
