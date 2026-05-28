@@ -6,7 +6,11 @@ return {
 		gopls = {
 			usePlaceholders = true,
 			completeUnimported = true,
-			gofumpt = true,
+			-- 风格规整（gofumpt / gci / golines / import 分组）统一交给
+			-- `golangci-lint fmt`，按仓库 `.golangci.yml` 的 formatters 块跑；
+			-- 这里不再开 `gofumpt = true`，避免 `vim.lsp.buf.format()` 路径绕过
+			-- conform 的 picker 强加 gofumpt 规则、与仓库声明产生分歧。
+			-- 详见 lua/plugins/format/conform.lua 的 pick_go_formatter。
 			-- unusedparams/unreachable 由 golangci-lint 覆盖
 			analyses = { unusedvariable = true },
 			experimentalStandaloneFiles = true,
