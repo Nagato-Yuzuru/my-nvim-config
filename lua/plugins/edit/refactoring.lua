@@ -66,13 +66,16 @@ local function lsp_inline_then_treesitter()
 	end
 
 	local enc = clients[1].offset_encoding or "utf-16"
+	-- make_*_range_params 的类型签名只声明 textDocument + range，不含 context。
+	-- 实际 LSP CodeActionParams 是它的超集，cast 一下让 Lua-LS 闭嘴。
+	---@type lsp.CodeActionParams
 	local params
 	if is_visual then
 		-- 离开 visual 让 '< '> marks 稳定（visual 中 marks 是动态的）
 		vim.cmd("normal! \27")
-		params = vim.lsp.util.make_given_range_params(nil, nil, bufnr, enc)
+		params = vim.lsp.util.make_given_range_params(nil, nil, bufnr, enc) --[[@as lsp.CodeActionParams]]
 	else
-		params = vim.lsp.util.make_range_params(0, enc)
+		params = vim.lsp.util.make_range_params(0, enc) --[[@as lsp.CodeActionParams]]
 	end
 	params.context = { only = { "refactor.inline" }, diagnostics = {} }
 
