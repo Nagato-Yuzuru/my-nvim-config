@@ -312,36 +312,42 @@ nmap <leader>D <Action>(DebugMainMenu)
 nmap <leader>db <Action>(ToggleLineBreakpoint)
 map <leader>dB <Action>(BreakpointActionsGroup)
 "
-" nvim-only debug bindings (no IdeaVim equivalent — these are nvim-dap operations
-" without IDE Action counterparts; on JetBrains use the IDE's native F-key
-" keymap or the Debug Tool Window):
-"   <leader>dc      Continue (same as <leader>D, namespace alias)
-"   <leader>dn      Step over (next, like pdb/dlv `n`)
-"   <leader>ds      Step into (step, like pdb/dlv `s`)
-"   <leader>df      Step out  (finish, like dlv `f`)
-"   <leader>dr      Toggle REPL
-"   <leader>de      Inspect expression at cursor / visual
-"   <leader>dh      Hover variable popup
-"   <leader>dl      Run last debug session
-"   <leader>dq      Terminate session
-"   <leader>dj/dk   Frame down/up
+" Asymmetry — step / inspect / frame controls intentionally NOT bound here.
 "
-" Step-key choice rationale: <leader>dn/ds/df mirror the n/s/f commands of
-" pdb, dlv, and gdb (one mnemonic across CLI debuggers and the editor). On
-" JetBrains the same operations are F8 / F7 / Shift-F8 via the IDE keymap.
-" This asymmetry is intentional — see CLAUDE.md "Runtime suite" section.
+" Neovim binds these under <localleader> (= `,`) and attaches them ONLY for
+" the duration of a DAP session (dap.listeners.after.event_initialized →
+" attach, before.event_terminated/exited → detach; see actions table in
+" lua/plugins/runtime/dap.lua). That gives <localleader>{c,n,s,f,r,e,h,j,k,R,q}
+" their CLI-debugger meaning (continue / next / step / finish / repl /
+" eval / hover / frame ↓↑ / restart / quit) only while debugging.
+"
+" IdeaVim has no debugger lifecycle hook — no Action or Plug fires on session
+" start/end, so the same "attach-while-debugging" trick is not reproducible.
+" Static bindings to IDE Debug actions (Resume / StepOver / …) would work but
+" would permanently consume <localleader>{c,n,…} for an editor where the
+" canonical debug surface is F-keys + Debug Tool Window. Leaving those keys
+" free on the IDE side is the deliberate trade-off.
+"
+" On JetBrains: F8 (StepOver) / F7 (StepInto) / Shift-F8 (StepOut) /
+" F9 (Resume) / Alt-F8 (EvaluateExpression) / Alt-F9 (RunToCursor), plus the
+" Debug Tool Window (<leader>vd above). Static <leader>dl (run last) and
+" <leader>dq (terminate) on the nvim side have no mirror here — they're
+" session-lifecycle conveniences that map cleanly to the IDE's own dropdown.
 
 " 6b) Test / Run — nvim-only namespace; on JetBrains the Run/Debug Tool
 " Window + run configurations cover the same workflow.
 "   <leader>tt   neotest run nearest        (IDE: gutter run icon / Ctrl-Shift-F10)
 "   <leader>tT   neotest run file
 "   <leader>tl   neotest run last
+"   <leader>tA   neotest run nearest with args (picker: ft preset + custom)
 "   <leader>td   neotest debug nearest      (IDE: gutter debug icon)
 "   <leader>ts   neotest summary toggle
 "   <leader>to   neotest output for nearest
 "   <leader>tO   neotest output panel
-"   <leader>tS   neotest stop
+"   <leader>tS   neotest stop / drop stuck
 "   <leader>tw   neotest watch toggle
+"   <leader>tn   neotest jump to next failed
+"   <leader>tp   neotest jump to prev failed
 "   <leader>or   overseer run task          (IDE: Run Anything / run config dropdown)
 "   <leader>oR   overseer rerun last
 "   <leader>oo   overseer task action menu
@@ -361,42 +367,19 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " Format (.typ) goes through conform → typstyle on save (tools/mason_ensure.lua),
 " same gateway as every other filetype — <leader>ff still works.
 
-" 6d) Scheme / Racket / Steel — nvim-only namespace (lua/plugins/lang/scheme.lua).
-" The Lisp workflow is REPL-driven (Conjure on the Neovim side), structurally
-" different from JetBrains' file/project edit-and-run model. JetBrains has no
-" first-party Racket/Scheme/Steel plugin with stable Action IDs we can map to,
-" and no equivalent of paredit slurp/barf. Documenting the asymmetry instead of
-" inventing fragile bindings — same precedent as Flash Treesitter, Neotest, and
-" the DAP step-keys above.
+" 6d) Scheme / Racket / Steel — entirely nvim-only.
 "
-" Conjure (REPL eval) — ,c* prefix on Neovim, no IdeaVim equivalent:
-"   ,cee   eval form at point         (no IDE counterpart — use SendSelectionToRepl
-"                                      manually if the REPL plugin offers it)
-"   ,cer   eval root form
-"   ,cE    eval entire buffer
-"   ,clg   open / focus REPL log
-"   ,cqq   stop REPL session
+" JetBrains has no first-party Racket/Scheme/Steel environment with stable
+" Action IDs to mirror — no REPL integration, no paredit equivalent, no
+" structural-form motions. Rather than maintain a list of nvim keys that
+" perpetually drifts (Conjure's defaults change, paredit's API evolves), we
+" simply don't document them on the IDE side. The whole namespace is absent
+" here intentionally.
 "
-" nvim-paredit (structural paren editing) — ,p* prefix on Neovim, no IdeaVim equivalent:
-"   ,p>    slurp forwards (pull next form into current)
-"   ,p<    barf forwards  (push last form out)
-"   ,pP    slurp backwards
-"   ,pB    barf backwards
-"   ,pw    wrap element under cursor
-"   ,pW    wrap enclosing form
-"   ,pr    raise element
-"   ,pR    raise form
-"   ,pdf   delete form
-"   ,pde   delete element
-"   E/W/B/gE  next/prev element head/tail (replaces vim default WORD motions in lisp ft)
-"   (/)    move to parent form start/end
-"
-" LSP for Racket / Guile / Steel: gd/gD/gi/gr/<leader>rn etc. all reuse the
-" community g* defaults shared with every other LSP (lua/core/lsp.lua) — those
-" already work on the IdeaVim side via JetBrains GotoDeclaration etc., so
-" nothing extra to bind. Formatting (.rkt → raco fmt, .scm → schemat) goes
-" through conform → <leader>ff on the Neovim side; on JetBrains use the third-
-" party Racket plugin's Reformat action if installed.
+" If you need to read Lisp source on JetBrains: install the third-party
+" Racket plugin for syntax + indent + Reformat. Editing / REPL / LSP all
+" belong on the nvim side — see lua/plugins/lang/scheme.lua and
+" lsp/{racket_langserver,guile_lsp_server,steel_language_server}.lua.
 
 " 7) Reformat
 map <leader>F <Action>(CodeFormatGroup)
