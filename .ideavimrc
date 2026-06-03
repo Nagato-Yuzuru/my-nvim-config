@@ -42,6 +42,7 @@ set which-key                     " Which-Key
 " ⚠️ let g:* 必须放在 `set anyobject` 之前，否则插件激活时读不到。
 let g:anyobject_map_anyconditional = "i"
 let g:anyobject_map_anyitem = "y"
+let g:anyobject_map_anyclass = "C"
 set anyobject
 " 已知未对齐项（无法消除）：
 "   class jump：nvim 用 ]C/[C 大写避让 gitsigns；anyobject 的 jump key 与
