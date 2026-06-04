@@ -283,24 +283,72 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 
 
 " 4)  Generate
-" <leader>G    — master menu (IDE 的 Generate 菜单)
-" <leader>g*   — 具体生成动作（OverrideMethods / Getter / Setter / Go-* / SurroundWith / Unwrap …）
-map <leader>G <Action>(Generate)
+" Two tiers:
+"   <leader>G + the static maps below = language-AGNOSTIC actions. These are
+"     platform CodeInsightActions (one ID, the IDE routes to the current file's
+"     language handler) — no per-language wiring needed. Confirmed via gh in
+"     JetBrains/intellij-community: OverrideMethods/ImplementMethods register in
+"     platform/.../idea/LangActions.xml, not in any language-specific plugin.
+"   <leader>g{c,G,S,A} = CONCEPT keys: the same key generates the right thing per
+"     language. Dispatched by filetype (see the augroup) because (a) IdeaVim's
+"     vimscript can't read &filetype/% and (b) <buffer>-local maps are unsupported
+"     — so we re-assert GLOBAL maps on BufEnter. Needs IdeaVim >= 2.33.0 (autocmd,
+"     2026-04 / VIM-1693).
+"
+" Cross-editor asymmetry (IdeaVim-only on purpose): Neovim has no <leader>g* MENU,
+" but it does generate code — just through other surfaces, chiefly <leader>ca =
+" vim.lsp.buf.code_action (lua/core/lsp.lua), plus friendly-snippets (blink) and
+" refactoring.nvim's extract (<leader>r*). Coverage is LSP-dependent: rust-analyzer
+" is rich (getter/setter/new/derive all as code actions), gopls is leaner (Fill-
+" struct / Add-tags / Stub-methods, but NO constructor/getter/setter). So JetBrains'
+" single structured Generate menu (Alt+Insert = <leader>G/<leader>g*) has no 1:1
+" Neovim mirror: Neovim folds generation into the code-action surface (Alt+Enter
+" intentions = <leader>ca) and what's offered varies by language server. That's why
+" <leader>g* lives only here — not a missing feature, a different surface model.
+map <leader>G  <Action>(Generate)
 map <leader>go <Action>(OverrideMethods)
 map <leader>gi <Action>(ImplementMethods)
-map <leader>gc <Action>(GoGenerateConstructorAction)
-map <leader>gG <Action>(GoGenerateGetterAction)
-map <leader>gS <Action>(GoGenerateSetterAction)
-map <leader>gA <Action>(GoGenerateGetterSetterAction)
 map <leader>gd <Action>(GenerateDelegate)
 map <leader>gt <Action>(SurroundWith)
 map <leader>gT <Action>(SurroundWithLiveTemplate)
 map <leader>gu <Action>(Unwrap)
-map <leader>gJ <Action>(GoGenerateTypeFromJsonAction)
-map <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
-map <leader>gf <Action>(GoGenerateFileAction)
-map <leader>gm <Action>(GoGenerateMethodAction)
-map <leader>gs <Action>(GoGenerateForStruct)
+
+" Concept-key dispatch. Per-filetype generators for the same keys:
+"   gc constructor · gG getter · gS setter · gA getter+setter
+"   gJ/gj type/struct-from-JSON — Go-only concepts, no cross-language meaning.
+" Only Go + JS/TS expose standalone generator action IDs; everywhere else the
+" concept key falls back to the generic Generate popup (set in the `BufEnter *`
+" reset). Removed gf/gm/gs (GoGenerateFile/Method/ForStruct) — unclear/low value.
+"
+" ⚠ Validate when first sourced (this whole tier depends on it):
+"   1) that IdeaVim runs `nmap` inside autocmd and matches comma-separated
+"      `BufEnter *.ext` globs (braces {} avoided — comma form is safer);
+"   2) that BufEnter re-fires when switching back to an already-open tab. If it
+"      does NOT, a concept key can stay on the previous file's generator (a no-op
+"      in the wrong language — harmless). If that bites, switch the event to
+"      FileType (fires on ft-set; accepts the same rare stale-map trade-off).
+augroup GenerateConceptDispatch
+  autocmd!
+  " every buffer → reset concept keys to the generic, language-aware Generate popup
+  autocmd BufEnter * nmap <leader>gc <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gG <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gS <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gA <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gJ <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gj <Action>(Generate)
+  " Go (GoLand) — full set incl. the Go-only JSON generators
+  autocmd BufEnter *.go nmap <leader>gc <Action>(GoGenerateConstructorAction)
+  autocmd BufEnter *.go nmap <leader>gG <Action>(GoGenerateGetterAction)
+  autocmd BufEnter *.go nmap <leader>gS <Action>(GoGenerateSetterAction)
+  autocmd BufEnter *.go nmap <leader>gA <Action>(GoGenerateGetterSetterAction)
+  autocmd BufEnter *.go nmap <leader>gJ <Action>(GoGenerateTypeFromJsonAction)
+  autocmd BufEnter *.go nmap <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
+  " JS / TS — standalone Generate.*.JavaScript IDs (cover .ts too)
+  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gc <Action>(Generate.Constructor.JavaScript)
+  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gG <Action>(Generate.GetAccessor.JavaScript)
+  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gS <Action>(Generate.SetAccessor.JavaScript)
+  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gA <Action>(Generate.GetSetAccessor.JavaScript)
+augroup END
 
 " 5)  Git — <localleader>g* (low-frequency VCS ops; <localleader>gd 在 Views 节)
 nmap <localleader>G <Action>(Vcs.QuickListPopupAction)

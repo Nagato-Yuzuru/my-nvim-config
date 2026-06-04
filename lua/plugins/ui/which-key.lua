@@ -30,7 +30,9 @@ return {
 				{ "<leader>s", group = "Search" },
 				{ "<leader>r", group = "Refactor" },
 				{ "<leader>v", group = "Views" },
-				{ "<leader>g", group = "Generate" },
+				-- No <leader>g group on Neovim: code generation here is <leader>ca
+				-- (vim.lsp.buf.code_action). The <leader>g* "Generate" namespace is
+				-- IdeaVim-only — see the Generate section in .ideavimrc for why.
 				{ "<leader>d", group = "Debug" },
 				{ "<leader>t", group = "Test" },
 				{ "<leader>o", group = "Overseer / Run" },
