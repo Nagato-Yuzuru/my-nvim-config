@@ -351,6 +351,16 @@ augroup GenerateConceptDispatch
 augroup END
 
 " 5)  Git — <localleader>g* (low-frequency VCS ops; <localleader>gd 在 Views 节)
+"
+" Parity with gitsigns (lua/plugins/git/gitsigns.lua):
+"   ]c / [c 自动预览 —— IDE 原生即有：VcsShowNextChangeMarker（见 Bracket-prefix
+"     节）落到 change marker 上就弹 gutter 工具条（diff + rollback + stage）。
+"     nvim 侧用 gs.nav_hunk(..., {preview=true}) 追平，无需在此加键。
+"   <localleader>gs stage/unstage toggle —— nvim-only（gitsigns toggle）；IDE 侧用
+"     gutter stage 按钮 / commit 工具窗，不强造别扭映射。
+"   <localleader>gr restore hunk —— 下面镜像 Vcs.RollbackChangedLines，但该 action
+"     ID 在闭源 GoLand 未实测；启用前请用 IdeaVim "Track Action IDs" 确认后再解注释。
+" nmap <localleader>gr <Action>(Vcs.RollbackChangedLines)
 nmap <localleader>G <Action>(Vcs.QuickListPopupAction)
 nmap <localleader>gl <Action>(Vcs.ShowTabbedFileHistory)
 
