@@ -40,7 +40,17 @@ return {
 					end,
 					"fallback",
 				},
-				["<A-/>"] = { "show", "show_documentation" }, -- 触发补全/文档
+				-- Alt-/ 切换补全菜单：未显示则呼出（docs auto_show 会跟着出），已
+				-- 显示则关闭——blink keymap 没有内建 toggle，用函数命令实现。
+				-- is_menu_visible 只看菜单窗，不会被 ghost_text 干扰。
+				["<A-/>"] = {
+					function(cmp)
+						if cmp.is_menu_visible() then
+							return cmp.hide()
+						end
+						return cmp.show()
+					end,
+				},
 				["<C-p>"] = { "select_prev", "fallback" }, -- 上一个
 				["<C-n>"] = { "select_next", "fallback" }, -- 下一个
 				["<C-b>"] = { "scroll_documentation_up", "fallback" },
@@ -165,8 +175,8 @@ return {
 
 			-- 只保留一次 setup
 
-			-- 手动控制补全的键位（blink 的 keymap 里没有 toggle，这里给一个"显式呼出"）
-			-- 说明：插入模式，用 Alt-/ 打开补全；关闭用你已经配置的 <C-e>（hide）
+			-- 手动控制补全的键位：插入模式用 Alt-/ 切换补全菜单（开/关同一个键），
+			-- 实现见上面 keymap 里的 <A-/> 函数命令。
 		end,
 	},
 }
