@@ -52,6 +52,12 @@ return {
 					if ft:find("chezmoitmpl") then
 						return
 					end
+					-- csv/tsv/psv 的列高亮交给 csvview.nvim(每列彩虹 + 对齐,见
+					-- lua/plugins/lang/csv.lua)。treesitter 的类型配色会和它在
+					-- 同一格抢 extmark 优先级,这里跳过,让 csvview 独占 CSV 渲染。
+					if ft == "csv" or ft == "tsv" or ft == "psv" then
+						return
+					end
 					local lang = vim.treesitter.language.get_lang(ft)
 					if not lang then
 						return
