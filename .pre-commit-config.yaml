@@ -1,0 +1,34 @@
+# Git hooks via prek (drop-in pre-commit replacement). 工具链由 mise 管理：
+# mise 装 prek/stylua/taplo；本文件只编排，不自带工具环境。
+#   一次性安装钩子: mise run setup-hooks   （= prek install）
+#   手动全跑:       prek run --all-files
+#   暂存区增量:     prek run
+# 生成的锁文件不参与归一化，避免与生成器反复改写。
+exclude: '^(lazy-lock|skills-lock)\.json$'
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+      - id: fix-byte-order-marker
+  - repo: local
+    hooks:
+      - id: stylua
+        name: stylua (Lua format)
+        language: system
+        entry: mise exec -- stylua
+        types: [lua]
+      - id: taplo
+        name: taplo (TOML format)
+        language: system
+        entry: mise exec -- taplo fmt
+        types: [toml]

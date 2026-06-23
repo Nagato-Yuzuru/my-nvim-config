@@ -1,0 +1,8 @@
+[tools]
+prek = "latest"
+stylua = "latest"
+taplo = "latest"
+
+[tasks.setup-hooks]
+description = "Install prek-managed git hooks (run once after clone)"
+run = "prek install"
