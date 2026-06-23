@@ -91,7 +91,11 @@ end
 ---@type LspTool[]
 local LSP_TOOLS = {
 	{ server = "lua_ls", bin = "lua-language-server", mason = "lua-language-server" },
-	{ server = "pyright", bin = "pyright-langserver", mason = "pyright" },
+	-- Python 类型检查 + LSP 由 ty 接管（见本表 `ty` 条目）。pyright 已移除：
+	-- ty 的 LSP 能力（rename / typeHierarchy / workspaceSymbol / folding …）已覆盖
+	-- 我们用到的全部 Python 键位，且 rename 返回合规 TextEdit（不触发 pyright 那个
+	-- annotationId 无 changeAnnotations 的 bug，见 core/lsp.lua 的边界修复 +
+	-- neovim/neovim#34731）。两个 type checker 同挂会出双份诊断，故二选一留 ty。
 	{ server = "ruff", bin = "ruff", mason = "ruff" },
 	{ server = "gopls", bin = "gopls", mason = "gopls" },
 	{ server = "jsonls", bin = "vscode-json-language-server", mason = "json-lsp" },

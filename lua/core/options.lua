@@ -16,7 +16,7 @@ vim.opt.cmdheight = 0 -- noice 接管 cmdline，隐藏原生命令行区域
 vim.opt.inccommand = "split"
 
 -- K 在非 LSP buffer / hover popup 里的 fallback：默认 :Man 对现代工具几乎必 miss
--- （pyright/tsserver/gopls 等都不提供 man page），改走 :help 更契合我们的日常栈
+-- （ty/tsserver/gopls 等都不提供 man page），改走 :help 更契合我们的日常栈
 vim.opt.keywordprg = ":help"
 
 vim.opt.expandtab = true -- 将 Tab 键转换为空格

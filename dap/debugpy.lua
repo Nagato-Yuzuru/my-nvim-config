@@ -13,7 +13,7 @@
 --   2. project root + 常见 venv 目录: .venv / venv / .env / env
 --   3. PATH 上的 python3
 --   4. 字符串 "python3"（最后兜底）
--- 不假设 cwd —— 用 vim.fs.root 顺着 buffer 找项目根，跟 lsp/pyright.lua 一致。
+-- 不假设 cwd —— 用 vim.fs.root 顺着 buffer 找项目根，跟 lsp/ty.lua 一致。
 local function project_root()
 	local bufname = vim.api.nvim_buf_get_name(0)
 	if bufname == "" then
