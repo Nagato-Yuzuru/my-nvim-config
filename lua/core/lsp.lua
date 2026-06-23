@@ -32,6 +32,42 @@ function M.make_capabilities()
 	return caps
 end
 
+-- pyright / basedpyright 的 textDocument/rename 结果里，TextEdit 带了
+-- annotationId 却不附顶层 changeAnnotations 映射——违反 LSP 规范：
+-- AnnotatedTextEdit 的 annotationId 必须能在 changeAnnotations 里查到。
+-- Neovim 0.12（PR #34508）起 apply_text_edits 对此 hard assert：
+--   "change_annotations must be provided for annotated text edits"
+-- 于是 <leader>rn（inc-rename）和原生 vim.lsp.buf.rename 全部炸掉。上游判定
+-- 为服务端 bug、不在 Neovim 侧兜（neovim/neovim#34731，status:blocked-external）。
+--
+-- 这里在边界把“引用了不存在 annotation 的 annotationId”抹掉，退化成普通
+-- TextEdit。只动这一种违规：合规服务端（rust-analyzer 等带真 annotation +
+-- needsConfirmation 的）因 changeAnnotations[id] 存在，原样放过。
+---@param workspace_edit lsp.WorkspaceEdit
+---@return boolean repaired 是否抹掉过至少一个孤儿 annotationId
+function M.repair_unannotated_edits(workspace_edit)
+	local ca = workspace_edit.changeAnnotations
+	local repaired = false
+	local function strip(edits)
+		for _, e in ipairs(edits or {}) do
+			if e.annotationId and not (ca and ca[e.annotationId]) then
+				e.annotationId = nil
+				repaired = true
+			end
+		end
+	end
+	-- documentChanges 既含 TextDocumentEdit（有 .edits），也含 create/rename/
+	-- delete 文件操作（无 .edits）；strip 对 nil 安全，自动跳过后者。
+	for _, change in ipairs(workspace_edit.documentChanges or {}) do
+		strip(change.edits)
+	end
+	-- changes 是 uri -> TextEdit[] 的老式映射（无 documentChanges 时才有）。
+	for _, edits in pairs(workspace_edit.changes or {}) do
+		strip(edits)
+	end
+	return repaired
+end
+
 function M.setup()
 	-- VeryLazy hook：所有"等 lazy 把基础插件装好"的 LSP 工作集中在这一个
 	-- callback 里，按显式顺序跑。这取代了之前 plugins/lsp/core.lua（mason）
@@ -80,6 +116,23 @@ function M.setup()
 			end, { buffer = bufnr, silent = true, desc = "Close hover popup" })
 		end
 		return bufnr, winid
+	end
+
+	-- 修复 pyright/basedpyright 不合规的 annotated workspace edit（详见
+	-- M.repair_unannotated_edits 注释 / neovim/neovim#34731）。inc-rename 用自己的
+	-- handler 直接调 vim.lsp.util.apply_workspace_edit、绕过 vim.lsp.handlers，
+	-- 故只能在 util 这层 wrap——handler 覆盖盖不到它；原生 rename 也走这里。
+	local orig_apply_ws = vim.lsp.util.apply_workspace_edit
+	vim.lsp.util.apply_workspace_edit = function(workspace_edit, position_encoding, ...)
+		if workspace_edit and M.repair_unannotated_edits(workspace_edit) then
+			vim.notify_once(
+				"[lsp] 收到不合规的 annotated workspace edit（annotationId 无对应 "
+					.. "changeAnnotations，多半是 pyright/basedpyright），已退化为普通 "
+					.. "TextEdit；参见 neovim/neovim#34731。",
+				vim.log.levels.WARN
+			)
+		end
+		return orig_apply_ws(workspace_edit, position_encoding, ...)
 	end
 
 	-- 启用 LSP servers：清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生
