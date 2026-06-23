@@ -13,9 +13,7 @@
 
 ---@param bin string
 ---@return boolean
-local function has_exec(bin)
-	return vim.fn.executable(bin) == 1
-end
+local function has_exec(bin) return vim.fn.executable(bin) == 1 end
 
 -- Run a liveness probe and report whether it exited 0. Output discarded.
 -- Used to distinguish a working bin from a broken rustup-proxy symlink.
@@ -205,12 +203,7 @@ function M.ensure_lsp()
 	for _, t in ipairs(LSP_TOOLS) do
 		map[t.bin] = t
 	end
-	ensure_tools(
-		vim.tbl_map(function(t)
-			return t.bin
-		end, LSP_TOOLS),
-		map
-	)
+	ensure_tools(vim.tbl_map(function(t) return t.bin end, LSP_TOOLS), map)
 end
 
 -- 返回 LSP_TOOLS 中应交给 `vim.lsp.enable` 启动的 server 名列表
@@ -246,19 +239,13 @@ end
 -- 取代静态 string[]）；存储侧只放 string[]，但 caller 拿到后会插入 picker 函数
 -- （见 plugins/format/conform.lua 的 ts/js / markdown 分流），union 让那种赋值不报型。
 ---@return table<string, string[] | fun(bufnr: integer): string[]>
-function M.get_formatters_by_ft()
-	return vim.deepcopy(FORMATTERS_BY_FT)
-end
+function M.get_formatters_by_ft() return vim.deepcopy(FORMATTERS_BY_FT) end
 ---@return table<string, string[]>
-function M.get_linters_by_ft()
-	return vim.deepcopy(LINTERS_BY_FT)
-end
+function M.get_linters_by_ft() return vim.deepcopy(LINTERS_BY_FT) end
 
 -- 按工具名按需安装（供需要"路径触发"的工具使用，如 actionlint 仅在
 -- .github/workflows/* 下才想装）
 ---@param name string TOOL_MAP key
-function M.ensure_tool(name)
-	ensure_tools({ name }, TOOL_MAP)
-end
+function M.ensure_tool(name) ensure_tools({ name }, TOOL_MAP) end
 
 return M

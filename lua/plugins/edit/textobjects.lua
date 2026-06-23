@@ -30,9 +30,7 @@ return {
 			["il"] = "@loop.inner",
 		}
 		for key, query in pairs(selections) do
-			map({ "x", "o" }, key, function()
-				select.select_textobject(query)
-			end, "TS: " .. query)
+			map({ "x", "o" }, key, function() select.select_textobject(query) end, "TS: " .. query)
 		end
 
 		-- Move to next/prev node by kind.
@@ -63,24 +61,14 @@ return {
 			["[i"] = { move.goto_previous_start, "@conditional.outer", "Prev conditional" },
 		}
 		for key, spec in pairs(moves) do
-			map({ "n", "x", "o" }, key, function()
-				spec[1](spec[2])
-			end, "TS: " .. spec[3])
+			map({ "n", "x", "o" }, key, function() spec[1](spec[2]) end, "TS: " .. spec[3])
 		end
 
 		-- Swap siblings
-		map("n", "gsa", function()
-			swap.swap_next("@parameter.inner")
-		end, "Swap with next argument")
-		map("n", "gsA", function()
-			swap.swap_previous("@parameter.inner")
-		end, "Swap with prev argument")
-		map("n", "gss", function()
-			swap.swap_next("@statement.outer")
-		end, "Swap with next statement")
-		map("n", "gsS", function()
-			swap.swap_previous("@statement.outer")
-		end, "Swap with prev statement")
+		map("n", "gsa", function() swap.swap_next("@parameter.inner") end, "Swap with next argument")
+		map("n", "gsA", function() swap.swap_previous("@parameter.inner") end, "Swap with prev argument")
+		map("n", "gss", function() swap.swap_next("@statement.outer") end, "Swap with next statement")
+		map("n", "gsS", function() swap.swap_previous("@statement.outer") end, "Swap with prev statement")
 
 		-- ===== Incremental selection =====
 		-- `<A-w>` grows the visual selection to the enclosing syntax node;

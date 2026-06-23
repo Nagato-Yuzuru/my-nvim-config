@@ -49,9 +49,7 @@ return {
 				-- 那一步触发，所以判 trouble_preview 太晚。改用更早就成立的判据：
 				-- 主窗是 split (`relative == ""`)、预览是 float (`relative ~= ""`)。
 				-- 同 toggleterm filter 的套路。
-				filter = function(_buf, win)
-					return vim.api.nvim_win_get_config(win).relative == ""
-				end,
+				filter = function(_buf, win) return vim.api.nvim_win_get_config(win).relative == "" end,
 			},
 			-- Overseer 不入 edgy：它原生用 botright split + belowright vsplit
 			-- 出"左 list 右 output"的并列 layout（overseer/window.lua:18-34），
@@ -63,9 +61,7 @@ return {
 				title = "Terminal",
 				size = { height = 0.3 },
 				-- toggleterm 创建窗口时 size 已固定；让 edgy 接管时用我们这里的值。
-				filter = function(_buf, win)
-					return vim.api.nvim_win_get_config(win).relative == ""
-				end,
+				filter = function(_buf, win) return vim.api.nvim_win_get_config(win).relative == "" end,
 			},
 			{ ft = "qf", title = "QuickFix" },
 			-- dap-repl / dapui_console 不入 edgy：dap-ui layout 2 (`bottom`) 把这俩
@@ -76,9 +72,7 @@ return {
 				title = "Help",
 				size = { height = 0.5 },
 				-- 只把 :help 触发的 help buffer 收进 dock；其它伪装成 help 的 ft 放过。
-				filter = function(buf)
-					return vim.bo[buf].buftype == "help"
-				end,
+				filter = function(buf) return vim.bo[buf].buftype == "help" end,
 			},
 		},
 		right = {

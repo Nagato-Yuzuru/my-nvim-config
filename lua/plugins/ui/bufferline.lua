@@ -2,9 +2,7 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		event = "VeryLazy",
-		cond = function()
-			return not vim.g.started_by_firenvim
-		end,
+		cond = function() return not vim.g.started_by_firenvim end,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 			{ "echasnovski/mini.bufremove", version = false }, -- 更靠谱的关缓冲
@@ -17,12 +15,8 @@ return {
 				},
 				separator_style = "slant",
 				-- 关闭按钮行为交给 mini.bufremove
-				close_command = function(n)
-					require("mini.bufremove").delete(n, false)
-				end,
-				right_mouse_command = function(n)
-					require("mini.bufremove").delete(n, false)
-				end,
+				close_command = function(n) require("mini.bufremove").delete(n, false) end,
+				right_mouse_command = function(n) require("mini.bufremove").delete(n, false) end,
 				-- 当前 tab 若被 <C-x>R 命过名，把名字渲染在 tabline 最右——bufferline
 				-- 自带的 1/2 编号 indicator 不支持 per-tab 名称（无公开 API），且
 				-- 编号 + <n>gt 已经足够当 picker，这里只补"我现在在哪个 workspace"
@@ -50,9 +44,7 @@ return {
 			{ "<C-x>k", "<cmd>BufferLinePickClose<CR>", desc = "Pick & close buffer" },
 			{
 				"<C-x>K",
-				function()
-					require("mini.bufremove").delete(0, true)
-				end,
+				function() require("mini.bufremove").delete(0, true) end,
 				desc = "Force close current buffer",
 			},
 			{ "<C-x>,", "<cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },

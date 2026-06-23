@@ -89,10 +89,7 @@ function M.setup()
 		---@type boolean, DapSpec|string
 		local ok, spec = pcall(dofile, file)
 		if not ok or type(spec) ~= "table" then
-			vim.notify(
-				("core.dap: failed to load %s\n%s"):format(file, tostring(spec)),
-				vim.log.levels.ERROR
-			)
+			vim.notify(("core.dap: failed to load %s\n%s"):format(file, tostring(spec)), vim.log.levels.ERROR)
 		else
 			if spec.type and spec.adapter then
 				dap.adapters[spec.type] = spec.adapter

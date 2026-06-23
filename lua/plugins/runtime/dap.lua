@@ -13,9 +13,7 @@
 -- 严格单归属：`dc/dn/ds/df/dr/de/dh/dj/dk/dR` 不在静态层，只在 session 内
 -- 通过 ,c/,n/,s/,f/,r/,e/,h/,j/,k/,R 生效。
 
-local function inspect_expr()
-	require("dapui")["eval"](nil, { enter = true })
-end
+local function inspect_expr() require("dapui")["eval"](nil, { enter = true }) end
 
 -- <leader>dt：设置 logpoint（DAP 里叫 "breakpoint with logMessage"）。
 -- 不暂停、只在命中时把消息打到 REPL/console。消息里可用 `{expr}` 语法插值。
@@ -52,7 +50,8 @@ local function attach_picker()
 	local candidates = {}
 	for _, cfg in ipairs(configs) do
 		local name_lower = (cfg.name or ""):lower()
-		if cfg.request == "attach"
+		if
+			cfg.request == "attach"
 			or cfg.mode == "core"
 			or cfg.mode == "remote"
 			or name_lower:find("core")
@@ -67,9 +66,7 @@ local function attach_picker()
 	end
 	vim.ui.select(candidates, {
 		prompt = "Select attach/core/remote config:",
-		format_item = function(item)
-			return item.name or "(unnamed)"
-		end,
+		format_item = function(item) return item.name or "(unnamed)" end,
 	}, function(choice)
 		if choice then
 			dap.run(choice)
@@ -176,12 +173,12 @@ return {
 			{ "<leader>d=", function() require("dapui").open({ reset = true }) end, desc = "Reset DAP UI sizes" },
 			-- 面板聚焦：s/t/b/w 是 layout 左侧四板，c/r 是底部两板。
 			-- 助记：Scopes / sTack / Breakpoints / Watches / Console / Repl
-			{ "<leader>dvs", function() focus_dapui_panel("scopes") end,      desc = "Focus Scopes panel" },
-			{ "<leader>dvt", function() focus_dapui_panel("stacks") end,      desc = "Focus Callstack panel" },
+			{ "<leader>dvs", function() focus_dapui_panel("scopes") end, desc = "Focus Scopes panel" },
+			{ "<leader>dvt", function() focus_dapui_panel("stacks") end, desc = "Focus Callstack panel" },
 			{ "<leader>dvb", function() focus_dapui_panel("breakpoints") end, desc = "Focus Breakpoints panel" },
-			{ "<leader>dvw", function() focus_dapui_panel("watches") end,     desc = "Focus Watches panel" },
-			{ "<leader>dvc", function() focus_dapui_panel("console") end,     desc = "Focus Console panel" },
-			{ "<leader>dvr", function() focus_dapui_panel("repl") end,        desc = "Focus REPL panel" },
+			{ "<leader>dvw", function() focus_dapui_panel("watches") end, desc = "Focus Watches panel" },
+			{ "<leader>dvc", function() focus_dapui_panel("console") end, desc = "Focus Console panel" },
+			{ "<leader>dvr", function() focus_dapui_panel("repl") end, desc = "Focus REPL panel" },
 			-- Note: "add watch from source" 是运行态动作，只在动态层 ,w 绑。
 		},
 		config = function()
@@ -268,20 +265,28 @@ return {
 			-- `,q` terminate。F-keys (JetBrains 风格) 故意不绑：leader/localleader
 			-- 用 Vim 语法、跨键盘布局可达。
 			local actions = {
-				c = { fn = function() dap.continue() end,                      desc = "Debug: Continue" },
-				n = { fn = function() dap.step_over() end,                     desc = "Debug: Step over (next)" },
-				s = { fn = function() dap.step_into() end,                     desc = "Debug: Step into" },
-				f = { fn = function() dap.step_out() end,                      desc = "Debug: Step out (finish)" },
-				p = { fn = function() dap.pause() end,                         desc = "Debug: Pause" },
-				u = { fn = function() dap.run_to_cursor() end,                 desc = "Debug: Run to cursor (until)" },
-				q = { fn = function() dap.terminate() end,                     desc = "Debug: Terminate session" },
-				r = { fn = function() dap.repl.toggle() end,                   desc = "Debug: Toggle REPL" },
-				e = { fn = inspect_expr,                                        desc = "Debug: Inspect expression", mode = { "n", "v" } },
-				h = { fn = function() require("dap.ui.widgets").hover() end,   desc = "Debug: Hover variable" },
-				w = { fn = add_watch_from_source,                               desc = "Debug: Add watch from source", mode = { "n", "v" } },
-				j = { fn = function() dap.down() end,                          desc = "Debug: Frame down" },
-				k = { fn = function() dap.up() end,                            desc = "Debug: Frame up" },
-				R = { fn = function() dap.restart() end,                       desc = "Debug: Restart session" },
+				c = { fn = function() dap.continue() end, desc = "Debug: Continue" },
+				n = { fn = function() dap.step_over() end, desc = "Debug: Step over (next)" },
+				s = { fn = function() dap.step_into() end, desc = "Debug: Step into" },
+				f = { fn = function() dap.step_out() end, desc = "Debug: Step out (finish)" },
+				p = { fn = function() dap.pause() end, desc = "Debug: Pause" },
+				u = { fn = function() dap.run_to_cursor() end, desc = "Debug: Run to cursor (until)" },
+				q = { fn = function() dap.terminate() end, desc = "Debug: Terminate session" },
+				r = { fn = function() dap.repl.toggle() end, desc = "Debug: Toggle REPL" },
+				e = {
+					fn = inspect_expr,
+					desc = "Debug: Inspect expression",
+					mode = { "n", "v" },
+				},
+				h = { fn = function() require("dap.ui.widgets").hover() end, desc = "Debug: Hover variable" },
+				w = {
+					fn = add_watch_from_source,
+					desc = "Debug: Add watch from source",
+					mode = { "n", "v" },
+				},
+				j = { fn = function() dap.down() end, desc = "Debug: Frame down" },
+				k = { fn = function() dap.up() end, desc = "Debug: Frame up" },
+				R = { fn = function() dap.restart() end, desc = "Debug: Restart session" },
 			}
 
 			local function attach_localleader()

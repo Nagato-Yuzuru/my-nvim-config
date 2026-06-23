@@ -27,8 +27,12 @@ return {
 			pattern = { "csv", "tsv", "psv" },
 			callback = function(ev)
 				csvview.enable(ev.buf)
-				vim.keymap.set("n", "<localleader>v", "<cmd>CsvViewToggle<cr>",
-					{ buffer = ev.buf, desc = "CSV: toggle rainbow/align view" })
+				vim.keymap.set(
+					"n",
+					"<localleader>v",
+					"<cmd>CsvViewToggle<cr>",
+					{ buffer = ev.buf, desc = "CSV: toggle rainbow/align view" }
+				)
 			end,
 		})
 		-- ft 懒加载会先触发当前 buffer 的 FileType 再跑 config,上面 autocmd

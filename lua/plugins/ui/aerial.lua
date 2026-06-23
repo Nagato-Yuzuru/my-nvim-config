@@ -30,9 +30,7 @@ return {
 	keys = {
 		{
 			"<leader>ns",
-			function()
-				require("aerial").snacks_picker()
-			end,
+			function() require("aerial").snacks_picker() end,
 			desc = "Structure (Picker)",
 		},
 		{

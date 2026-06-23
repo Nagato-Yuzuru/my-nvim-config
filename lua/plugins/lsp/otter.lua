@@ -15,12 +15,16 @@ return {
 		},
 		config = function(_, opts)
 			require("otter").setup(opts)
-			vim.api.nvim_create_user_command("OtterActivate", function()
-				require("otter").activate()
-			end, { desc = "Otter: activate LSP in injected regions" })
-			vim.api.nvim_create_user_command("OtterDeactivate", function()
-				require("otter").deactivate()
-			end, { desc = "Otter: deactivate" })
+			vim.api.nvim_create_user_command(
+				"OtterActivate",
+				function() require("otter").activate() end,
+				{ desc = "Otter: activate LSP in injected regions" }
+			)
+			vim.api.nvim_create_user_command(
+				"OtterDeactivate",
+				function() require("otter").deactivate() end,
+				{ desc = "Otter: deactivate" }
+			)
 		end,
 	},
 }

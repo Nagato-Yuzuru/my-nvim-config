@@ -29,9 +29,7 @@
 local function expr_keymap(lhs, fn_name, desc)
 	return {
 		lhs,
-		function()
-			return require("refactoring")[fn_name]()
-		end,
+		function() return require("refactoring")[fn_name]() end,
 		mode = { "n", "x" },
 		expr = true,
 		desc = desc,

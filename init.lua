@@ -12,15 +12,15 @@ require("core.keymaps")
 -- （mason_ensure.lua 认这个环境变量），并精简浮窗里的 UI 噪音。
 if vim.g.started_by_firenvim then
 	vim.env.NO_AUTO_INSTALL = "1"
-	vim.opt.laststatus     = 0
-	vim.opt.showtabline    = 0
-	vim.opt.cmdheight      = 1
-	vim.opt.signcolumn     = "no"
-	vim.opt.number         = false
+	vim.opt.laststatus = 0
+	vim.opt.showtabline = 0
+	vim.opt.cmdheight = 1
+	vim.opt.signcolumn = "no"
+	vim.opt.number = false
 	vim.opt.relativenumber = false
-	vim.opt.wrap           = true
-	vim.opt.linebreak      = true
-	vim.opt.guifont        = "JetBrainsMono Nerd Font:h14"
+	vim.opt.wrap = true
+	vim.opt.linebreak = true
+	vim.opt.guifont = "JetBrainsMono Nerd Font:h14"
 	-- 实时回写到网页 textarea
 	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
 		callback = function() vim.cmd("silent! write") end,

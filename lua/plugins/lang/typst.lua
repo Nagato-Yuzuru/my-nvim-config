@@ -13,9 +13,7 @@ return {
 		ft = "typst",
 		build = function()
 			-- 同步预览前端资源（首次启动时拉一次）
-			pcall(function()
-				require("typst-preview").update()
-			end)
+			pcall(function() require("typst-preview").update() end)
 		end,
 		opts = {
 			dependencies_bin = { ["tinymist"] = "tinymist" },

@@ -44,9 +44,7 @@ return {
 			vim.api.nvim_create_autocmd("FileType", {
 				group = vim.api.nvim_create_augroup("UserSchemeEnsure", { clear = true }),
 				pattern = CONJURE_FT,
-				callback = function(ev)
-					require("tools.scheme_toolchain").check_for_ft(vim.bo[ev.buf].filetype)
-				end,
+				callback = function(ev) require("tools.scheme_toolchain").check_for_ft(vim.bo[ev.buf].filetype) end,
 			})
 		end,
 		config = function()
@@ -63,9 +61,12 @@ return {
 				-- <C-k>：手动触发签名提示；racket-langserver 对 Invoked 返回 null，
 				-- 实际签名提示靠 blink auto-trigger（输入 space/)/] 时自动弹出）。
 				if ft == "racket" then
-					vim.keymap.set("n", "gK", function()
-						vim.fn.system({ "raco", "docs", "--", vim.fn.expand("<cword>") })
-					end, { buffer = buf, silent = true, desc = "Racket: raco docs (browser)" })
+					vim.keymap.set(
+						"n",
+						"gK",
+						function() vim.fn.system({ "raco", "docs", "--", vim.fn.expand("<cword>") }) end,
+						{ buffer = buf, silent = true, desc = "Racket: raco docs (browser)" }
+					)
 				end
 				local specs = {
 					{ "<localleader>p", group = "Paredit", buffer = buf },
@@ -118,17 +119,13 @@ return {
 				group = vim.api.nvim_create_augroup("UserSchemeWK", { clear = true }),
 				pattern = PAREDIT_FT,
 				callback = function(ev)
-					vim.schedule(function()
-						setup_wk(ev.buf)
-					end)
+					vim.schedule(function() setup_wk(ev.buf) end)
 				end,
 			})
 			-- 已打开的 buffer（触发插件加载的那个）
 			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
 				if vim.tbl_contains(PAREDIT_FT, vim.bo[buf].filetype) then
-					vim.schedule(function()
-						setup_wk(buf)
-					end)
+					vim.schedule(function() setup_wk(buf) end)
 				end
 			end
 		end,

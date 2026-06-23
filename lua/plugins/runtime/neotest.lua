@@ -114,9 +114,7 @@ end
 -- ============================================================================
 local captured_client
 
-local function drop_consumer(client)
-	captured_client = client
-end
+local function drop_consumer(client) captured_client = client end
 
 local function drop_stuck()
 	if not captured_client then
@@ -150,9 +148,7 @@ local function drop_stuck()
 						errors = {},
 					}
 					-- 顺手对真在跑的进程发一下 stop——已退出就 no-op
-					pcall(function()
-						nt.run.stop(pos.id)
-					end)
+					pcall(function() nt.run.stop(pos.id) end)
 				end
 			end
 			if next(synth) then
@@ -194,30 +190,22 @@ return {
 		keys = {
 			{
 				"<leader>tt",
-				function()
-					require("neotest").run.run()
-				end,
+				function() require("neotest").run.run() end,
 				desc = "Run nearest test",
 			},
 			{
 				"<leader>tT",
-				function()
-					require("neotest").run.run(vim.fn.expand("%"))
-				end,
+				function() require("neotest").run.run(vim.fn.expand("%")) end,
 				desc = "Run tests in file",
 			},
 			{
 				"<leader>tl",
-				function()
-					require("neotest").run.run_last()
-				end,
+				function() require("neotest").run.run_last() end,
 				desc = "Run last test",
 			},
 			{
 				"<leader>td",
-				function()
-					require("neotest").run.run({ strategy = "dap" })
-				end,
+				function() require("neotest").run.run({ strategy = "dap" }) end,
 				desc = "Debug nearest test",
 			},
 			{
@@ -227,23 +215,17 @@ return {
 			},
 			{
 				"<leader>ts",
-				function()
-					require("neotest").summary.toggle()
-				end,
+				function() require("neotest").summary.toggle() end,
 				desc = "Toggle test summary",
 			},
 			{
 				"<leader>to",
-				function()
-					require("neotest").output.open({ enter = true, auto_close = true })
-				end,
+				function() require("neotest").output.open({ enter = true, auto_close = true }) end,
 				desc = "Show test output",
 			},
 			{
 				"<leader>tO",
-				function()
-					require("neotest").output_panel.toggle()
-				end,
+				function() require("neotest").output_panel.toggle() end,
 				desc = "Toggle output panel",
 			},
 			{
@@ -255,32 +237,24 @@ return {
 				-- 见文件顶部 drop_stuck 注释块。这条键替代了原版的
 				-- `require("neotest").run.stop()`——后者只对光标位置生效，
 				-- 解不了"summary 里某 test 跨文件卡死"的实际诉求。
-				function()
-					drop_stuck()
-				end,
+				function() drop_stuck() end,
 				desc = "Stop & drop stuck tests",
 			},
 			{
 				"<leader>tw",
-				function()
-					require("neotest").watch.toggle(vim.fn.expand("%"))
-				end,
+				function() require("neotest").watch.toggle(vim.fn.expand("%")) end,
 				desc = "Toggle watch mode",
 			},
 			-- 失败导航：和 [d/]d (LSP + lint) 彻底分开的专用流。
 			-- 原想用 ]t/[t 走 bracket 惯例，但 todo-comments.nvim 已占。
 			{
 				"<leader>tn",
-				function()
-					require("neotest").jump.next({ status = "failed" })
-				end,
+				function() require("neotest").jump.next({ status = "failed" }) end,
 				desc = "Next failed test",
 			},
 			{
 				"<leader>tp",
-				function()
-					require("neotest").jump.prev({ status = "failed" })
-				end,
+				function() require("neotest").jump.prev({ status = "failed" }) end,
 				desc = "Prev failed test",
 			},
 		},

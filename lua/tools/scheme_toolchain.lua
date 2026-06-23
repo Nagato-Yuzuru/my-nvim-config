@@ -27,9 +27,7 @@ local M = {}
 
 ---@param bin string
 ---@return boolean
-local function has_exec(bin)
-	return vim.fn.executable(bin) == 1
-end
+local function has_exec(bin) return vim.fn.executable(bin) == 1 end
 
 ---@type table<string, boolean>
 local racket_pkg_cache = {}
@@ -77,63 +75,43 @@ end
 ---@type table<string, SchemeTool>
 local TOOLS = {
 	racket = {
-		check = function()
-			return has_exec("racket")
-		end,
+		check = function() return has_exec("racket") end,
 		hint = "brew install minimal-racket",
 	},
 	raco = {
-		check = function()
-			return has_exec("raco")
-		end,
+		check = function() return has_exec("raco") end,
 		hint = "brew install minimal-racket   # raco ships with racket itself",
 	},
 	["racket-langserver (raco pkg)"] = {
-		check = function()
-			return has_racket_pkg("racket-langserver")
-		end,
+		check = function() return has_racket_pkg("racket-langserver") end,
 		hint = "raco pkg install racket-langserver   # Racket library, not a PATH binary",
 	},
 	["fmt (raco pkg)"] = {
-		check = function()
-			return has_racket_pkg("fmt")
-		end,
+		check = function() return has_racket_pkg("fmt") end,
 		hint = "raco pkg install fmt   # provides `raco fmt` Racket formatter",
 	},
 	["sicp (raco pkg)"] = {
-		check = function()
-			return has_racket_pkg("sicp")
-		end,
+		check = function() return has_racket_pkg("sicp") end,
 		hint = "raco pkg install sicp   # #lang sicp support",
 	},
 	guile = {
-		check = function()
-			return has_exec("guile")
-		end,
+		check = function() return has_exec("guile") end,
 		hint = "brew install guile",
 	},
 	["guile-lsp-server"] = {
-		check = function()
-			return has_exec("guile-lsp-server")
-		end,
+		check = function() return has_exec("guile-lsp-server") end,
 		hint = "build from source: https://codeberg.org/rgherdt/scheme-lsp-server   # or: guix install guile-lsp-server",
 	},
 	steel = {
-		check = function()
-			return has_exec("steel")
-		end,
+		check = function() return has_exec("steel") end,
 		hint = "cargo install --git https://github.com/mattwparas/steel steel",
 	},
 	["steel-language-server"] = {
-		check = function()
-			return has_exec("steel-language-server")
-		end,
+		check = function() return has_exec("steel-language-server") end,
 		hint = "cargo install --git https://github.com/mattwparas/steel steel-language-server",
 	},
 	schemat = {
-		check = function()
-			return has_exec("schemat")
-		end,
+		check = function() return has_exec("schemat") end,
 		hint = "cargo install schemat   # or git: https://github.com/raymond-w-ko/schemat",
 	},
 }
@@ -189,9 +167,7 @@ function M.check_for_ft(ft)
 	end
 
 	vim.notify(
-		("[scheme] Missing tools for %s buffers — install manually:\n%s"):format(
-			ft, table.concat(missing, "\n")
-		),
+		("[scheme] Missing tools for %s buffers — install manually:\n%s"):format(ft, table.concat(missing, "\n")),
 		vim.log.levels.WARN
 	)
 end

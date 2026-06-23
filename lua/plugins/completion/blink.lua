@@ -129,9 +129,7 @@ return {
 				completion = {
 					-- 只在输入 : 命令时自动显示菜单；/ ? 搜索仍按原生行为
 					menu = {
-						auto_show = function()
-							return vim.fn.getcmdtype() == ":"
-						end,
+						auto_show = function() return vim.fn.getcmdtype() == ":" end,
 					},
 					-- 纯 ghost 模式：预选首项（ghost 立即显示），但不自动写入 cmdline。
 					-- 覆盖 blink.cmp cmdline 模式默认的 auto_insert=true

@@ -7,9 +7,7 @@ return {
 	keys = {
 		{
 			"<leader>rn",
-			function()
-				return ":IncRename " .. vim.fn.expand("<cword>")
-			end,
+			function() return ":IncRename " .. vim.fn.expand("<cword>") end,
 			expr = true,
 			desc = "Rename (incremental preview)",
 		},

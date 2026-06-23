@@ -103,9 +103,7 @@ return {
 			-- ft 不限死 "yaml"：有些设置会把 workflow 文件识别为 yaml.xxx
 			-- 复合 ft；反正 is_gh_workflow() 已经收敛到正确路径，ft 只需要
 			-- 是 yaml 开头即可。
-			local function is_yaml_ft(ft)
-				return ft == "yaml" or vim.startswith(ft or "", "yaml.")
-			end
+			local function is_yaml_ft(ft) return ft == "yaml" or vim.startswith(ft or "", "yaml.") end
 			-- Mason 安装是异步的；try_lint 必须等二进制真的在 PATH 上才跑，
 			-- 否则首次打开 workflow 文件会报 ENOENT。
 			--   install_triggered：防止首次窗口内重复 kick 安装
@@ -146,7 +144,6 @@ return {
 					ok and vim.log.levels.INFO or vim.log.levels.WARN
 				)
 			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
-
 		end,
 	},
 }

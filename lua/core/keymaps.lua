@@ -79,14 +79,13 @@ map("n", "<C-x>R", function()
 	end)
 end, { desc = "Rename current tab" })
 
-map("n", "<C-x>3", function()
-	vim.cmd.vsplit()
-end, { desc = "Split right" })
+map("n", "<C-x>3", function() vim.cmd.vsplit() end, { desc = "Split right" })
 
-map("n", "<C-x>2", function()
-	vim.cmd.split()
-end, { desc = "Split below" })
+map("n", "<C-x>2", function() vim.cmd.split() end, { desc = "Split below" })
 
-vim.keymap.set("c", "<C-x><C-e>", function()
-	return vim.api.nvim_replace_termcodes(vim.o.cedit, true, true, true)
-end, { expr = true })
+vim.keymap.set(
+	"c",
+	"<C-x><C-e>",
+	function() return vim.api.nvim_replace_termcodes(vim.o.cedit, true, true, true) end,
+	{ expr = true }
+)

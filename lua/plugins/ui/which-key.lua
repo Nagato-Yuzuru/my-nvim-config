@@ -10,9 +10,7 @@ return {
 				-- 如果你想要透明度，which-key v3 把窗口局部选项放到 wo 里：
 				-- wo = { winblend = 10 },
 			},
-			filter = function(mapping)
-				return mapping.desc ~= nil
-			end,
+			filter = function(mapping) return mapping.desc ~= nil end,
 		},
 		config = function(_, opts)
 			local wk = require("which-key")
@@ -21,9 +19,7 @@ return {
 			-- （schema 见 which-key/lua/which-key/mappings.lua: M.fields）。
 			local function ft_in(...)
 				local fts = { ... }
-				return function()
-					return vim.tbl_contains(fts, vim.bo.filetype)
-				end
+				return function() return vim.tbl_contains(fts, vim.bo.filetype) end
 			end
 			wk.add({
 				{ "<leader>n", group = "Navigation" },

@@ -186,9 +186,7 @@ function M.setup()
 				end
 			end
 
-			pcall(function()
-				vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
-			end)
+			pcall(function() vim.lsp.inlay_hint.enable(true, { bufnr = bufnr }) end)
 
 			-- K 必须显式绑定：ftplugin（如 racket.vim 把 K 映射到 raco docs）在
 			-- FileType 时先跑，会把 Neovim 0.11 的默认覆盖掉。LspAttach 在 FileType
@@ -228,9 +226,7 @@ function M.setup()
 			-- 度参差（tsserver / ruff / rust-analyzer 较全；gopls 部分；很多语言无），
 			-- 不支持时弹 "No code actions available"，是预期行为。
 			local refactor_kind = function(only)
-				return function()
-					vim.lsp.buf.code_action({ context = { only = only, diagnostics = {} } })
-				end
+				return function() vim.lsp.buf.code_action({ context = { only = only, diagnostics = {} } }) end
 			end
 			-- <leader>rn 由 inc-rename.nvim 处理（plugins/lsp/inc-rename.lua）
 			map_if(
@@ -280,9 +276,13 @@ function M.setup()
 			-- nvim-only"非对称项。
 			map_if("textDocument/codeLens", "n", "<leader>cl", vim.lsp.codelens.run, "Run Code Lens")
 			-- <leader>n* — extras that have no standard g* counterpart:
-			map_if("textDocument/prepareTypeHierarchy", "n", "<leader>nb", function()
-				vim.lsp.buf.typehierarchy("supertypes")
-			end, "Goto Base (supertypes)")
+			map_if(
+				"textDocument/prepareTypeHierarchy",
+				"n",
+				"<leader>nb",
+				function() vim.lsp.buf.typehierarchy("supertypes") end,
+				"Goto Base (supertypes)"
+			)
 
 			-- Codelens 刷新：0.13+ 起 vim.lsp.codelens.enable 接管调度
 			-- （runtime 内部走 nvim_buf_attach + debounced automatic_request，覆盖
