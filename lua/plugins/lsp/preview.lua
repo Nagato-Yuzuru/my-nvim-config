@@ -20,14 +20,22 @@ return {
 	-- 这些键只在 LSP buffer 上有意义，但 plugin 启动时 LSP 可能还没 attach；
 	-- 用 keys 做触发器即可，函数体内 require 时 plugin 才真正初始化。
 	keys = {
-		{ "gpd", function() require("goto-preview").goto_preview_definition() end,
-			desc = "LSP: Preview Definition" },
-		{ "gpD", function() require("goto-preview").goto_preview_type_definition() end,
-			desc = "LSP: Preview Type Definition" },
-		{ "gpi", function() require("goto-preview").goto_preview_implementation() end,
-			desc = "LSP: Preview Implementation" },
-		{ "gpc", function() require("goto-preview").close_all_win() end,
-			desc = "LSP: Close all preview windows" },
+		{
+			"gpd",
+			function() require("goto-preview").goto_preview_definition() end,
+			desc = "LSP: Preview Definition",
+		},
+		{
+			"gpD",
+			function() require("goto-preview").goto_preview_type_definition() end,
+			desc = "LSP: Preview Type Definition",
+		},
+		{
+			"gpi",
+			function() require("goto-preview").goto_preview_implementation() end,
+			desc = "LSP: Preview Implementation",
+		},
+		{ "gpc", function() require("goto-preview").close_all_win() end, desc = "LSP: Close all preview windows" },
 	},
 	opts = {
 		width = 120,
@@ -64,18 +72,12 @@ return {
 		local orig_open = lib.open_floating_win
 		lib.open_floating_win = function(target, position, win_opts)
 			if type(target) ~= "string" or target == "" then
-				vim.notify(
-					"goto-preview: LSP returned no URI for target — skipping preview",
-					vim.log.levels.WARN
-				)
+				vim.notify("goto-preview: LSP returned no URI for target — skipping preview", vim.log.levels.WARN)
 				return
 			end
 			local ok, bufnr = pcall(vim.uri_to_bufnr, target)
 			if not ok or type(bufnr) ~= "number" then
-				vim.notify(
-					"goto-preview: cannot resolve URI to buffer: " .. tostring(target),
-					vim.log.levels.WARN
-				)
+				vim.notify("goto-preview: cannot resolve URI to buffer: " .. tostring(target), vim.log.levels.WARN)
 				return
 			end
 			return orig_open(target, position, win_opts)

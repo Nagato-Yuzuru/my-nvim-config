@@ -17,9 +17,7 @@ return {
 		keys = {
 			{
 				"<localleader>do",
-				function()
-					require("mini.diff").toggle_overlay(0)
-				end,
+				function() require("mini.diff").toggle_overlay(0) end,
 				desc = "Diff overlay (vs save)",
 			},
 		},

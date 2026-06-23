@@ -31,9 +31,7 @@ local function ensure_pending()
 	if not pending then
 		pending = prompt("Surround (find): ")
 		if pending then
-			vim.schedule(function()
-				pending = nil
-			end)
+			vim.schedule(function() pending = nil end)
 		end
 	end
 	return pending

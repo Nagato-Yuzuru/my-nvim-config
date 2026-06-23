@@ -55,5 +55,15 @@ vim.diagnostic.config({
 -- 时手动按 <C-w>d（Neovim 0.11+ 默认绑定）打传统浮窗。
 vim.keymap.set("n", "]d", function() vim.diagnostic.jump({ count = 1 }) end, { desc = "Next diagnostic" })
 vim.keymap.set("n", "[d", function() vim.diagnostic.jump({ count = -1 }) end, { desc = "Prev diagnostic" })
-vim.keymap.set("n", "]D", function() vim.diagnostic.jump({ count = math.huge, wrap = false }) end, { desc = "Last diagnostic" })
-vim.keymap.set("n", "[D", function() vim.diagnostic.jump({ count = -math.huge, wrap = false }) end, { desc = "First diagnostic" })
+vim.keymap.set(
+	"n",
+	"]D",
+	function() vim.diagnostic.jump({ count = math.huge, wrap = false }) end,
+	{ desc = "Last diagnostic" }
+)
+vim.keymap.set(
+	"n",
+	"[D",
+	function() vim.diagnostic.jump({ count = -math.huge, wrap = false }) end,
+	{ desc = "First diagnostic" }
+)

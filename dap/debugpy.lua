@@ -19,10 +19,7 @@ local function project_root()
 	if bufname == "" then
 		return vim.uv.cwd()
 	end
-	local root = vim.fs.root(
-		0,
-		{ "pyproject.toml", "setup.py", "setup.cfg", "Pipfile", "requirements.txt", ".git" }
-	)
+	local root = vim.fs.root(0, { "pyproject.toml", "setup.py", "setup.cfg", "Pipfile", "requirements.txt", ".git" })
 	return root or vim.fs.dirname(bufname) or vim.uv.cwd()
 end
 
@@ -74,9 +71,7 @@ return {
 			type = "python",
 			request = "launch",
 			name = "Launch module",
-			module = function()
-				return vim.fn.input("Module name: ")
-			end,
+			module = function() return vim.fn.input("Module name: ") end,
 			pythonPath = find_python,
 			justMyCode = false,
 		},

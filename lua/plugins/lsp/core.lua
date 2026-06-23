@@ -11,9 +11,7 @@ return {
 			-- 这里只保留 formatter/linter 的 FileType 触发：FileType autocmd 必须
 			-- 在启动时就注册好，否则首次打开对应文件不触发安装。
 			vim.api.nvim_create_autocmd("FileType", {
-				callback = function(ev)
-					require("tools.mason_ensure").ensure_for_ft(vim.bo[ev.buf].filetype)
-				end,
+				callback = function(ev) require("tools.mason_ensure").ensure_for_ft(vim.bo[ev.buf].filetype) end,
 			})
 		end,
 	},

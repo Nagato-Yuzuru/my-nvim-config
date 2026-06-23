@@ -216,9 +216,8 @@ return {
 			if layout == "float" then
 				swinid = require("neominimap.window.float.window_map").get_parent_winid(mwinid)
 			else
-				swinid = require("neominimap.window.split.window_map").get_source_winid(
-					vim.api.nvim_get_current_tabpage()
-				)
+				swinid =
+					require("neominimap.window.split.window_map").get_source_winid(vim.api.nvim_get_current_tabpage())
 			end
 			if not swinid or not vim.api.nvim_win_is_valid(swinid) then
 				close_preview()
@@ -263,9 +262,7 @@ return {
 			end
 
 			pcall(vim.api.nvim_win_set_cursor, preview.win, { srow, 0 })
-			pcall(vim.api.nvim_win_call, preview.win, function()
-				vim.cmd("normal! zz")
-			end)
+			pcall(vim.api.nvim_win_call, preview.win, function() vim.cmd("normal! zz") end)
 		end
 
 		vim.api.nvim_create_autocmd("FileType", {
@@ -297,10 +294,7 @@ return {
 				end
 				local function toggle_auto_preview()
 					preview.auto = not preview.auto
-					vim.notify(
-						"Minimap auto-preview: " .. (preview.auto and "ON" or "OFF"),
-						vim.log.levels.INFO
-					)
+					vim.notify("Minimap auto-preview: " .. (preview.auto and "ON" or "OFF"), vim.log.levels.INFO)
 					if preview.auto then
 						update_preview() -- 立刻按当前光标刷一帧
 					end

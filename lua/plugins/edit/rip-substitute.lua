@@ -22,9 +22,7 @@ return {
 		keys = {
 			{
 				"<leader>sr",
-				function()
-					require("rip-substitute").sub()
-				end,
+				function() require("rip-substitute").sub() end,
 				mode = { "n", "x" },
 				desc = "Substitute (rip-substitute, PCRE2)",
 			},

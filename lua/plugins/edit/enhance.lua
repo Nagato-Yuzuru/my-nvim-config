@@ -22,9 +22,7 @@ return {
 		"keaising/im-select.nvim",
 		event = "VeryLazy",
 		cond = function()
-			local function binary_exists(name)
-				return vim.fn.executable(name) == 1
-			end
+			local function binary_exists(name) return vim.fn.executable(name) == 1 end
 
 			return binary_exists("im-select")
 				or binary_exists("macism")

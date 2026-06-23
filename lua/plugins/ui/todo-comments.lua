@@ -57,23 +57,17 @@ return {
 	keys = {
 		{
 			"]t",
-			function()
-				require("todo-comments").jump_next()
-			end,
+			function() require("todo-comments").jump_next() end,
 			desc = "Next TODO",
 		},
 		{
 			"[t",
-			function()
-				require("todo-comments").jump_prev()
-			end,
+			function() require("todo-comments").jump_prev() end,
 			desc = "Prev TODO",
 		},
 		{
 			"<leader>st",
-			function()
-				Snacks.picker.todo_comments()
-			end,
+			function() Snacks.picker.todo_comments() end,
 			desc = "Search TODOs (picker)",
 		},
 		{

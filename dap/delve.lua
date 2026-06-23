@@ -52,9 +52,7 @@ return {
 			name = "Attach to process",
 			request = "attach",
 			mode = "local",
-			processId = function()
-				return require("dap.utils").pick_process()
-			end,
+			processId = function() return require("dap.utils").pick_process() end,
 		},
 		-- Post-mortem：加载 core dump（程序得用 `GOTRACEBACK=crash` 或 `dlv debug --core` 产出）。
 		{
@@ -62,12 +60,8 @@ return {
 			name = "Debug core dump",
 			request = "launch",
 			mode = "core",
-			program = function()
-				return vim.fn.input("Path to Go binary: ", vim.fn.getcwd() .. "/", "file")
-			end,
-			coreFilePath = function()
-				return vim.fn.input("Path to core file: ", vim.fn.getcwd() .. "/", "file")
-			end,
+			program = function() return vim.fn.input("Path to Go binary: ", vim.fn.getcwd() .. "/", "file") end,
+			coreFilePath = function() return vim.fn.input("Path to core file: ", vim.fn.getcwd() .. "/", "file") end,
 		},
 		-- 远程：目标机已跑 `dlv debug --headless --listen=:PORT --api-version=2`，
 		-- 本地 attach 过去。mode = "remote"。

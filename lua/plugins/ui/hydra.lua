@@ -71,38 +71,28 @@ return {
 			heads = {
 				{
 					"+",
-					function()
-						vim.cmd("resize +2")
-					end,
+					function() vim.cmd("resize +2") end,
 					{ desc = "Height +" },
 				},
 				{
 					"-",
-					function()
-						vim.cmd("resize -2")
-					end,
+					function() vim.cmd("resize -2") end,
 					{ desc = "Height -" },
 				},
 				{
 					">",
-					function()
-						vim.cmd("vertical resize +2")
-					end,
+					function() vim.cmd("vertical resize +2") end,
 					{ desc = "Width +" },
 				},
 				-- "<" 在 keymap LHS 里要写成 <lt>，否则解析器认为是 <key> notation 起始
 				{
 					"<lt>",
-					function()
-						vim.cmd("vertical resize -2")
-					end,
+					function() vim.cmd("vertical resize -2") end,
 					{ desc = "Width -" },
 				},
 				{
 					"=",
-					function()
-						vim.cmd("wincmd =")
-					end,
+					function() vim.cmd("wincmd =") end,
 					{ desc = "Equalize" },
 				},
 				{ "<Esc>", nil, { exit = true, desc = "Exit" } },

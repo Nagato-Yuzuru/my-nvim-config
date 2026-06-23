@@ -30,9 +30,7 @@ vim.opt.tabstop = 4 -- 设置显示 Tab 的宽度为 4
 -- yank 高亮（Neovim 0.12 不再默认启用）
 vim.api.nvim_create_autocmd("TextYankPost", {
 	group = vim.api.nvim_create_augroup("UserYankHighlight", { clear = true }),
-	callback = function()
-		vim.hl.on_yank()
-	end,
+	callback = function() vim.hl.on_yank() end,
 })
 
 vim.g.loaded_netrw = 1

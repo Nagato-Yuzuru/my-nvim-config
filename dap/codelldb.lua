@@ -35,9 +35,7 @@ return {
 			type = "codelldb",
 			request = "launch",
 			name = "Launch executable",
-			program = function()
-				return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-			end,
+			program = function() return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file") end,
 			cwd = "${workspaceFolder}",
 			stopOnEntry = false,
 			args = {},
@@ -46,9 +44,7 @@ return {
 			type = "codelldb",
 			request = "attach",
 			name = "Attach to process",
-			pid = function()
-				return require("dap.utils").pick_process()
-			end,
+			pid = function() return require("dap.utils").pick_process() end,
 			cwd = "${workspaceFolder}",
 		},
 		-- Post-mortem：加载 core dump 到进程现场。
@@ -57,12 +53,8 @@ return {
 			type = "codelldb",
 			request = "attach",
 			name = "Attach core dump",
-			program = function()
-				return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-			end,
-			coreDumpPath = function()
-				return vim.fn.input("Path to core file: ", vim.fn.getcwd() .. "/", "file")
-			end,
+			program = function() return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file") end,
+			coreDumpPath = function() return vim.fn.input("Path to core file: ", vim.fn.getcwd() .. "/", "file") end,
 			cwd = "${workspaceFolder}",
 		},
 		-- 远端 lldb-server / debugserver：目标机已起 `lldb-server g :PORT <binary>`，

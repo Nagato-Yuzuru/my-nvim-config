@@ -22,9 +22,7 @@ return {
 		keys = {
 			{
 				"<localleader>gi",
-				function()
-					require("gitignore").generate(vim.fn.getcwd())
-				end,
+				function() require("gitignore").generate(vim.fn.getcwd()) end,
 				desc = "Git: generate .gitignore (templates)",
 			},
 		},

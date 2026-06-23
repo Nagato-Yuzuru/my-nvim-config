@@ -31,9 +31,9 @@ return {
 			},
 			lsp = {
 				enabled = true,
-				actions = true,    -- code actions: upgrade / open docs.rs
+				actions = true, -- code actions: upgrade / open docs.rs
 				completion = true, -- blink.cmp 走 LSP 渠道吃 crates 的补全
-				hover = true,      -- K 显示 crate 信息
+				hover = true, -- K 显示 crate 信息
 			},
 			-- 行尾显示当前/最新版本
 			text = {

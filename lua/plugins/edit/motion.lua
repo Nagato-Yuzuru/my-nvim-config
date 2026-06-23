@@ -26,9 +26,7 @@
 ---Called at keypress time so the line number is always fresh.
 ---@param pat string inner vim regex, e.g. [[\<\k]]
 ---@return string
-local function line_only(pat)
-	return [[\%]] .. vim.fn.line(".") .. [[l]] .. pat
-end
+local function line_only(pat) return [[\%]] .. vim.fn.line(".") .. [[l]] .. pat end
 
 ---Build a Flash.jump callback for a fixed-pattern label jump (Hop-style:
 ---no user input accepted, pattern is locked, labels appear immediately).
@@ -85,17 +83,13 @@ return {
 			-- ===== Line direction (words, current line) =====
 			{
 				"<leader><leader>h",
-				flash_pat(function()
-					return line_only([[\<\k]])
-				end, { forward = false }),
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
 				mode = MODE,
 				desc = "Flash ← word (line)",
 			},
 			{
 				"<leader><leader>l",
-				flash_pat(function()
-					return line_only([[\<\k]])
-				end, { forward = true }),
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
 				mode = MODE,
 				desc = "Flash → word (line)",
 			},
@@ -131,25 +125,19 @@ return {
 			-- ===== Line-scoped word motions (w/b/e) =====
 			{
 				"<leader><leader>w",
-				flash_pat(function()
-					return line_only([[\<\k]])
-				end, { forward = true }),
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = true }),
 				mode = MODE,
 				desc = "Flash w (line)",
 			},
 			{
 				"<leader><leader>b",
-				flash_pat(function()
-					return line_only([[\<\k]])
-				end, { forward = false }),
+				flash_pat(function() return line_only([[\<\k]]) end, { forward = false }),
 				mode = MODE,
 				desc = "Flash b (line)",
 			},
 			{
 				"<leader><leader>e",
-				flash_pat(function()
-					return line_only([[\k\>]])
-				end, { forward = true }),
+				flash_pat(function() return line_only([[\k\>]]) end, { forward = true }),
 				mode = MODE,
 				desc = "Flash e (line)",
 			},
@@ -177,17 +165,13 @@ return {
 			-- ===== Incremental label jump =====
 			{
 				"<leader><leader>s",
-				function()
-					require("flash").jump()
-				end,
+				function() require("flash").jump() end,
 				mode = MODE,
 				desc = "Flash jump",
 			},
 			{
 				"<leader><leader>/",
-				function()
-					require("flash").jump()
-				end,
+				function() require("flash").jump() end,
 				mode = MODE,
 				desc = "Flash label search",
 			},
@@ -195,17 +179,13 @@ return {
 			-- ===== Treesitter (IdeaVim has no equivalent; intentionally unbound there) =====
 			{
 				"<leader><leader>t",
-				function()
-					require("flash").treesitter()
-				end,
+				function() require("flash").treesitter() end,
 				mode = MODE,
 				desc = "Flash Treesitter",
 			},
 			{
 				"<leader><leader>T",
-				function()
-					require("flash").treesitter_search()
-				end,
+				function() require("flash").treesitter_search() end,
 				mode = MODE,
 				desc = "Flash Treesitter search",
 			},
@@ -213,9 +193,7 @@ return {
 			-- ===== Repeat last Flash jump =====
 			{
 				"<leader><leader>.",
-				function()
-					require("flash").jump({ continue = true })
-				end,
+				function() require("flash").jump({ continue = true }) end,
 				mode = MODE,
 				desc = "Flash repeat",
 			},

@@ -241,25 +241,19 @@ return {
 			},
 			{
 				"<localleader>mr",
-				function()
-					require("render-markdown").set_buf()
-				end,
+				function() require("render-markdown").set_buf() end,
 				ft = { "markdown", "markdown.mdx" },
 				desc = "MD: Toggle render (buffer)",
 			},
 			{
 				"<localleader>mR",
-				function()
-					require("render-markdown").toggle()
-				end,
+				function() require("render-markdown").toggle() end,
 				ft = { "markdown", "markdown.mdx" },
 				desc = "MD: Toggle render (global)",
 			},
 			{
 				"<localleader>mp",
-				function()
-					require("render-markdown").preview()
-				end,
+				function() require("render-markdown").preview() end,
 				ft = { "markdown", "markdown.mdx" },
 				desc = "MD: Preview (split)",
 			},

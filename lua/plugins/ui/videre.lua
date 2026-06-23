@@ -28,8 +28,12 @@ return {
 			group = vim.api.nvim_create_augroup("UserVidereKeys", { clear = true }),
 			pattern = { "json", "jsonc", "yaml", "toml" },
 			callback = function(ev)
-				vim.keymap.set("n", "<localleader>v", "<cmd>Videre<cr>",
-					{ buffer = ev.buf, desc = "Videre: graph view" })
+				vim.keymap.set(
+					"n",
+					"<localleader>v",
+					"<cmd>Videre<cr>",
+					{ buffer = ev.buf, desc = "Videre: graph view" }
+				)
 			end,
 		})
 	end,

@@ -21,8 +21,16 @@ return {
 		-- CmdlineEnter 覆盖 / ? 进入；keys 触发 n N * # —— 任一首次使用都触发加载。
 		event = "CmdlineEnter",
 		keys = {
-			hl_map("n", [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]], "Repeat search forward"),
-			hl_map("N", [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]], "Repeat search backward"),
+			hl_map(
+				"n",
+				[[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]],
+				"Repeat search forward"
+			),
+			hl_map(
+				"N",
+				[[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]],
+				"Repeat search backward"
+			),
 			hl_map("*", [[*<Cmd>lua require('hlslens').start()<CR>]], "Search word forward"),
 			hl_map("#", [[#<Cmd>lua require('hlslens').start()<CR>]], "Search word backward"),
 			hl_map("g*", [[g*<Cmd>lua require('hlslens').start()<CR>]], "Search partial word forward"),

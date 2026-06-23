@@ -52,9 +52,7 @@ local function close_recursive(node)
 end
 
 ---@param picker snacks.Picker
-local function fold_refresh(picker)
-	require("snacks.explorer.actions").update(picker, { refresh = true })
-end
+local function fold_refresh(picker) require("snacks.explorer.actions").update(picker, { refresh = true }) end
 
 -- Wrap a "given a dir node, do X" function as a snacks action: resolve
 -- fold_target, gate on node.dir, refresh after. Collapses the
@@ -131,9 +129,7 @@ local PREVIEW_MAX_BYTES = 1024 * 1024
 local PREVIEW_MAX_LINES = 30000
 
 ---@return boolean
-local function valid_float()
-	return Preview.state ~= nil and vim.api.nvim_win_is_valid(Preview.state.win)
-end
+local function valid_float() return Preview.state ~= nil and vim.api.nvim_win_is_valid(Preview.state.win) end
 
 local function close_float()
 	if valid_float() then
@@ -267,9 +263,7 @@ end
 
 -- Get the active explorer picker, if any.
 ---@return snacks.Picker?
-local function explorer_picker()
-	return Snacks.picker.get({ source = "explorer" })[1]
-end
+local function explorer_picker() return Snacks.picker.get({ source = "explorer" })[1] end
 
 -- Is the explorer the user's current interaction context? Used to gate
 -- auto-preview updates: when focus has moved away (another picker, the
@@ -289,9 +283,7 @@ local function explorer_focused()
 	-- wrapper (p.list.win / p.input.win) holds the underlying winid in
 	-- its `.win` field, which can briefly outlive the window during
 	-- teardown — check it's actually live before comparing.
-	local function focused_on(w)
-		return w and w.win and vim.api.nvim_win_is_valid(w.win) and cur == w.win
-	end
+	local function focused_on(w) return w and w.win and vim.api.nvim_win_is_valid(w.win) and cur == w.win end
 	if focused_on(p.list and p.list.win) then
 		return true
 	end
@@ -425,9 +417,7 @@ function Preview.on_change(_, item)
 	end
 end
 
-function Preview.on_close()
-	close_float()
-end
+function Preview.on_close() close_float() end
 
 -- ---- snacks actions ----
 
@@ -490,9 +480,7 @@ local function scroll(direction)
 		local key = direction == "down" and "<C-d>" or "<C-u>"
 		local termcode = vim.api.nvim_replace_termcodes(key, true, false, true)
 		---@diagnostic disable-next-line: need-check-nil  -- valid_float() guards this
-		vim.api.nvim_win_call(Preview.state.win, function()
-			vim.cmd("normal! " .. termcode)
-		end)
+		vim.api.nvim_win_call(Preview.state.win, function() vim.cmd("normal! " .. termcode) end)
 	end
 end
 Preview.scroll_down = scroll("down")
@@ -560,12 +548,8 @@ return {
 				layout = { preset = "default" },
 				-- Wider columns → fewer keys per row, each entry gets breathing room.
 				actions = {
-					toggle_help_input = function(p)
-						p.input.win:toggle_help({ col_width = 45, key_width = 14 })
-					end,
-					toggle_help_list = function(p)
-						p.list.win:toggle_help({ col_width = 45, key_width = 14 })
-					end,
+					toggle_help_input = function(p) p.input.win:toggle_help({ col_width = 45, key_width = 14 }) end,
+					toggle_help_list = function(p) p.list.win:toggle_help({ col_width = 45, key_width = 14 }) end,
 				},
 				sources = {
 					explorer = {
@@ -577,18 +561,12 @@ return {
 						on_close = Preview.on_close,
 						-- z[oc] single dir · z[OC] recursive · z[RM] whole tree · z[aA] toggle.
 						actions = {
-							fold_open = fold_action(function(_, path)
-								require("snacks.explorer.tree"):open(path)
-							end),
-							fold_open_recursive = fold_action(function(node)
-								open_recursive(node)
-							end),
-							fold_close_recursive = fold_action(function(node)
-								close_recursive(node)
-							end),
-							fold_toggle = fold_action(function(_, path)
-								require("snacks.explorer.tree"):toggle(path)
-							end),
+							fold_open = fold_action(function(_, path) require("snacks.explorer.tree"):open(path) end),
+							fold_open_recursive = fold_action(function(node) open_recursive(node) end),
+							fold_close_recursive = fold_action(function(node) close_recursive(node) end),
+							fold_toggle = fold_action(
+								function(_, path) require("snacks.explorer.tree"):toggle(path) end
+							),
 							fold_toggle_recursive = fold_action(function(node)
 								if node.open then
 									close_recursive(node)
@@ -648,16 +626,12 @@ return {
 		keys = {
 			{
 				"<leader>vp",
-				function()
-					Snacks.explorer()
-				end,
+				function() Snacks.explorer() end,
 				desc = "Explorer",
 			},
 			{
 				"<leader>,",
-				function()
-					Snacks.picker.buffers()
-				end,
+				function() Snacks.picker.buffers() end,
 				desc = "Buffers",
 			},
 			{
@@ -670,23 +644,17 @@ return {
 			},
 			{
 				"<leader>ss",
-				function()
-					Snacks.picker.lsp_workspace_symbols()
-				end,
+				function() Snacks.picker.lsp_workspace_symbols() end,
 				desc = "Workspace Symbols",
 			},
 			{
 				"<leader>sc",
-				function()
-					Snacks.picker.commands()
-				end,
+				function() Snacks.picker.commands() end,
 				desc = "Commands",
 			},
 			{
 				"<leader>sk",
-				function()
-					Snacks.picker.keymaps()
-				end,
+				function() Snacks.picker.keymaps() end,
 				desc = "Keymaps",
 			},
 			-- Buffer 内 fuzzy 搜索 —— `/` 的 picker 形态：先模糊找行，
@@ -695,56 +663,42 @@ return {
 			--   <leader>sb   模糊匹配 + 预览 + 一次性跳转（"我大概记得几个词"）
 			{
 				"<leader>sb",
-				function()
-					Snacks.picker.lines()
-				end,
+				function() Snacks.picker.lines() end,
 				desc = "Buffer Lines (fuzzy /)",
 			},
 			-- 跨已打开 buffer 的 live ripgrep —— 对 <leader>/ 的项目级 grep
 			-- 是补集：只想在当前打开的几个文件里找时用这个，避免被全项目噪音淹。
 			{
 				"<leader>sB",
-				function()
-					Snacks.picker.grep_buffers()
-				end,
+				function() Snacks.picker.grep_buffers() end,
 				desc = "Grep Open Buffers",
 			},
 			-- 光标下词 / visual 选区直接喂给 ripgrep，无输入步骤。
 			{
 				"<leader>sw",
-				function()
-					Snacks.picker.grep_word()
-				end,
+				function() Snacks.picker.grep_word() end,
 				mode = { "n", "x" },
 				desc = "Grep Word/Selection",
 			},
 			-- 历史搜索条目 picker —— 翻 `/` 历史时比 q/ 命令窗更直观。
 			{
 				"<leader>s/",
-				function()
-					Snacks.picker.search_history()
-				end,
+				function() Snacks.picker.search_history() end,
 				desc = "Search History",
 			},
 			{
 				"<leader>vn",
-				function()
-					Snacks.notifier.show_history()
-				end,
+				function() Snacks.notifier.show_history() end,
 				desc = "Notification History",
 			},
 			{
 				"<localleader>G",
-				function()
-					Snacks.lazygit()
-				end,
+				function() Snacks.lazygit() end,
 				desc = "Git: Lazygit",
 			},
 			{
 				"<localleader>gl",
-				function()
-					Snacks.lazygit.log()
-				end,
+				function() Snacks.lazygit.log() end,
 				desc = "Git: Log (Lazygit)",
 			},
 		},

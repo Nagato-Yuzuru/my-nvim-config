@@ -14,30 +14,22 @@ return {
 		keys = {
 			{
 				"zR",
-				function()
-					require("ufo").openAllFolds()
-				end,
+				function() require("ufo").openAllFolds() end,
 				desc = "UFO: open all folds",
 			},
 			{
 				"zM",
-				function()
-					require("ufo").closeAllFolds()
-				end,
+				function() require("ufo").closeAllFolds() end,
 				desc = "UFO: close all folds",
 			},
 			{
 				"zr",
-				function()
-					require("ufo").openFoldsExceptKinds()
-				end,
+				function() require("ufo").openFoldsExceptKinds() end,
 				desc = "UFO: open folds (smart)",
 			},
 			{
 				"zm",
-				function()
-					require("ufo").closeFoldsWith()
-				end,
+				function() require("ufo").closeFoldsWith() end,
 				desc = "UFO: close folds (smart)",
 			},
 			-- 预览当前光标下的折叠块（不必先打开）
