@@ -59,6 +59,16 @@ return {
 			appearance = { nerd_font_variant = "mono" },
 			sources = {
 				default = { "lsp", "path", "buffer", "snippets" },
+				-- Go IDEA 风「裸标识符 → 限定符号 + 自动 import」由 go-deep 补足（gopls 不做，
+				-- 见 lua/plugins/completion/go_deep.lua + lsp/gopls.lua 注释）。per_filetype 会
+				-- **替换**该 ft 的默认源,所以这里显式复列默认四个 + go_deep（go_deep 排首,让 stdlib
+				-- 精确名优先浮出）。go_deep 自身 enabled() 再确认 gopls 已 attach。
+				per_filetype = {
+					go = { "go_deep", "lsp", "path", "snippets", "buffer" },
+				},
+				providers = {
+					go_deep = { module = "go_deep.blink", async = true },
+				},
 			},
 			completion = {
 				menu = {

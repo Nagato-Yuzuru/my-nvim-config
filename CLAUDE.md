@@ -62,6 +62,16 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   from `lua/core/dap.lua` (not `mason-nvim-dap`). Skipped under
   `CI=true` / `NO_AUTO_INSTALL=1`.
 - **Picker is Snacks.nvim** — no Telescope.
+- **Go IDEA-style auto-import** (bare `Builder`→`strings.Builder`+import)
+  is **go-deep.nvim**, not gopls — gopls only does *qualified*-prefix
+  unimported completion (golang/go#58291). Cross-file wiring: the plugin
+  + `vim.g.go_deep` config (the SSOT) live in
+  `lua/plugins/completion/go_deep.lua`; the blink source/provider is
+  registered in `lua/plugins/completion/blink.lua`
+  (`sources.per_filetype.go` + `providers.go_deep`). Needs Go 1.25+; the
+  backend auto-builds from vendored source. **Tracks `master` (unpinned)**,
+  so `:Lazy update` pulls + recompiles new code — re-review each update
+  (or pin a `commit` to lock). Neovim-only — GoLand has it natively.
 - **Plugin domains are bisection units**: each `lua/plugins/<domain>/`
   is imported separately in `init.lua` so any one can be commented out
   to isolate breakage.
