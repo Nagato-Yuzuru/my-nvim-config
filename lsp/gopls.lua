@@ -5,6 +5,10 @@ return {
 	settings = {
 		gopls = {
 			usePlaceholders = true,
+			-- 只对**限定前缀**生效（`strings.Bui` → 补全 + 自动 import）；它**不**做裸标识符
+			-- 未导入补全（裸 `Builder` → `strings.Builder`）——那是 gopls 固有缺口 golang/go#58291。
+			-- IDEA 风的裸标识符自动 import 由 go-deep.nvim 补足，见
+			-- lua/plugins/completion/go_deep.lua。别因为这行就以为裸标识符已覆盖。
 			completeUnimported = true,
 			-- 风格规整（gofumpt / gci / golines / import 分组）统一交给
 			-- `golangci-lint fmt`，按仓库 `.golangci.yml` 的 formatters 块跑；
