@@ -84,8 +84,8 @@ return {
 					-- 缺失时静默跳过（has_exec 在 lua/tools/scheme_toolchain.lua 会提示）。
 					raco_fmt = {
 						command = "raco",
-						args = { "fmt", "-" },
-						stdin = true,
+						args = { "fmt", "-i", "$FILENAME" },
+						stdin = false,
 					},
 					schemat = {
 						command = "schemat",
