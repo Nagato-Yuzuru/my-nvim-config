@@ -35,37 +35,28 @@
 --
 --    Search namespace (search by keyword, picker UI):
 --      <leader>sm  :BookmarksGoto        fuzzy picker over all bookmarks
---                                        (search intent → s* namespace; backed
---                                         by Telescope due to LintaoAmons hard
---                                         dep — see notes below)
+--                                        (search intent → s* namespace; uses
+--                                         the snacks picker backend, see notes)
 --
 --    nvim-only extras (no IdeaVim equivalent; documented in .ideavimrc):
 --      <leader>ml  :BookmarksLists       switch active bookmark list
 --      <leader>ma  :BookmarksCommands    command palette (bookmarks)
 --      <leader>mg  :BookmarksGrep        grep inside bookmarked files
 --
--- ── Why telescope is a dependency ───────────────────────────────────────────
+-- ── Picker backend: snacks (no telescope needed) ────────────────────────────
 --
--- LintaoAmons/bookmarks.nvim hard-requires telescope at module load time.
--- Its plugin/bookmarks.lua calls require("bookmarks"), which transitively
--- loads picker/actions.lua, which unconditionally calls
--- require("telescope.actions.state"). So telescope is needed even for
--- commands that don't use the picker (e.g. :BookmarksTree, :BookmarksMark).
--- There is no way to avoid this short of forking the plugin.
+-- LintaoAmons/bookmarks.nvim dispatches its picker lazily per backend;
+-- default-config.lua defaults picker_backend = "snacks" (a fully-implemented
+-- snacks backend) and does not hard-require telescope at load time. This spec
+-- sets the backend explicitly (picker = { picker_backend = "snacks" }) to make
+-- the choice visible and to keep :BookmarksGoto / <leader>sm on the same picker
+-- as the rest of the config (<leader>, / <leader>/). Snacks' ui_select
+-- integration (plugins/ui/snacks.lua) also routes LintaoAmons' internal
+-- vim.ui.select prompts (list switcher, delete confirmations) through Snacks
+-- for a consistent UX.
 --
--- Mitigation: telescope + plenary are declared as dependencies here and
--- stay lazy. They only load when bookmarks.nvim loads, which itself only
--- loads on the `keys` / `cmd` triggers. The rest of this config keeps using
--- Snacks for its primary pickers (<leader>, / <leader>/); telescope is
--- invisible in the day-to-day workflow and only surfaces when you hit a
--- bookmark command.
---
--- Side benefit: since telescope is present anyway, `<leader>sm` is bound
--- to :BookmarksGoto for a proper fuzzy picker over bookmark descriptions.
--- Snacks' ui_select integration (enabled in plugins/ui/snacks.lua) still
--- routes LintaoAmons' internal vim.ui.select prompts (list switcher,
--- delete confirmations) through Snacks for a consistent UX on the
--- non-fuzzy-picker paths.
+-- telescope's only dependent in this config is gitignore.nvim
+-- (lua/plugins/git/gitignore.lua declares it); this spec does not pull it in.
 
 return {
 	-- ── 1) marks.nvim: native mark visualization ────────────────────────────
@@ -98,16 +89,11 @@ return {
 	-- ── 2) LintaoAmons/bookmarks.nvim: annotated multi-list bookmarks ───────
 	{
 		"LintaoAmons/bookmarks.nvim",
+		-- SQLite storage backend. No telescope/plenary here: the snacks picker
+		-- backend (set below) needs neither, and both are declared by other active
+		-- specs anyway (telescope → gitignore.nvim; plenary → several langs).
 		dependencies = {
 			"kkharji/sqlite.lua",
-			-- telescope is a HARD dependency of LintaoAmons: plugin/bookmarks.lua
-			-- requires("bookmarks") → picker/actions.lua → telescope.actions.state
-			-- at load time, so it's needed even for commands that don't use the
-			-- picker (e.g. :BookmarksTree, :BookmarksMark). plenary is telescope's
-			-- own dep. Both stay lazy: they only load when bookmarks.nvim loads,
-			-- which itself only loads on the keys / cmd triggers below.
-			"nvim-telescope/telescope.nvim",
-			"nvim-lua/plenary.nvim",
 		},
 		cmd = {
 			"BookmarksMark",
@@ -140,7 +126,11 @@ return {
 			{ "<leader>mg", "<cmd>BookmarksGrep<cr>", desc = "Bookmark: grep in files" },
 		},
 		config = function()
-			require("bookmarks").setup({})
+			require("bookmarks").setup({
+				-- Explicit backend (also the plugin default) so the picker stays on
+				-- snacks alongside the rest of the config; keeps telescope out.
+				picker = { picker_backend = "snacks" },
+			})
 
 			-- Post-setup mutation of the merged treeview keymap.
 			--

@@ -1,27 +1,31 @@
 -- Key mappings
 local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
+-- 每条映射都必须带 desc：which-key 的 filter 会把没有 desc 的映射整条丢弃
+-- （见 plugins/ui/which-key.lua 的 filter）。这里在共享的 noremap/silent 基底
+-- 上逐条补 desc，而不是复用裸 opts。
+local function o(desc) return vim.tbl_extend("force", opts, { desc = desc }) end
 -- 使用 vim.keymap.set 设置映射
 for _, mode in ipairs({ "v", "n" }) do
-	map(mode, "<C-x>", "<Nop>", opts)
+	map(mode, "<C-x>", "<Nop>", o("Disable <C-x> (chord prefix)"))
 
-	map(mode, "<C-S-A>", "<C-x>", opts)
+	map(mode, "<C-S-A>", "<C-x>", o("Decrement number"))
 
 	-- 系统剪切板
-	map(mode, "<Leader>y", '"+y', opts)
-	map(mode, "<Leader>p", '"+p', opts)
+	map(mode, "<Leader>y", '"+y', o("Yank to system clipboard"))
+	map(mode, "<Leader>p", '"+p', o("Paste from system clipboard"))
 
-	map(mode, "<A-d>", '"_d', opts)
+	map(mode, "<A-d>", '"_d', o("Delete (black-hole register)"))
 end
 
-map("v", "g<C-x>", "<Nop>", opts)
-map("v", "g<C-S-A>", "g<C-x>", opts)
+map("v", "g<C-x>", "<Nop>", o("Disable g<C-x>"))
+map("v", "g<C-S-A>", "g<C-x>", o("Decrement sequentially"))
 
 -- Visual mode J/K for moving code blocks
 -- 向下移动选中文本
-map("v", "J", ":move '>+1<CR>gv=gv", opts)
+map("v", "J", ":move '>+1<CR>gv=gv", o("Move selection down"))
 -- 向上移动选中文本
-map("v", "K", ":move '<-2<CR>gv=gv", opts)
+map("v", "K", ":move '<-2<CR>gv=gv", o("Move selection up"))
 
 -- format
 -- -- 使用 LSP 的格式化
@@ -87,5 +91,5 @@ vim.keymap.set(
 	"c",
 	"<C-x><C-e>",
 	function() return vim.api.nvim_replace_termcodes(vim.o.cedit, true, true, true) end,
-	{ expr = true }
+	{ expr = true, desc = "Open command-line window (cedit)" }
 )

@@ -1,16 +1,9 @@
 return {
 	cmd = { "ruff", "server" },
 	filetypes = { "python" },
+	-- root_dir 由 tools/lsp_root.lua 统一注入（它是所有非 SKIP server 的唯一
+	-- 所有者，见该文件头部契约）——这里手写 root_dir 是死代码，故不写。
 	root_markers = { "pyproject.toml", "ruff.toml", ".ruff.toml", ".git" },
-	root_dir = function(bufnr, on_dir)
-		local bufname = vim.api.nvim_buf_get_name(bufnr)
-		-- ruff 要求 document 有真实文件路径
-		if bufname == "" then
-			return
-		end
-		local root = vim.fs.root(bufnr, { "pyproject.toml", "ruff.toml", ".ruff.toml", ".git" })
-		on_dir(root or vim.fs.dirname(bufname))
-	end,
 	init_options = {
 		settings = {
 			organizeImports = true,

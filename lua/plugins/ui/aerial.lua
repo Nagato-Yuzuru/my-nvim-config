@@ -2,7 +2,6 @@ return {
 	"stevearc/aerial.nvim",
 	dependencies = {
 		"nvim-treesitter/nvim-treesitter",
-		"nvim-tree/nvim-web-devicons",
 	},
 	opts = {
 		-- aerial 的 backends 支持 per-filetype 覆写：`_` 是默认，其它 key 是 ft。

@@ -307,6 +307,12 @@ end
 
 return {
 	"ThePrimeagen/refactoring.nvim",
+	-- Pin：下面的 config 靠 monkey-patch 一份**硬编码**的 async 消费者文件清单来
+	-- 消歧 async 模块冲突（见 async_consumers）。上游若新增一个 require("async") 的
+	-- 文件而清单没跟上，nil-wrap bug 会在该路径首次惰性 require 时无声复发。所以钉住
+	-- 已验证过清单的这个 rev；:Lazy update 想升级时必须连带 re-review async_consumers。
+	-- （与 lua/plugins/completion/go_deep.lua 讨论 pin 的思路一致。）
+	commit = "7eaa150061ea18fdbe18fbb924d236e3ddccc57d",
 	-- 新版 refactoring.nvim（master ≥ 2026-05）改用 lewis6991/async.nvim，
 	-- 不再依赖 plenary；treesitter 直接走 nvim 0.12+ 内置 vim.treesitter。
 	dependencies = { "lewis6991/async.nvim" },
@@ -326,7 +332,20 @@ return {
 		-- 状态无关），最后还原给 ufo 用。
 		local prev_async = package.loaded["async"]
 		local lewis_path = vim.fs.joinpath(vim.fn.stdpath("data"), "lazy", "async.nvim", "lua", "async.lua")
-		package.loaded["async"] = assert(loadfile(lewis_path))()
+		local lewis_async = assert(loadfile(lewis_path))()
+		package.loaded["async"] = lewis_async
+
+		-- 载入期响亮自检：整套 patch 就是为了把 lewis6991/async.nvim（暴露 M.wrap，
+		-- refactoring.utils:30 会调）喂进每个消费者的 `local async = require("async")`
+		-- upvalue。若这个模块形状变了（API 漂移，或 lewis_path 解析到了别的 async），
+		-- 在这里 loudly 报错，而不是等第一次 :Refactor extract 时无声 nil-wrap。
+		if type(lewis_async.wrap) ~= "function" then
+			vim.notify(
+				"refactoring.nvim: async shim check failed — require('async').wrap 不是函数，"
+					.. "extract/inline 会崩。请复查 async_consumers 或钉住的 rev。",
+				vim.log.levels.ERROR
+			)
+		end
 
 		-- refactoring 里全部 `require "async"` 的源文件（grep 结果，2026-05 master）。
 		-- 漏一个会在该路径首次被惰性 require 时复发 wrap=nil。新版若新增文件，
@@ -367,17 +386,17 @@ return {
 			"<leader>rv",
 			extract_var_smart,
 			mode = "n",
-			desc = "Refactor: Extract variable (smart)",
+			desc = "Refactor: Extract variable (smart, LSP-first)",
 		},
 		{
 			"<leader>rv",
 			function() return require("refactoring").extract_var() end,
 			mode = "x",
 			expr = true,
-			desc = "Refactor: Extract variable",
+			desc = "Refactor: Extract variable (treesitter)",
 		},
-		-- Inline：LSP-first 自动 fallback。<leader>rl 从 lua/core/lsp.lua 搬出来
-		-- 由这里统一接管——buffer-local 会盖全局，所以 lsp.lua 那边的同名绑定已删。
+		-- Inline：LSP-first 自动 fallback。<leader>rl 只在这里绑定——buffer-local
+		-- 会盖全局，若 lsp.lua 也绑同一个键会互相冲突，故该键的唯一定义在此。
 		{
 			"<leader>rl",
 			lsp_inline_then_treesitter,

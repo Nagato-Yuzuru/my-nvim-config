@@ -34,6 +34,11 @@ return {
 			vim.g["conjure#mapping#prefix"] = vim.g.maplocalleader .. "c"
 			-- 仅启用我们关心的客户端，避免无关 ft 被它接管
 			vim.g["conjure#filetypes"] = CONJURE_FT
+			-- REPL 只在显式 <localleader>cs 时启动。Conjure 默认 client_on_load=true
+			-- 会在打开任何 racket/scheme buffer 时就静默 spawn 一个解释器子进程——
+			-- 只是浏览代码也白跑一个 racket，多实例/多文件时 ps 里一排来历不明的
+			-- 进程，且用户从未要求过 REPL。
+			vim.g["conjure#client_on_load"] = false
 			-- K 保留给 LSP hover（vim.lsp.buf.hover），不让 conjure 覆盖
 			vim.g["conjure#mapping#doc_word"] = false
 			-- HUD（浮动 popup）保持启用，提供 eval 即时反馈。

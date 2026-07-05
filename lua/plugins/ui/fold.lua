@@ -1,4 +1,4 @@
--- lua/plugins/edit/fold.lua
+-- lua/plugins/ui/fold.lua
 return {
 	{
 		"kevinhwang91/nvim-ufo",

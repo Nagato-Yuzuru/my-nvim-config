@@ -11,6 +11,13 @@ vim.opt.showmode = false -- lualine 已显示 mode
 vim.opt.ruler = false -- lualine 已显示位置
 vim.opt.cmdheight = 0 -- noice 接管 cmdline，隐藏原生命令行区域
 
+-- 全局浮窗边框：hover / signature help / 诊断浮窗等原生浮窗默认无边框（方角），
+-- winborder 给所有"未显式指定 border"的浮窗统一加圆角，是边框风格的单一真相
+-- （诊断浮窗的 border 由此处提供，见 core/diagnostic.lua）。各插件浮窗
+-- （blink.cmp / goto-preview / snacks / noice / which-key / trouble 等）都显式
+-- 设了自己的 border，winborder 只作用于未指定者，故不会双重边框。
+vim.o.winborder = "rounded"
+
 -- :s 增量预览 — 输入 :s/old/new 时实时高亮所有匹配并开 split 列出影响行，
 -- <CR> 落地、<Esc> 取消。零依赖、原生 vim 正则不变。
 vim.opt.inccommand = "split"

@@ -173,13 +173,12 @@ return {
 	},
 	{
 		"AndrewRadev/switch.vim",
-		-- `` ` `` 是全局键（任何 buffer 按了都该工作）。原先 ft="markdown" 把
-		-- 插件锁在 markdown buffer 上加载，core/keymaps.lua 里全局绑的 ` 在
-		-- 其它文件里就会撞 E492: Not an editor command: Switch。
-		-- 改用 lazy 的 keys 触发：首次按 ` 时载入插件 + 同步把键映射上去，
-		-- 之后直接执行。custom_definitions 走 init（lazy 在 plugin load 前
-		-- 就跑 init），所以即便在 Go / lua 里按 ` 也能用上自定义模式（不匹
-		-- 配就 fallback 到 switch.vim 内置语言规则）。
+		-- `` ` `` 是全局键（任何 buffer 按了都该工作），用 lazy 的 keys 触发而非 ft：
+		-- ft="markdown" 会把插件锁在 markdown buffer 上加载，而这个键是全局绑定，
+		-- 其它 filetype 触发时会撞 E492: Not an editor command: Switch。keys 触发下
+		-- 首次按 ` 时载入插件 + 同步把键映射上去，之后直接执行。custom_definitions
+		-- 走 init（lazy 在 plugin load 前就跑 init），所以即便在 Go / lua 里按 ` 也
+		-- 能用上自定义模式（不匹配就 fallback 到 switch.vim 内置语言规则）。
 		keys = {
 			{ "`", "<cmd>Switch<cr>", desc = "Switch under cursor" },
 		},
@@ -193,6 +192,9 @@ return {
 	{
 		"bullets-vim/bullets.vim",
 		ft = { "markdown" },
+		-- 插件默认 bullets_enabled_file_types = markdown/text/gitcommit —— ft 只管
+		-- 惰性加载，一旦载入就会在 text / gitcommit buffer 里也抢 o / <leader>x / >> / <<。
+		init = function() vim.g.bullets_enabled_file_types = { "markdown" } end,
 	},
 	{
 		"HakonHarnes/img-clip.nvim",
