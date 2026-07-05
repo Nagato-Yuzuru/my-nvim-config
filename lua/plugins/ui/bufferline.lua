@@ -4,7 +4,6 @@ return {
 		event = "VeryLazy",
 		cond = function() return not vim.g.started_by_firenvim end,
 		dependencies = {
-			"nvim-tree/nvim-web-devicons",
 			{ "echasnovski/mini.bufremove", version = false }, -- 更靠谱的关缓冲
 		},
 		opts = {
@@ -61,6 +60,9 @@ return {
 				end,
 				desc = "Close current buffer",
 			},
+			-- C-x C-0 = 关掉其它 buffer。Ctrl+<数字> 没有传统控制码,只能靠 kitty/CSI-u
+			-- 传输 —— 依赖 tmux.conf.local 的 extended-keys-format=csi-u(Ghostty 只认
+			-- CSI-u,不认 xterm modifyOtherKeys)。否则会塌成裸 0,被更短的 <C-x>0(关当前)抢走。
 			{ "<C-x><C-0>", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
 			{ "<C-x>[", "<cmd>BufferLineCloseLeft<CR>", desc = "Close buffers to the left" },
 			{ "<C-x>]", "<cmd>BufferLineCloseRight<CR>", desc = "Close buffers to the right" },

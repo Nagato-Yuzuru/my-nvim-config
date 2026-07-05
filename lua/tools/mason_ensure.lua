@@ -1,4 +1,4 @@
--- Mason 安装原语 -----------------------------------------------------------
+-- Mason 自动安装编排（LSP + formatter + linter 的 SSOT）；安装原语在 tools/mason_install.lua
 
 ---@class LspTool
 ---@field server string vim.lsp.enable identifier (matches lsp/<server>.lua)
@@ -27,28 +27,6 @@ local function probe_ok(cmd)
 	return handle:wait(2000).code == 0
 end
 
----@param pkg_name string
-local function ensure_mason_pkg(pkg_name)
-	local ok, mr = pcall(require, "mason-registry")
-	if not ok then
-		return
-	end
-	local okp, pkg = pcall(mr.get_package, pkg_name)
-	if not okp then
-		return
-	end
-	if pkg:is_installed() then
-		return
-	end
-	-- pkg:install() 内部 assert(not is_installing())，autocmd（BufNewFile +
-	-- FileType）短时间二次触发会撞上正在装的同一个包，这里手动短路。
-	if pkg.is_installing and pkg:is_installing() then
-		return
-	end
-	vim.notify(("Installing %s via Mason…"):format(pkg_name), vim.log.levels.INFO)
-	pkg:install()
-end
-
 -- 根据 "name → {bin, mason}" 映射，缺失时自动安装
 ---@param list string[] tool names to ensure
 ---@param tool_map table<string, MasonTool> name → spec
@@ -56,6 +34,7 @@ local function ensure_tools(list, tool_map)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
+	local install_if_missing = require("tools.mason_install").install_if_missing
 	for _, name in ipairs(list) do
 		local t = tool_map[name]
 		if t then
@@ -65,7 +44,7 @@ local function ensure_tools(list, tool_map)
 				present = false
 			end
 			if not present then
-				ensure_mason_pkg(t.mason)
+				install_if_missing(t.mason)
 			end
 		end
 	end
@@ -89,10 +68,10 @@ end
 ---@type LspTool[]
 local LSP_TOOLS = {
 	{ server = "lua_ls", bin = "lua-language-server", mason = "lua-language-server" },
-	-- Python 类型检查 + LSP 由 ty 接管（见本表 `ty` 条目）。pyright 已移除：
+	-- Python 类型检查 + LSP 由 ty 接管（见本表 `ty` 条目），不装 pyright：
 	-- ty 的 LSP 能力（rename / typeHierarchy / workspaceSymbol / folding …）已覆盖
-	-- 我们用到的全部 Python 键位，且 rename 返回合规 TextEdit（不触发 pyright 那个
-	-- annotationId 无 changeAnnotations 的 bug，见 core/lsp.lua 的边界修复 +
+	-- 我们用到的全部 Python 键位，且 rename 返回合规 TextEdit（pyright 的 rename 会
+	-- 触发 annotationId 无 changeAnnotations 的 bug，见 core/lsp.lua 的边界修复 +
 	-- neovim/neovim#34731）。两个 type checker 同挂会出双份诊断，故二选一留 ty。
 	{ server = "ruff", bin = "ruff", mason = "ruff" },
 	{ server = "gopls", bin = "gopls", mason = "gopls" },
@@ -169,6 +148,7 @@ local FORMATTERS_BY_FT = {
 	javascript = { "prettier" },
 	javascriptreact = { "prettier" },
 	toml = { "taplo" },
+	-- d2 fmt 由 d2 CLI 自带（brew 装），不经 Mason 管理；conform 的 d2 formatter 从 PATH 找
 	d2 = { "d2" },
 	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理
 	terraform = { "terraform_fmt" },

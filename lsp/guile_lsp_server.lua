@@ -8,10 +8,14 @@
 --
 -- filetypes 只声明 scheme：Steel 也走 .scm，但它有自己独立的 LSP（见
 -- steel_language_server.lua），靠 root_markers 区分项目。Guile 这边匹配
--- 到一个 Guile 项目特征文件（.guile / Makefile + autogen.sh 这类）就启动；
+-- 到一个 Guile 项目特征文件（.guile / guix.scm / configure.ac）就启动；
 -- 否则不启动，Steel LSP 接管。
+--
+-- 故意不把 .git 当兜底 marker：Guile / Steel 共享 scheme filetype，若两边都
+-- 拿 .git 兜底，任何 git 仓库里的散 .scm 都会同时命中 → 两个 LSP 双挂。宁可
+-- 不启动也不双挂（Conjure 的 generic REPL 无 LSP 也能用）。
 return {
 	cmd = { "guile-lsp-server" },
 	filetypes = { "scheme" },
-	root_markers = { ".guile", "guix.scm", "configure.ac", ".git" },
+	root_markers = { ".guile", "guix.scm", "configure.ac" },
 }

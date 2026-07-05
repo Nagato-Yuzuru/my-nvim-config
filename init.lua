@@ -6,6 +6,7 @@ vim.g.maplocalleader = ","
 
 require("core.options")
 require("core.keymaps")
+require("core.hlsearch").setup() -- auto-nohlsearch，详见 core/hlsearch.lua 顶部注释
 
 -- Firenvim 早分支：浏览器拉起的 nvim 必须在 ~3s 内 attach UI，否则报
 -- "Neovim died without answering"。这里关掉启动期的 Mason 自动安装

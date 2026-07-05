@@ -6,10 +6,10 @@ return {
 		config = function()
 			require("mason").setup()
 
-			-- LSP 自动安装迁移到 core/lsp.lua 的 setup() 里集中调度（在那里和
-			-- capabilities 注入按显式顺序跑，不再依赖两个 VeryLazy autocmd 的注册顺序）。
-			-- 这里只保留 formatter/linter 的 FileType 触发：FileType autocmd 必须
-			-- 在启动时就注册好，否则首次打开对应文件不触发安装。
+			-- LSP 自动安装在 core/lsp.lua 的 setup() 里集中调度（和 capabilities
+			-- 注入按显式顺序跑，不受 VeryLazy autocmd 注册顺序影响）。这里只负责
+			-- formatter/linter 的 FileType 触发：FileType autocmd 必须在启动时就
+			-- 注册好，否则首次打开对应文件不触发安装。
 			vim.api.nvim_create_autocmd("FileType", {
 				callback = function(ev) require("tools.mason_ensure").ensure_for_ft(vim.bo[ev.buf].filetype) end,
 			})

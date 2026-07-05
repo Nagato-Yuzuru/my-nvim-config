@@ -137,14 +137,8 @@ return {
 				"checkhealth",
 				"TelescopePrompt",
 				"TelescopeResults",
-				"NeogitStatus",
-				"NeogitCommitMessage",
-				"DressingInput",
-				"DressingSelect",
 				"noice",
 				"notify",
-				"alpha",
-				"starter",
 			},
 			exclude_buftypes = {
 				"nofile",
@@ -159,54 +153,28 @@ return {
 		-- 注册在 init 里以便在 plugin VeryLazy 加载、auto_enable 创建第一个
 		-- minimap buffer 之前就生效。
 		--
-		-- 实现细节：
-		--
-		-- 1) commit 跳转要分 layout 调下层 internal——float / split 的
-		--    reset_parent_window_cursor_line 签名不同（float 取 mwinid，split
-		--    不取参数从 tabpage 推断），neominimap.api 没暴露统一封装，所以这
-		--    里下沉一层。如果 plugin 后续加了 api.commit / api.sync_to_main
-		--    这种公开接口应该切过去。
-		--
-		-- 2) 预览浮窗用 minimap row → source row 的坐标转换（map.coord 模块
-		--    暴露的 mcodepoint_to_codepoint），定位源 buffer 的对应行，挂在
-		--    一个浮窗里、`zz` 居中。**直接复用源 buffer**（不复制 lines 到
-		--    scratch buf），治裸 buffer 的优点是 treesitter 高亮 / folds /
-		--    diagnostic 标记全自动正确——和你在主窗看到的渲染完全一致；
-		--    代价是 BufWinEnter 之类的 autocmd 会触发一遍（用 noautocmd
-		--    open_win 规避）。
-		--
-		-- 3) 预览浮窗位置：anchor=NE, relative=win(mwinid), col=0, row=0
-		--    → 浮窗的右上角贴在 minimap 的左上角，于是浮窗整个出现在 minimap
-		--    的左侧，顶部对齐。宽度按 (columns - mwidth - 6) 算，留余量给主窗
-		--    边距和浮窗自己的圆角 border；太窄就放弃显示。
-		--
-		-- 4) `p` / `P` 切换（对齐 trouble.nvim 的语义）：
-		--      P = 切"自动预览"模式：preview.auto 翻转。auto=true 时光标在
-		--          minimap 内移动会自动开/移动浮窗（默认）；auto=false 时浮
-		--          窗冻结，CursorMoved 不刷新。
-		--      p = 切"当前预览窗"开关：浮窗在就关掉，不在就打开（即使 auto
-		--          关着也能手动打开看一眼）。
-		--    preview.auto 的初始值 = true，对应 trouble.nvim 的 auto_preview
-		--    默认。状态是 closure-local，跨 buffer 共享（一个会话里只一份）。
-		local preview = { win = nil, source_buf = nil, auto = true }
+		-- 预览浮窗的状态机、幂等 teardown、key 去重、generation 竞态防护都在
+		-- 共享的 tools.float_preview 里（和 lua/plugins/ui/snacks.lua 同源）。这里
+		-- 只注入 neominimap 特有的三块：活 buffer 解析（source）、NE 锚定几何
+		-- （geometry）、focused-mode 键与事件（全部宿主拥有——模块不订阅 autocmd）。
+		local float_preview = require("tools.float_preview")
 
-		local function close_preview()
-			if preview.win and vim.api.nvim_win_is_valid(preview.win) then
-				pcall(vim.api.nvim_win_close, preview.win, true)
-			end
-			preview.win = nil
-			preview.source_buf = nil
-		end
-
-		---@param opts table? `{ force = true }` 绕过 auto=false 的提前返回（手动 `p` 用）
-		local function update_preview(opts)
-			opts = opts or {}
-			if not preview.auto and not opts.force then
-				return
-			end
+		-- source：把 minimap 当前光标行映射回源窗口的源 buffer + 源行。
+		--
+		-- **直接复用源 buffer**（不复制 lines 到 scratch）——treesitter 高亮 /
+		-- folds / diagnostic 标记全自动正确，和主窗渲染完全一致；代价是
+		-- BufWinEnter 之类 autocmd 会触发一遍（用 geometry 里的 noautocmd 规避）。
+		--
+		-- key = 源 bufnr：同一源 buffer 内 j/k 移动 → key 不变 → 只挪光标不重建
+		-- （CursorMoved 高频路径廉价化）；切到别的主窗（源 buffer 变）→ key 变 →
+		-- 换 buffer。返回 nil ⇒ 关闭（不在 minimap / 源窗口没了）。
+		--
+		-- 坐标转换用 map.coord 暴露的 mcodepoint_to_codepoint，把 minimap row
+		-- 换算成源行，clamp 进源 buffer 行数。commit 分 layout 取源窗口：float
+		-- 取 parent winid，split 从 tabpage 推断。
+		local function minimap_source()
 			if vim.bo.filetype ~= "neominimap" then
-				close_preview()
-				return
+				return nil
 			end
 			local mwinid = vim.api.nvim_get_current_win()
 			local mrow = vim.api.nvim_win_get_cursor(mwinid)[1]
@@ -220,56 +188,67 @@ return {
 					require("neominimap.window.split.window_map").get_source_winid(vim.api.nvim_get_current_tabpage())
 			end
 			if not swinid or not vim.api.nvim_win_is_valid(swinid) then
-				close_preview()
-				return
+				return nil
 			end
 			local sbufnr = vim.api.nvim_win_get_buf(swinid)
 
 			local srow = require("neominimap.map.coord").mcodepoint_to_codepoint(mrow, 1)
 			local line_count = vim.api.nvim_buf_line_count(sbufnr)
 			srow = math.max(1, math.min(srow, line_count))
+			return { buf = sbufnr, key = sbufnr, cursor = { srow, 0 } }
+		end
 
+		-- geometry：anchor=NE, relative=win(mwinid), col=0, row=0 → 浮窗右上角贴
+		-- minimap 左上角，整个出现在 minimap 左侧、顶部对齐。宽度按
+		-- (columns - mwidth - 6) 算，留余量给主窗边距和圆角 border；太窄
+		-- （pwidth < 30）→ 返回 nil ⇒ 空间不足 ⇒ 关闭。
+		local function minimap_geometry()
+			local mwinid = vim.api.nvim_get_current_win()
 			local mwidth = vim.api.nvim_win_get_width(mwinid)
 			local pwidth = math.min(70, math.max(40, vim.o.columns - mwidth - 6))
 			local pheight = math.min(20, math.max(8, vim.api.nvim_win_get_height(mwinid)))
 			if pwidth < 30 then
-				close_preview()
-				return
+				return nil
 			end
-
-			-- 源 buffer 变化（用户在不同主窗间切了 minimap focus）就重建浮窗
-			if not preview.win or not vim.api.nvim_win_is_valid(preview.win) or preview.source_buf ~= sbufnr then
-				close_preview()
-				preview.win = vim.api.nvim_open_win(sbufnr, false, {
-					relative = "win",
-					win = mwinid,
-					anchor = "NE",
-					row = 0,
-					col = 0,
-					width = pwidth,
-					height = pheight,
-					style = "minimal",
-					border = "rounded",
-					focusable = false,
-					zindex = 50,
-					noautocmd = true,
-				})
-				preview.source_buf = sbufnr
-				vim.wo[preview.win].number = true
-				vim.wo[preview.win].cursorline = true
-				vim.wo[preview.win].foldenable = false
-				vim.wo[preview.win].signcolumn = "no"
-			end
-
-			pcall(vim.api.nvim_win_set_cursor, preview.win, { srow, 0 })
-			pcall(vim.api.nvim_win_call, preview.win, function() vim.cmd("normal! zz") end)
+			return {
+				relative = "win",
+				win = mwinid,
+				anchor = "NE",
+				row = 0,
+				col = 0,
+				width = pwidth,
+				height = pheight,
+				style = "minimal",
+				border = "rounded",
+				focusable = false,
+				zindex = 50,
+				noautocmd = true,
+			}
 		end
+
+		-- auto = true 对齐 trouble.nvim 的 auto_preview 默认；状态跨 buffer 共享
+		-- （一个会话一份，因为 preview 是 init closure-local）。
+		local preview = float_preview.new({
+			auto = true,
+			source = minimap_source,
+			geometry = minimap_geometry,
+			wo = {
+				number = true,
+				cursorline = true,
+				foldenable = false,
+				signcolumn = "no",
+			},
+		})
 
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = "neominimap",
 			desc = "Minimap focused-mode keymaps + preview popup",
 			callback = function(args)
 				local bufnr = args.buf
+				-- commit 跳转要分 layout 调下层 internal——float / split 的
+				-- reset_parent_window_cursor_line 签名不同（float 取 mwinid，split
+				-- 不取参数从 tabpage 推断），neominimap.api 没暴露统一封装，所以这
+				-- 里下沉一层。plugin 后续若加 api.commit 这种公开接口应切过去。
 				local function commit_then_unfocus()
 					local layout = require("neominimap.config").layout
 					local internal = require("neominimap.window." .. layout .. ".internal")
@@ -278,26 +257,18 @@ return {
 					else
 						internal.reset_parent_window_cursor_line()
 					end
-					close_preview()
+					preview:close()
 					require("neominimap.api").focus.disable()
 				end
 				local function unfocus_only()
-					close_preview()
+					preview:close()
 					require("neominimap.api").focus.disable()
 				end
-				local function toggle_preview()
-					if preview.win and vim.api.nvim_win_is_valid(preview.win) then
-						close_preview()
-					else
-						update_preview({ force = true })
-					end
-				end
+				-- 宿主拥有 notify（文案是 minimap 特有的）；模块负责翻转 + 开启时
+				-- 立刻刷一帧。
 				local function toggle_auto_preview()
-					preview.auto = not preview.auto
-					vim.notify("Minimap auto-preview: " .. (preview.auto and "ON" or "OFF"), vim.log.levels.INFO)
-					if preview.auto then
-						update_preview() -- 立刻按当前光标刷一帧
-					end
+					local on = preview:toggle_auto()
+					vim.notify("Minimap auto-preview: " .. (on and "ON" or "OFF"), vim.log.levels.INFO)
 				end
 				local map = function(lhs, rhs, desc)
 					vim.keymap.set("n", lhs, rhs, { buffer = bufnr, silent = true, desc = desc })
@@ -305,25 +276,26 @@ return {
 				map("<CR>", commit_then_unfocus, "Minimap: jump to preview & return")
 				map("q", unfocus_only, "Minimap: cancel & return")
 				map("<Esc>", unfocus_only, "Minimap: cancel & return")
-				-- p / P 对齐 trouble.nvim：p = 单次浮窗开关；P = 自动跟随模式开关。
-				-- 这俩键在 normal vim 里默认是 paste（裸 buffer 是 braille，paste 也
-				-- 没意义），覆盖无副作用。
-				map("p", toggle_preview, "Minimap: toggle preview popup")
+				-- p / P 对齐 trouble.nvim：p = 单次浮窗开关（toggle，强制，绕过
+				-- auto）；P = 自动跟随模式开关。这俩键在 normal vim 里默认是 paste
+				-- （裸 buffer 是 braille，paste 也没意义），覆盖无副作用。
+				map("p", function() preview:toggle() end, "Minimap: toggle preview popup")
 				map("P", toggle_auto_preview, "Minimap: toggle auto-preview")
 
-				-- 浮窗事件：进 minimap / 移动光标 → 更新预览；离开 → 关掉。
-				-- BufLeave 兜底——任何走 autocmd 路径离开 minimap buffer 的情况
-				-- 都覆盖（包括 unfocus / 切 buffer / 关 minimap window 等）。
+				-- 浮窗事件全部宿主拥有（模块不订阅 autocmd）：进 minimap / 移动光标
+				-- → show_auto（受 auto 门控）；离开 → close。BufLeave 兜底——任何走
+				-- autocmd 路径离开 minimap buffer 的情况都覆盖（unfocus / 切 buffer /
+				-- 关 minimap window 等）。
 				local group = vim.api.nvim_create_augroup("UserMinimapPreview_" .. bufnr, { clear = true })
 				vim.api.nvim_create_autocmd({ "CursorMoved", "WinEnter" }, {
 					group = group,
 					buffer = bufnr,
-					callback = update_preview,
+					callback = function() preview:show_auto() end,
 				})
 				vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, {
 					group = group,
 					buffer = bufnr,
-					callback = close_preview,
+					callback = function() preview:close() end,
 				})
 			end,
 		})

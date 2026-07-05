@@ -1,6 +1,8 @@
--- TypeSpec 语言服务器。二进制来自 `@typespec/compiler`（全局 npm 安装），
--- 不走 mason —— 因此本 server 不在 tools/mason_ensure.lua 的 LSP_TOOLS 里，
--- 由 core/lsp.lua 单独 vim.lsp.enable("tsp_server") 启动（同 `ty` 的处理）。
+-- TypeSpec 语言服务器（tsp-server，随 `@typespec/compiler` 全局 npm 安装）。
+-- 在 tools/mason_ensure.lua 的 LSP_TOOLS 里登记（bin "tsp-server" / mason
+-- "tsp-server"），按常规 PATH-first / mason-fallback 处理：PATH 上有全局
+-- @typespec/compiler 的 tsp-server 就用它，否则 mason 兜底装。由 core/lsp.lua
+-- 的 vim.lsp.enable(native_servers) 统一启用（同 `ty` 的处理）。
 return {
 	cmd = { "tsp-server", "--stdio" },
 	filetypes = { "typespec" },
