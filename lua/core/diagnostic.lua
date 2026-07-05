@@ -36,8 +36,8 @@ vim.diagnostic.config({
 			[vim.diagnostic.severity.HINT] = "\u{EA61}", --  lightbulb
 		},
 	},
+	-- border 不在此设：由 vim.o.winborder 统一（见 core/options.lua）——单一真相。
 	float = {
-		border = "rounded",
 		source = "if_many",
 		header = "",
 		prefix = "",
