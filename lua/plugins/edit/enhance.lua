@@ -24,16 +24,18 @@ return {
 		cond = function()
 			local function binary_exists(name) return vim.fn.executable(name) == 1 end
 
-			return binary_exists("im-select")
-				or binary_exists("macism")
+			return binary_exists("macism")
+				or binary_exists("im-select")
 				or binary_exists("fcitx5-remote")
 				or binary_exists("fcitx-remote")
 		end,
 		opts = {
+			-- macism 才能在新版 macOS 上可靠切换 CJK↔英文；旧的 im-select 二进制会“图标变了但没真正切”。
+			default_command = "macism",
 			default_im_select = "com.apple.keylayout.ABC",
-			set_previous_events = { "InsertLeave", "CmdlineLeave" },
-			default_command = "im-select",
-			-- restore_events      = { "InsertEnter", "CmdlineEnter" },
+			-- 其余保持插件默认，即“取决 nvim mode”的正确行为：
+			--   set_default_events  = { "InsertLeave", "CmdlineLeave" } → 离开插入模式切到英文(ABC)
+			--   set_previous_events = { "InsertEnter" }                → 回到插入模式恢复上次的中文输入法
 		},
 	},
 	{
