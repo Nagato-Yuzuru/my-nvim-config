@@ -43,7 +43,6 @@ return {
 			},
 		},
 		opts = {
-			headerMaxWidth = 80,
 			keymaps = {
 				close = { n = "q" },
 			},
