@@ -7,8 +7,11 @@
 -- filetypes 同时声明 scheme：Steel 文件常用 .scm 扩展。Guile / Steel 共享
 -- scheme filetype，靠 root_markers 区分——Steel 项目典型有 cog.scm / Cargo.toml
 -- 加 steel 依赖。两个 LSP 都没匹配就不启动（Conjure 仍可基于 generic REPL 工作）。
+--
+-- 故意不把 .git 当兜底 marker：共享 filetype 下 .git 兜底会让任何 git 仓库里
+-- 的散 .scm 同时命中 Guile 与 Steel → 双挂。宁可不启动也不双挂。
 return {
 	cmd = { "steel-language-server" },
 	filetypes = { "scheme" },
-	root_markers = { "cog.scm", "Cargo.toml", ".git" },
+	root_markers = { "cog.scm", "Cargo.toml" },
 }

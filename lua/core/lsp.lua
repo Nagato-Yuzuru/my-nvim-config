@@ -1,12 +1,12 @@
 -- 全局 LSP 配置：capabilities / enable / LspAttach keymaps
 -- 所有 per-server 配置在顶层 lsp/*.lua，由 vim.lsp.enable() 自动加载。
--- 例外：rust-analyzer 由 rustaceanvim 接管（见 plugins/lang/rust.lua），
--- 不在 vim.lsp.enable 列表里，顶层 lsp/rust_analyzer.lua 也已删除。
+-- 例外：rust-analyzer 由 rustaceanvim 接管（见 plugins/lang/rust.lua），不在
+-- vim.lsp.enable 列表里，顶层也没有 lsp/rust_analyzer.lua。
 --
 -- 加载契约：本模块通过 init.lua 在 lazy.setup() **之后** require 并调
--- M.setup()。VeryLazy autocmd 集中由 setup() 注册，顺序对依赖另一个 VeryLazy
--- listener 的旧 mason 配置已不再相关——所有 LSP 相关的 VeryLazy 工作（caps
--- 注入 / mason 装缺失 LSP / 默认键清理）都在这里同一个 callback 里按顺序跑。
+-- M.setup()。所有 LSP 相关、需等 VeryLazy 时机的工作（caps 注入 / mason 装
+-- 缺失 LSP / 默认键清理）集中由 register_lsp_verylazy_hooks 注册的同一个
+-- callback 按顺序跑。
 
 local M = {}
 
@@ -68,12 +68,25 @@ function M.repair_unannotated_edits(workspace_edit)
 	return repaired
 end
 
-function M.setup()
-	-- VeryLazy hook：所有"等 lazy 把基础插件装好"的 LSP 工作集中在这一个
-	-- callback 里，按显式顺序跑。这取代了之前 plugins/lsp/core.lua（mason）
-	-- 里独立注册的 VeryLazy autocmd —— 那种两点分注册依赖 init.lua import
-	-- 顺序"恰好"先 plugins.lsp 后 core.lsp 才能 caps 在 mason 之前就位，
-	-- 现在依赖关系直接由本函数体的语句顺序表达，不再隐式。
+-- 关掉 Neovim 0.11+ 内核自带的 gr*/gO LSP 默认键。
+-- 我们已有 gd/gi/gD + <leader>rn/<leader>ca/<leader>vs 等价物（见下方
+-- setup_lsp_attach_keymaps 里的 g* / <leader>r* / <leader>ca 绑定），留着只会
+-- 让 `gr`（Trouble references, 见 plugins/ui/trouble.lua）每次都要等
+-- timeoutlen 消歧。
+-- 注意：这些默认是 **全局** 映射（:nmap gr 输出无 `@` 标记），删除时
+-- 不能传 { buffer = ... }。pcall 兜底，因为不同 nvim 版本 gr* 集合会变
+-- （grx codelens 是 0.11 后期才加的）。
+local function clear_default_lsp_keymaps()
+	for _, lhs in ipairs({ "grn", "gra", "grr", "gri", "grt", "grx" }) do
+		pcall(vim.keymap.del, "n", lhs)
+	end
+	pcall(vim.keymap.del, "x", "gra")
+	pcall(vim.keymap.del, "n", "gO")
+end
+
+-- VeryLazy hook：LSP 相关、需等 lazy 把基础插件装好才能跑的工作（caps 注入 /
+-- mason 装缺失 LSP / 清理默认键）集中在这一个 callback 里，顺序见下方数字注释。
+local function register_lsp_verylazy_hooks()
 	vim.api.nvim_create_autocmd("User", {
 		pattern = "VeryLazy",
 		once = true,
@@ -85,26 +98,17 @@ function M.setup()
 			--    plugins/lsp/core.lua 的 eager-loaded spec 完成 require + setup）
 			require("tools.mason_ensure").ensure_lsp()
 
-			-- 3. 关掉 Neovim 0.11+ 内核自带的 gr*/gO LSP 默认键。
-			-- 我们已有 gd/gi/gD + <leader>rn/<leader>ca/<leader>vs 等价物（见下方
-			-- LspAttach callback 里的 g* / <leader>r* / <leader>ca 绑定），留着只会
-			-- 让 `gr`（Trouble references, 见 plugins/ui/trouble.lua）每次都要等
-			-- timeoutlen 消歧。
-			-- 注意：这些默认是 **全局** 映射（:nmap gr 输出无 `@` 标记），删除时
-			-- 不能传 { buffer = ... }。pcall 兜底，因为不同 nvim 版本 gr* 集合会变
-			-- （grx codelens 是 0.11 后期才加的）。
-			for _, lhs in ipairs({ "grn", "gra", "grr", "gri", "grt", "grx" }) do
-				pcall(vim.keymap.del, "n", lhs)
-			end
-			pcall(vim.keymap.del, "x", "gra")
-			pcall(vim.keymap.del, "n", "gO")
+			-- 3. 关掉内核默认 gr*/gO 键（详见 clear_default_lsp_keymaps）
+			clear_default_lsp_keymaps()
 		end,
 	})
+end
 
-	-- Hover popup buffer 内把 K 绑为关闭 popup：
-	-- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg (:help)。虽然我们已
-	-- 经把 keywordprg 从 :Man 改成 :help（见 core/options.lua），popup 里按 K 跳
-	-- 出一个 no-help 提示仍然不直觉。更符合直觉的是"再按一次 K 关掉 popup"。
+-- Hover popup buffer 内把 K 绑为关闭 popup：
+-- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg (:help)。虽然我们已
+-- 经把 keywordprg 从 :Man 改成 :help（见 core/options.lua），popup 里按 K 跳
+-- 出一个 no-help 提示仍然不直觉。更符合直觉的是"再按一次 K 关掉 popup"。
+local function patch_hover_close()
 	local orig = vim.lsp.util.open_floating_preview
 	vim.lsp.util.open_floating_preview = function(contents, syntax, opts, ...)
 		local bufnr, winid = orig(contents, syntax, opts, ...)
@@ -117,11 +121,13 @@ function M.setup()
 		end
 		return bufnr, winid
 	end
+end
 
-	-- 修复 pyright/basedpyright 不合规的 annotated workspace edit（详见
-	-- M.repair_unannotated_edits 注释 / neovim/neovim#34731）。inc-rename 用自己的
-	-- handler 直接调 vim.lsp.util.apply_workspace_edit、绕过 vim.lsp.handlers，
-	-- 故只能在 util 这层 wrap——handler 覆盖盖不到它；原生 rename 也走这里。
+-- 修复 pyright/basedpyright 不合规的 annotated workspace edit（详见
+-- M.repair_unannotated_edits 注释 / neovim/neovim#34731）。inc-rename 用自己的
+-- handler 直接调 vim.lsp.util.apply_workspace_edit、绕过 vim.lsp.handlers，
+-- 故只能在 util 这层 wrap——handler 覆盖盖不到它；原生 rename 也走这里。
+local function patch_workspace_edit()
 	local orig_apply_ws = vim.lsp.util.apply_workspace_edit
 	vim.lsp.util.apply_workspace_edit = function(workspace_edit, position_encoding, ...)
 		if workspace_edit and M.repair_unannotated_edits(workspace_edit) then
@@ -134,10 +140,12 @@ function M.setup()
 		end
 		return orig_apply_ws(workspace_edit, position_encoding, ...)
 	end
+end
 
-	-- 启用 LSP servers：清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生
-	-- （rust_analyzer 因 external_owner = "rustaceanvim" 被自动剔除——不再两处各自维护）。
-	-- ty 和 tsp_server 也在 LSP_TOOLS 内，按常规 PATH-first / mason-fallback 处理。
+-- 启用 LSP servers：清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生（单一真相——
+-- rust_analyzer 因 external_owner = "rustaceanvim" 被自动剔除）。
+-- ty 和 tsp_server 也在 LSP_TOOLS 内，按常规 PATH-first / mason-fallback 处理。
+local function enable_servers()
 	local native_servers = require("tools.mason_ensure").lsp_servers_for_native_enable()
 	local scheme_servers = {} -- 按工具链探测结果追加
 	local toolchain = require("tools.scheme_toolchain")
@@ -169,8 +177,10 @@ function M.setup()
 	-- 后端不在时不挂，避免刷 "Client X quit with exit code 1"。FileType 触发的安装
 	-- 提示走 lua/tools/scheme_toolchain.lua。装好工具后重启一次 nvim 就会启用对应
 	-- LSP（同一 session 内不动态启用，因为探测结果已缓存且这个场景不值得做热重载）。
+end
 
-	-- LspAttach: 快捷键 + inlay hints
+-- LspAttach: 快捷键 + inlay hints
+local function setup_lsp_attach_keymaps()
 	vim.api.nvim_create_autocmd("LspAttach", {
 		group = vim.api.nvim_create_augroup("UserLspKeymaps", { clear = true }),
 		callback = function(args)
@@ -270,7 +280,8 @@ function M.setup()
 			)
 			map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
 			-- Codelens：运行光标行的 lens（gopls test runner / rustaceanvim Run|Debug /
-			-- vtsls "N references" / clangd parameters 等）。代替了上游被我们关掉的 `grx`。
+			-- vtsls "N references" / clangd parameters 等）。对应上游默认键里已禁用的
+			-- `grx`（见 clear_default_lsp_keymaps）。
 			-- IdeaVim 侧无对应键——JetBrains 的 lens 走 gutter 图标 + IDE Run/Debug 快捷键
 			-- (Shift+F10 等)，不通过 IdeaVim mapping。这是 CLAUDE.md 允许的"genuinely
 			-- nvim-only"非对称项。
@@ -284,23 +295,24 @@ function M.setup()
 				"Goto Base (supertypes)"
 			)
 
-			-- Codelens 刷新：0.13+ 起 vim.lsp.codelens.enable 接管调度
-			-- （runtime 内部走 nvim_buf_attach + debounced automatic_request，覆盖
-			-- 打开 / 编辑 / 重载等修改契机），不再需要手写 BufEnter/InsertLeave/
-			-- BufWritePost autocmd loop。旧 `refresh` 已 deprecated（runtime
+			-- Codelens 刷新：0.13+ 起 vim.lsp.codelens.enable 接管调度（runtime 内部
+			-- 走 nvim_buf_attach + debounced automatic_request，覆盖打开 / 编辑 /
+			-- 重载等修改契机）。`refresh` 已 deprecated（runtime
 			-- lua/vim/lsp/codelens.lua L545，目标 0.13.0）。
 			if client and client:supports_method("textDocument/codeLens") then
 				vim.lsp.codelens.enable(true, { bufnr = bufnr })
 			end
 		end,
 	})
+end
 
-	-- Semantic token vs treesitter injection 冲突的外科修复：
-	-- 默认 priority 下 `@lsp.type.string.<ft>`（125）会盖住 treesitter 注入
-	-- 的内嵌语言高亮（100），让 `# language=xxx` / 类似机制注入的代码看不到
-	-- 子语言着色。把这一组单独清空（无 fg/bg），其他 LSP token——deprecated
-	-- 删除线、参数 vs 局部变量、类型 vs 实例等——仍按 125 正常工作。
-	-- 普通字符串由 treesitter 的 `@string.<lang>` 在 100 兜底着色。
+-- Semantic token vs treesitter injection 冲突的外科修复：
+-- 默认 priority 下 `@lsp.type.string.<ft>`（125）会盖住 treesitter 注入
+-- 的内嵌语言高亮（100），让 `# language=xxx` / 类似机制注入的代码看不到
+-- 子语言着色。把这一组单独清空（无 fg/bg），其他 LSP token——deprecated
+-- 删除线、参数 vs 局部变量、类型 vs 实例等——仍按 125 正常工作。
+-- 普通字符串由 treesitter 的 `@string.<lang>` 在 100 兜底着色。
+local function fix_semantic_string_tokens()
 	vim.api.nvim_create_autocmd("LspAttach", {
 		group = vim.api.nvim_create_augroup("UserLspClearStringToken", { clear = true }),
 		callback = function(args)
@@ -310,6 +322,15 @@ function M.setup()
 			end
 		end,
 	})
+end
+
+function M.setup()
+	register_lsp_verylazy_hooks()
+	patch_hover_close()
+	patch_workspace_edit()
+	enable_servers()
+	setup_lsp_attach_keymaps()
+	fix_semantic_string_tokens()
 end
 
 return M
