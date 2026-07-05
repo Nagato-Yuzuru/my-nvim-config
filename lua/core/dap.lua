@@ -96,7 +96,9 @@ function M.setup()
 			end
 			if spec.configurations and spec.filetypes then
 				for _, ft in ipairs(spec.filetypes) do
-					dap.configurations[ft] = spec.configurations
+					-- append 而非覆盖：两个 adapter 文件可能合法共享同一 filetype，
+					-- "往 dap/ 丢文件" 不应互相清空对方的 configurations。
+					dap.configurations[ft] = vim.list_extend(dap.configurations[ft] or {}, spec.configurations)
 				end
 			end
 			-- 默认异常 filter 注入 dap.defaults[type].exception_breakpoints。
@@ -148,19 +150,12 @@ function M.ensure_mason(pkgs)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
-	local ok, mr = pcall(require, "mason-registry")
-	if not ok then
-		return
-	end
+	local install_if_missing = require("tools.mason_install").install_if_missing
 	for _, p in ipairs(pkgs) do
 		if p.bin and vim.fn.executable(p.bin) == 1 then
 			-- 已在 PATH，mason 不用插手
 		else
-			local okp, pkg = pcall(mr.get_package, p.name)
-			if okp and not pkg:is_installed() then
-				vim.notify(("Installing %s via Mason…"):format(p.name), vim.log.levels.INFO)
-				pkg:install()
-			end
+			install_if_missing(p.name)
 		end
 	end
 end
