@@ -1,7 +1,6 @@
 return {
 	{
 		"nvim-lualine/lualine.nvim",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
 		event = "VeryLazy",
 		cond = function() return not vim.g.started_by_firenvim end,
 		opts = {
@@ -58,19 +57,6 @@ return {
 							color = { fg = "#ff966c" },
 						}
 					end)(),
-					{
-						-- 搜索计数
-						function()
-							if vim.v.hlsearch == 0 then
-								return ""
-							end
-							local ok, res = pcall(vim.fn.searchcount, { maxcount = 999 })
-							if not ok or res.total == 0 then
-								return ""
-							end
-							return string.format(" %d/%d", res.current, res.total)
-						end,
-					},
 					{
 						-- 当前 buffer 的 LSP server
 						function()
