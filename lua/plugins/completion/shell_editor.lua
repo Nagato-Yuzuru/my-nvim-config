@@ -35,14 +35,13 @@ return {
 		optional = true,
 		opts = {
 			sources = {
-				-- 只在 zsh filetype 时加入 zsh source；其余 filetype 不受影响
-				default = function()
-					local defaults = { "lsp", "path", "buffer", "snippets" }
-					if vim.bo.filetype == "zsh" then
-						table.insert(defaults, 1, "zsh")
-					end
-					return defaults
-				end,
+				-- zsh source 只对 zsh filetype 生效。默认源清单的 SSOT 是 blink.lua 的
+				-- sources.default（唯一一份），这里不重复列字面量——用 blink 原生的
+				-- inherit_defaults：本表列出的 { "zsh" } 之后自动追加默认源，即 zsh
+				-- 排在默认源之前生效。
+				per_filetype = {
+					zsh = { "zsh", inherit_defaults = true },
+				},
 				providers = {
 					zsh = {
 						name = "zsh",

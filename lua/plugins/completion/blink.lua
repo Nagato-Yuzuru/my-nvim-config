@@ -6,7 +6,9 @@ return {
 		version = "1.*",
 		event = { "InsertEnter", "CmdlineEnter" },
 		dependencies = {
-			"L3MON4D3/LuaSnip",
+			-- friendly-snippets：blink 内建 `snippets` 源（default preset，走原生
+			-- vim.snippet）会自动发现它（sources/snippets/default registry 里
+			-- friendly_snippets 默认 true），无需 LuaSnip。
 			"rafamadriz/friendly-snippets",
 			"xzbdmw/colorful-menu.nvim",
 		},
@@ -16,30 +18,12 @@ return {
 			keymap = { -- 常用键位
 				preset = "none",
 				["<cr>"] = { "accept", "fallback" },
-				-- Tab 链：菜单可见时接受 → 否则若 LuaSnip 可跳占位则跳 → 否则原生 <Tab>。
-				-- 接受函数补全会落到 (placeholder)，下一次 <Tab> 就是跳到下一个参数槽。
-				["<Tab>"] = {
-					"accept",
-					function(_)
-						local ok, ls = pcall(require, "luasnip")
-						if ok and ls.expand_or_jumpable() then
-							ls.expand_or_jump()
-							return true
-						end
-					end,
-					"fallback",
-				},
-				["<S-Tab>"] = {
-					"select_prev",
-					function(_)
-						local ok, ls = pcall(require, "luasnip")
-						if ok and ls.jumpable(-1) then
-							ls.jump(-1)
-							return true
-						end
-					end,
-					"fallback",
-				},
+				-- Tab 链（blink 内建动作按序组合）：菜单可见→接受，否则片段激活→跳下一个
+				-- 占位（原生 vim.snippet，含 select-mode），否则→原生 <Tab>。每个内建命令
+				-- 处理成功即返回 true 停链，否则 fall through（见 blink keymap/apply.lua）。
+				-- 接受函数补全会落到 (placeholder)，下一次 <Tab> 即跳到下一个参数槽。
+				["<Tab>"] = { "accept", "snippet_forward", "fallback" },
+				["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
 				-- Alt-/ 切换补全菜单：未显示则呼出（docs auto_show 会跟着出），已
 				-- 显示则关闭——blink keymap 没有内建 toggle，用函数命令实现。
 				-- is_menu_visible 只看菜单窗，不会被 ghost_text 干扰。
@@ -74,6 +58,20 @@ return {
 				menu = {
 					border = "rounded",
 					winblend = 0,
+					-- colorful-menu.nvim：用 treesitter 高亮 query 重建补全项 label，并把
+					-- label_description 并入 label，故 columns 无需单列 label_description。
+					-- 见 colorful-menu README「use it in blink.cmp」。
+					draw = {
+						columns = { { "kind_icon" }, { "label", gap = 1 } },
+						components = {
+							label = {
+								text = function(ctx) return require("colorful-menu").blink_components_text(ctx) end,
+								highlight = function(ctx)
+									return require("colorful-menu").blink_components_highlight(ctx)
+								end,
+							},
+						},
+					},
 				},
 				documentation = {
 					auto_show = true,
@@ -82,7 +80,7 @@ return {
 				-- IDEA 风：菜单高亮首项，但**不**把候选写进 buffer。
 				-- 默认 v1 是 auto_insert = true —— 那种行为在 `buffer` 源（只有
 				-- insertText 没有 textEdit）下边界不稳，容易出现 "le" + 接受 "len"
-				-- = "lelen" 的拼接。改为只在 accept 时落地，IDEA 也是这个语义。
+				-- = "lelen" 的拼接。这里只在 accept 时落地，与 IDEA 语义一致。
 				list = {
 					selection = { preselect = true, auto_insert = false },
 				},
@@ -112,7 +110,8 @@ return {
 				enabled = true,
 				window = { border = "rounded", winblend = 0 },
 			},
-			snippets = { preset = "luasnip" },
+			-- 不设 snippets.preset：默认 "default" 走原生 vim.snippet，friendly-snippets
+			-- 由内建 snippets 源自动发现（见 dependencies 注释）。
 			cmdline = {
 				keymap = {
 					preset = "none",
@@ -162,8 +161,8 @@ return {
 			},
 		},
 		config = function(_, opts)
-			-- 载入片段
-			require("luasnip.loaders.from_vscode").lazy_load()
+			-- colorful-menu：treesitter 高亮补全 label（下面 menu.draw 的 label 组件引用它）
+			require("colorful-menu").setup({})
 			require("blink.cmp").setup(opts)
 
 			-- cmdline Emacs/shell 风格导航
