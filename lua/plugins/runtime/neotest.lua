@@ -186,6 +186,13 @@ return {
 			-- rustaceanvim 已在 rtp 上、`require("rustaceanvim.neotest")` 不会
 			-- 因为 lazy 没装载就 fail。lazy.nvim 按 plugin name 合并 spec。
 			"mrcjkb/rustaceanvim",
+			-- Swift Testing adapter（mmllr/neotest-swift-testing）：仓库已迁至
+			-- Codeberg，GitHub 只剩 moved-notice stub，故用 url= 显式指向 Codeberg
+			-- （lazy 从末段派生插件名 neotest-swift-testing，require 名不变）。纯
+			-- SwiftPM（root=Package.swift，跑 swift test），CLT 即可、不依赖 xcodebuild；
+			-- 位置发现走 treesitter，依赖 treesitter.lua 里已装的 swift parser。
+			-- 只认 Swift Testing（import Testing / @Test），legacy XCTest 不支持。
+			{ url = "https://codeberg.org/mmllr/neotest-swift-testing" },
 		},
 		keys = {
 			{
@@ -407,6 +414,10 @@ return {
 					-- 的 vim.g.rustaceanvim.tools.test_executor / .server.* 里。
 					-- adapter 本身是个 table（不是工厂函数），直接 require 即可。
 					require("rustaceanvim.neotest"),
+					-- Swift Testing：位置发现走 swift treesitter query；debug-nearest
+					-- （<leader>td）运行时自建 type="lldb" 的 dap 配置，复用 dap/lldb.lua
+					-- 注册的 lldb adapter。测试文件按 *Test.swift / *Tests.swift 识别。
+					require("neotest-swift-testing"),
 				},
 				summary = {
 					open = "botright vsplit | vertical resize 50",
