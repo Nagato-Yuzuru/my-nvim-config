@@ -26,6 +26,7 @@ return {
 					"terraform",
 					"just",
 					"rust",
+					"zig",
 					"typst",
 					-- Scheme 系：Racket 和 Scheme 共享 Lisp s-expr 语法但 grammar 是分开的；
 					-- racket parser 主要处理 #lang / Racket 特有的 syntax sugar

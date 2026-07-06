@@ -88,6 +88,7 @@ local LSP_TOOLS = {
 	{ server = "vtsls", bin = "vtsls", mason = "vtsls" },
 	{ server = "eslint", bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
 	{ server = "helm_ls", bin = "helm_ls", mason = "helm-ls" },
+	{ server = "zls", bin = "zls", mason = "zls" },
 	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 兜底安装；
 	-- 但 vim.lsp.enable 不启它——rustaceanvim 自己 vim.lsp.start，见 plugins/lang/rust.lua。
 	-- verify_cmd: ~/.cargo/bin/rust-analyzer 是 rustup proxy symlink，PATH 探测会
@@ -156,6 +157,7 @@ local FORMATTERS_BY_FT = {
 	-- rustfmt 跟着 rustup（rustup component add rustfmt），不走 Mason；conform
 	-- 自带的 rustfmt formatter 会从 PATH 找
 	rust = { "rustfmt" },
+	zig = { "zigfmt" },
 	typst = { "typstyle" },
 	-- Scheme 系：raco_fmt / schemat 都不在 mason，TOOL_MAP 也没登记，
 	-- 所以 ensure_tools 会跳过它们；formatter 命令本体在 plugins/format/conform.lua
