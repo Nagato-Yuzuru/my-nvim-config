@@ -163,13 +163,27 @@ local function enable_servers()
 	-- 没 marker 命中时走 single-file（on_dir(nil)）+ cmd cwd 钉到 cache 空目录，
 	-- 防 ruff/ty/lua_ls 这类服务器把 $HOME 当 fallback workspace。
 	-- 自定义了 root_dir 的（denols / eslint / vtsls 的互斥逻辑）会被跳过。
+	-- sourcekit-lsp 随 Swift 工具链来（Xcode CLT / swiftly），不是 Mason 包，故不进
+	-- LSP_TOOLS；同 Scheme 系按存在探测决定是否 enable，无 Swift 环境时不挂、不刷
+	-- client-quit。此机 /usr/bin/sourcekit-lsp 直接在 PATH；executable("xcrun") 兜住
+	-- 仅 full-Xcode 工具链内可达的机器（lsp/sourcekit.lua 的 cmd 会相应回落到
+	-- `xcrun sourcekit-lsp`）。
+	local swift_servers = {}
+	if vim.fn.executable("sourcekit-lsp") == 1 or vim.fn.executable("xcrun") == 1 then
+		table.insert(swift_servers, "sourcekit")
+	end
+
 	local all_servers = {}
 	vim.list_extend(all_servers, native_servers)
 	vim.list_extend(all_servers, scheme_servers)
+	vim.list_extend(all_servers, swift_servers)
 	require("tools.lsp_root").apply_safe_defaults(all_servers)
 
 	vim.lsp.enable(native_servers)
 	for _, s in ipairs(scheme_servers) do
+		vim.lsp.enable(s)
+	end
+	for _, s in ipairs(swift_servers) do
 		vim.lsp.enable(s)
 	end
 

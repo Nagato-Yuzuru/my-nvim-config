@@ -158,6 +158,11 @@ local FORMATTERS_BY_FT = {
 	-- 自带的 rustfmt formatter 会从 PATH 找
 	rust = { "rustfmt" },
 	zig = { "zigfmt" },
+	-- swiftformat（nicklockwood）+ swiftlint（见 LINTERS_BY_FT）都由 mise 提供
+	-- （aqua/ubi backend，钉进 mise.toml），不进 TOOL_MAP → ensure_tools 跳过、不走
+	-- Mason（Swift 系工具需工具链现场编译、无可靠预编译包）。conform 内置 swiftformat
+	-- 从 PATH 找，缺失时静默跳过。装：mise use aqua:nicklockwood/SwiftFormat
+	swift = { "swiftformat" },
 	typst = { "typstyle" },
 	-- Scheme 系：raco_fmt / schemat 都不在 mason，TOOL_MAP 也没登记，
 	-- 所以 ensure_tools 会跳过它们；formatter 命令本体在 plugins/format/conform.lua
@@ -175,6 +180,10 @@ local LINTERS_BY_FT = {
 	-- actionlint 只对 .github/workflows/* 有意义（懂 expr / needs / matrix），
 	-- 不放在这里自动跑，由 plugins/lint/nvim-lint.lua 里按路径触发。
 	yaml = { "yamllint" },
+	-- swiftlint 由 mise 提供（不在 TOOL_MAP，不走 Mason）；activation 由
+	-- plugins/lint/nvim-lint.lua 按 executable 门控——缺失时不挂，免得每次 lint
+	-- 刷 uv.spawn ERROR。装：mise use aqua:realm/SwiftLint
+	swift = { "swiftlint" },
 }
 
 local M = {}

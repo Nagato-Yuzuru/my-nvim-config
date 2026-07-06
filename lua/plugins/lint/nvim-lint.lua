@@ -11,6 +11,15 @@ return {
 
 			lint.linters_by_ft = mason_ensure.get_linters_by_ft()
 
+			-- swiftlint 由 mise 提供，不像 mason 系会被 ensure_for_ft 异步兜底安装：
+			-- 缺失时 uv.spawn 每次 lint 都刷 ERROR（lint.lua:437，非 notify_once）。故
+			-- 仅在二进制在 PATH 上时才保留 swift 条目；`mise use aqua:realm/SwiftLint`
+			-- 装好后重启 nvim 生效（同 Scheme LSP 的探测-后-启用策略）。sourcekit-lsp
+			-- 的诊断不受影响。
+			if vim.fn.executable("swiftlint") ~= 1 then
+				lint.linters_by_ft.swift = nil
+			end
+
 			-- zsh `-n`（no-exec syntax check）：zsh 没有可靠 LSP / shellcheck 支持，
 			-- 用解释器自己的 parse-only 模式抓硬语法错。zsh 是系统二进制，不进 Mason。
 			-- 走 `/dev/stdin`：nvim-lint 把 buffer 内容喂进 stdin，zsh 把 /dev/stdin
