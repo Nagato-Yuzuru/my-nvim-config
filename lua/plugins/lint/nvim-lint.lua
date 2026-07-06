@@ -36,15 +36,29 @@ return {
 			}
 			lint.linters_by_ft.zsh = { "zsh_n" }
 
-			-- golangci-lint v2 override：
-			-- 上游 adapter 的 getArgs() 在模块 dofile 时跑一次 `go env GOMOD`
+			-- golangci-lint v2 override（延迟应用，见 ensure_golangcilint_override）：
+			-- 上游 adapter 的 getArgs() 在模块 dofile 时跑一次 `go env GOMOD` +
+			-- 一次 `golangci-lint version`（两个子进程，冷启动合计 ~150–220ms）
 			-- 来决定后续传"目录"还是"文件路径"，结果**永久缓存**。如果首次
 			-- 触发时 nvim 的 cwd 不在 Go module 里（或 buffer 不带 name），
 			-- 缓存到错误模式后所有后续 lint 都给 v2 喂错路径，exit 5
 			-- (NoGoFiles)。这里强制每次 lint 重新解析 + 忽略 exit code
 			-- (v2 在 NoGoFiles / ErrorLogged 时也会非零 exit，那是预期行为，
 			-- 不是 nvim-lint 该报警的 bug)。
-			do
+			--
+			-- 为什么惰性：读 `lint.linters.golangcilint` 会触发上游模块 require，
+			-- 连带跑上面那两个子进程。若在 config() 里直接 override，等于**每次
+			-- 启动**打开任意文件（连非 Go 的都算，plugin 挂在 BufReadPre）都白付
+			-- ~150–220ms —— 且 override 把 args 整个换掉，getArgs() 的结果根本没
+			-- 用上。因此包成一次性函数，只在首个 Go buffer 真要 lint 时应用一次
+			-- （下方 autocmd 里 ft=="go" 时调用），把这笔开销移出启动路径。
+			local golangcilint_patched = false
+			local function ensure_golangcilint_override()
+				if golangcilint_patched then
+					return
+				end
+				golangcilint_patched = true
+
 				local function go_args()
 					local bufname = vim.api.nvim_buf_get_name(0)
 					if bufname == "" then
@@ -129,6 +143,12 @@ return {
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
 				callback = function(ev)
 					local ft = vim.bo.filetype
+					-- 首个 Go buffer 才把 golangcilint override 挂上（连带触发上游
+					-- 模块 require + 两个子进程）；try_lint 之前应用，第一次 Go lint
+					-- 就用上修正后的 args。非 Go buffer 永不付这笔开销。
+					if ft == "go" then
+						ensure_golangcilint_override()
+					end
 					local marker = root_markers[ft]
 					local cwd = marker and find_root(marker) or nil
 					lint.try_lint(nil, { cwd = cwd })
