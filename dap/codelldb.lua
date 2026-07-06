@@ -1,11 +1,11 @@
 -- Native code 调试器 (codelldb / Vadim Chugunov 的 LLDB 包装)
--- mason 包 `codelldb`，覆盖 C / C++ / Rust。
+-- mason 包 `codelldb`，覆盖 C / C++ / Rust / Zig。Zig 是原生 DWARF，LLDB 直接可调，无需 Swift 那种专用 language plugin（那条走 dap/lldb.lua）。
 -- 用 codelldb 而不是 lldb-vscode：前者 setup 简单，对 Rust 的 pretty-printers
 -- 支持更好。
 --
--- 为什么 c/cpp/rust 共用一份 spec：`dap/<adapter>.lua` 按 **adapter** 拆分
+-- 为什么 c/cpp/rust/zig 共用一份 spec：`dap/<adapter>.lua` 按 **adapter** 拆分
 -- （镜像 `lsp/<server>.lua` 按 server 拆分），不按语言。codelldb 是单一
--- 二进制，对三种语言的 adapter spec 完全一致，没必要拆三份。
+-- 二进制，对这几种语言的 adapter spec 完全一致，没必要各拆一份。
 --
 -- Trigger to split: 当某语言需要 distinct configurations（例如 Rust 想要
 -- `cargo run` 集成、或 program 自动指向 target/debug/<crate>），把它拆成
@@ -17,7 +17,7 @@
 return {
 	type = "codelldb",
 	mason = "codelldb",
-	filetypes = { "c", "cpp", "rust" },
+	filetypes = { "c", "cpp", "rust", "zig" },
 	-- session 启动时默认订阅 Rust panic 和 C++ throw。想调整用 `<leader>dX`。
 	-- codelldb 支持的 filter（从 adapter capabilities 拿到）：
 	--   rust_panic / cpp_throw / cpp_catch / swift_throw
