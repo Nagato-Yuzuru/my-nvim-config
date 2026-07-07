@@ -43,6 +43,7 @@ what's bound where.
 | Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped) | `lua/plugins/runtime/dap.lua`                                      |
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
+| Markdown `<localleader>m*` (nvim-only — IDE has built-in editor+preview split) | `lua/plugins/lang/markdown.lua` (render-markdown toggles + live-preview `,mb` browser preview) |
 
 ## Architecture (entry-point facts)
 
