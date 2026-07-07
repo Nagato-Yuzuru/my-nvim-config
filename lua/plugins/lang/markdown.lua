@@ -207,7 +207,8 @@ return {
 				prompt_for_file_name = false,
 				file_name = "%y%m%d-%H%M%S",
 				extension = "avif",
-				process_cmd = "magick convert - -quality 75 avif:-",
+				-- IM7 原生写法;`magick convert` 已被 IM7 标记弃用并告警
+				process_cmd = "magick - -quality 75 avif:-",
 			},
 			filetypes = {
 				markdown = {
@@ -227,7 +228,7 @@ return {
 				typst = {
 					dir_path = "./figs",
 					extension = "png",
-					process_cmd = "magick convert - -density 300 png:-",
+					process_cmd = "magick - -density 300 png:-",
 					template = [[
           #align(center)[#image("$FILE_PATH", height: 80%)]
           ]],
@@ -241,23 +242,75 @@ return {
 				ft = { "markdown", "markdown.mdx", "tex", "typst" },
 				desc = "Paste image from system clipboard",
 			},
+			-- ,mr/,mR 把文字装饰(render-markdown)和图片(snacks.image,经
+			-- tools/image_render)当一个"渲染视图"整体开关:先算出目标状态
+			-- 再对两边显式 set,避免各自独立 toggle 后状态漂移(如先用 ,ii
+			-- 单独关过图片)。buffer 级状态读 render-markdown 内部 state
+			-- (无公开 buf 级 getter),更新后需复查。
 			{
 				"<localleader>mr",
-				function() require("render-markdown").set_buf() end,
+				function()
+					local buf = vim.api.nvim_get_current_buf()
+					local on = not require("render-markdown.state").get(buf).enabled
+					require("render-markdown").set_buf(on)
+					require("tools.image_render").buf_set(buf, on)
+				end,
 				ft = { "markdown", "markdown.mdx" },
-				desc = "MD: Toggle render (buffer)",
+				desc = "MD: Toggle render + images (buffer)",
 			},
 			{
 				"<localleader>mR",
-				function() require("render-markdown").toggle() end,
+				function()
+					local rm = require("render-markdown")
+					local on = not rm.get()
+					rm.set(on)
+					require("tools.image_render").global_set(on)
+				end,
 				ft = { "markdown", "markdown.mdx" },
-				desc = "MD: Toggle render (global)",
+				desc = "MD: Toggle render + images (global)",
 			},
 			{
 				"<localleader>mp",
 				function() require("render-markdown").preview() end,
 				ft = { "markdown", "markdown.mdx" },
 				desc = "MD: Preview (split)",
+			},
+		},
+	},
+	{
+		-- 浏览器实时预览 —— mermaid / KaTeX 数学的唯一渲染出口。
+		-- 分工:buffer 内装饰归 render-markdown,普通图片归 snacks.image,
+		-- 图形化(mermaid/数学/整体排版)归浏览器。后端纯 Lua HTTP server,
+		-- mermaid-js/KaTeX 在浏览器端渲染,零二进制依赖 —— 刻意不装
+		-- mmdc(=puppeteer+headless Chromium)和 tectonic/TeX,见
+		-- lua/plugins/ui/snacks.lua 的 image 注释。
+		-- markdown/asciidoc/svg 边打字边刷新;滚动单向同步(nvim → 浏览器)。
+		"brianhuster/live-preview.nvim",
+		cmd = "LivePreview",
+		-- opts 不可用:插件的 setup() 只是标了 @deprecated 的兼容壳,
+		-- 文档正道是 livepreview.config.set(),故用 config 函数。
+		config = function()
+			require("livepreview.config").set({
+				-- webroot 取当前文件所在目录而非 cwd —— 笔记常从 vault 外
+				-- 打开,img-clip 的附件是 ./attachments 相对文件存放,
+				-- 不开这个 cwd 外的文件相对图片路径会 404。
+				dynamic_root = true,
+			})
+		end,
+		keys = {
+			{
+				"<localleader>mb",
+				function()
+					local lp = require("livepreview")
+					if lp.is_running() then
+						lp.close()
+						vim.notify("LivePreview stopped")
+					else
+						vim.cmd("LivePreview start")
+					end
+				end,
+				ft = { "markdown", "markdown.mdx" },
+				desc = "MD: Preview (browser, toggle)",
 			},
 		},
 	},

@@ -463,10 +463,17 @@ return {
 			-- Ghostty 走 unicode placeholder,tmux 下内联渲染 OK。
 			-- 万一没出图,临时 `SNACKS_GHOSTTY=1` 强制探测。
 			--
-			-- 依赖:imagemagick(已装);数学额外需 tectonic(或 latex),
-			-- mermaid 需 mermaid-cli —— 缺了只影响对应类型,不影响普通图片。
+			-- 依赖:仅 imagemagick(brew 标准 formula,已 link 进 PATH;PDF
+			-- delegate 走系统 ghostscript)。数学/mermaid 刻意**不**在终端渲染
+			-- —— 那需要 tectonic/TeX + mmdc(=puppeteer+headless Chromium)两条
+			-- 重依赖链,而这两类内容本就是浏览器原生技术。图形化预览走
+			-- live-preview.nvim(,mb;lua/plugins/lang/markdown.lua),浏览器端
+			-- mermaid-js/KaTeX 渲染,零二进制。math.enabled=false 连"缺
+			-- tectonic"的警告也不出;mermaid 无独立开关,snacks 对缺 mmdc 的
+			-- 处理是警告一次 + 跳过该类型,不影响普通图片。
 			image = {
 				enabled = true,
+				math = { enabled = false }, -- 数学位图渲染永久关闭,见上
 				doc = {
 					enabled = true,
 					inline = true, -- Ghostty/Kitty 支持 placeholder → 内联进 buffer
@@ -557,9 +564,12 @@ return {
 				desc = "Git: Log (Lazygit)",
 			},
 			-- <localleader>i* 图片命名空间(ft 限定文档类型)。snacks.image 不带
-			-- 默认键,这里手绑:
+			-- 默认键,这里手绑(开关/重挂的实现在 lua/tools/image_render.lua,
+			-- 对 snacks 内部命名的依赖集中在那里):
 			--   ,iv 光标处图片放大到浮窗看(inline 已渲染时给更大的浮窗)
-			--   ,it 切换 inline 内联渲染,当前 buffer 立即重渲生效
+			--   ,ii 图片渲染 on/off(仅当前 buffer;,mr/,mR 会把它拉回和文字
+			--       渲染一致的状态)
+			--   ,it 切换 inline 内联 ↔ float 浮窗模式,当前 buffer 立即重渲
 			{
 				"<localleader>iv",
 				function() Snacks.image.hover() end,
@@ -567,20 +577,20 @@ return {
 				desc = "Image: view at cursor (float)",
 			},
 			{
+				"<localleader>ii",
+				function()
+					local on = require("tools.image_render").buf_set(nil, nil)
+					vim.notify("snacks.image render: " .. (on and "on" or "off"))
+				end,
+				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				desc = "Image: toggle rendering (buffer)",
+			},
+			{
 				"<localleader>it",
 				function()
 					local doc = Snacks.image.config.doc
 					doc.inline = not doc.inline
-					local buf = vim.api.nvim_get_current_buf()
-					-- 让当前 buffer 立即生效:先删两种模式各自的 buffer-局部 augroup
-					-- (inline 的更新循环 / float 的 CursorMoved),再清占位、重置
-					-- attach 守卫、重挂,使新的 inline 值被重新读取。依赖 snacks
-					-- 内部命名(augroup 名 / snacks_image_attached),更新后需复查。
-					pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.inline." .. buf)
-					pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.doc." .. buf)
-					Snacks.image.placement.clean(buf)
-					vim.b[buf].snacks_image_attached = nil
-					Snacks.image.doc.attach(buf)
+					require("tools.image_render").buf_refresh()
 					vim.notify("snacks.image inline: " .. tostring(doc.inline))
 				end,
 				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
