@@ -293,6 +293,11 @@ local function setup_lsp_attach_keymaps()
 				"Refactor: All …"
 			)
 			map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
+			-- <A-CR>:同一入口，对齐 JetBrains 原生 Alt-Enter（ShowIntentionActions，
+			-- IDE 侧无需 IdeaVim 映射，见 .ideavimrc §Refactoring）。终端链路依赖
+			-- Opt 被当作 Alt 发送——Ghostty `macos-option-as-alt = left` → 仅左 Opt；
+			-- tmux 传统 ESC+CR 编码即可，不需要 extended-keys。
+			map("n", "<A-CR>", vim.lsp.buf.code_action, "Code Action (IDE Alt-Enter)")
 			-- Codelens：运行光标行的 lens（gopls test runner / rustaceanvim Run|Debug /
 			-- vtsls "N references" / clangd parameters 等）。对应上游默认键里已禁用的
 			-- `grx`（见 clear_default_lsp_keymaps）。
