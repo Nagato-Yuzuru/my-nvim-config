@@ -183,6 +183,9 @@ nmap <leader>ns <Action>(FileStructurePopup)
 " <leader>ca = quick-fixes + intentions + code actions (mirror of
 " vim.lsp.buf.code_action in lua/core/lsp.lua). Kept outside <leader>r*
 " because that namespace is reserved for deterministic refactorings.
+" nvim additionally binds <A-CR> to the same code_action, mirroring the
+" IDE's *native* Alt-Enter — that shortcut already works here without
+" any IdeaVim mapping, so nothing to bind on this side.
 map <leader>ca <Action>(ShowIntentionActions)
 map <leader>R <Action>(RefactoringMenu)
 map <leader>rn <Action>(RenameElement)
