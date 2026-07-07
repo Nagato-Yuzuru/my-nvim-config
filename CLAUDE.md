@@ -73,6 +73,16 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   backend auto-builds from vendored source. **Tracks `master` (unpinned)**,
   so `:Lazy update` pulls + recompiles new code — re-review each update
   (or pin a `commit` to lock). Neovim-only — GoLand has it natively.
+- **golangci-lint quickfixes are custom-wired** (nvim-lint has no code
+  action channel; upstream's `golangcilint` adapter drops
+  `SuggestedFixes`, so it is **never required** — the linter is fully
+  self-owned in `lua/plugins/lint/nvim-lint.lua`). Cross-file flow:
+  its parser (`lua/tools/golangci_fix.lua`) stashes fixes in diagnostic
+  `user_data`; the in-process LSP `lsp/golangci_fix.lua` (enabled in
+  `lua/core/lsp.lua`) serves them as code actions, so fixes ride the
+  normal `<leader>ca` / `<A-CR>` flow. Applying a fix is raw-TextEdit
+  (no gofmt pass, unlike `golangci-lint run --fix`) — format-on-save
+  (conform) owns the cleanup.
 - **Plugin domains are bisection units**: each `lua/plugins/<domain>/`
   is imported separately in `init.lua` so any one can be commented out
   to isolate breakage.

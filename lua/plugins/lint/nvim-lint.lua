@@ -45,61 +45,52 @@ return {
 			}
 			lint.linters_by_ft.zsh = { "zsh_n" }
 
-			-- golangci-lint v2 override（延迟应用，见 ensure_golangcilint_override）：
-			-- 上游 adapter 的 getArgs() 在模块 dofile 时跑一次 `go env GOMOD` +
-			-- 一次 `golangci-lint version`（两个子进程，冷启动合计 ~150–220ms）
-			-- 来决定后续传"目录"还是"文件路径"，结果**永久缓存**。如果首次
-			-- 触发时 nvim 的 cwd 不在 Go module 里（或 buffer 不带 name），
-			-- 缓存到错误模式后所有后续 lint 都给 v2 喂错路径，exit 5
-			-- (NoGoFiles)。这里强制每次 lint 重新解析 + 忽略 exit code
-			-- (v2 在 NoGoFiles / ErrorLogged 时也会非零 exit，那是预期行为，
-			-- 不是 nvim-lint 该报警的 bug)。
-			--
-			-- 为什么惰性：读 `lint.linters.golangcilint` 会触发上游模块 require，
-			-- 连带跑上面那两个子进程。若在 config() 里直接 override，等于**每次
-			-- 启动**打开任意文件（连非 Go 的都算，plugin 挂在 BufReadPre）都白付
-			-- ~150–220ms —— 且 override 把 args 整个换掉，getArgs() 的结果根本没
-			-- 用上。因此包成一次性函数，只在首个 Go buffer 真要 lint 时应用一次
-			-- （下方 autocmd 里 ft=="go" 时调用），把这笔开销移出启动路径。
-			local golangcilint_patched = false
-			local function ensure_golangcilint_override()
-				if golangcilint_patched then
-					return
+			-- golangci-lint v2：linter 完全自持，**不 require 上游 adapter**。两个理由：
+			--   1. 上游模块 dofile 时就跑 `go env GOMOD` + `golangci-lint version`
+			--      两个子进程（冷启动合计 ~150–220ms）猜 v1/v2 和路径模式，结果
+			--      **永久缓存**；首次触发时 cwd 不在 Go module 里（或 buffer 不带
+			--      name）就缓存到错误模式，之后每次 lint 都给 v2 喂错路径，exit 5
+			--      (NoGoFiles)。直接按 v2 写死 args、目标路径每次 lint 重算，
+			--      探测开销和缓存坑一起消失（此前用惰性 override 绕，已不需要）。
+			--   2. 上游 parser 丢弃 Issues[].SuggestedFixes；per-diagnostic code
+			--      action 靠它（tools/golangci_fix.lua + lsp/golangci_fix.lua）。
+			-- v2 在 NoGoFiles / ErrorLogged 时非零 exit 是预期行为，不是 nvim-lint
+			-- 该报警的 bug，故 ignore_exitcode。
+			local function golangci_target()
+				local bufname = vim.api.nvim_buf_get_name(0)
+				if bufname == "" then
+					return nil
 				end
-				golangcilint_patched = true
-
-				local function go_args()
-					local bufname = vim.api.nvim_buf_get_name(0)
-					if bufname == "" then
-						return nil
-					end
-					local buf_dir = vim.fn.fnamemodify(bufname, ":h")
-					local has_mod = vim.fs.find("go.mod", { path = buf_dir, upward = true })[1] ~= nil
-					-- Module 内：传目录让 v2 自己处理 package 边界。
-					-- Module 外：传文件路径走 single-file 模式。
-					return has_mod and buf_dir or bufname
-				end
-
-				lint.linters.golangcilint = vim.tbl_deep_extend("force", lint.linters.golangcilint or {}, {
-					ignore_exitcode = true,
-					args = {
-						"run",
-						"--output.json.path=stdout",
-						"--output.text.path=",
-						"--output.tab.path=",
-						"--output.html.path=",
-						"--output.checkstyle.path=",
-						"--output.code-climate.path=",
-						"--output.junit-xml.path=",
-						"--output.teamcity.path=",
-						"--output.sarif.path=",
-						"--issues-exit-code=0",
-						"--show-stats=false",
-						"--path-mode=abs",
-						go_args, -- 每次 lint 重算，不缓存
-					},
-				})
+				local buf_dir = vim.fn.fnamemodify(bufname, ":h")
+				local has_mod = vim.fs.find("go.mod", { path = buf_dir, upward = true })[1] ~= nil
+				-- Module 内：传目录让 v2 自己处理 package 边界。
+				-- Module 外：传文件路径走 single-file 模式。
+				return has_mod and buf_dir or bufname
 			end
+			lint.linters.golangcilint = {
+				cmd = "golangci-lint",
+				append_fname = false,
+				stream = "stdout",
+				ignore_exitcode = true,
+				args = {
+					"run",
+					"--output.json.path=stdout",
+					-- 清空 .golangci.yml 可能声明的其它输出通道，保证 stdout 纯 JSON
+					"--output.text.path=",
+					"--output.tab.path=",
+					"--output.html.path=",
+					"--output.checkstyle.path=",
+					"--output.code-climate.path=",
+					"--output.junit-xml.path=",
+					"--output.teamcity.path=",
+					"--output.sarif.path=",
+					"--issues-exit-code=0",
+					"--show-stats=false",
+					"--path-mode=abs",
+					golangci_target, -- 每次 lint 重算，不缓存
+				},
+				parser = require("tools.golangci_fix").parser,
+			}
 
 			-- Find the nearest ancestor directory containing `filename`.
 			local function find_root(filename)
@@ -151,14 +142,7 @@ return {
 
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
 				callback = function(ev)
-					local ft = vim.bo.filetype
-					-- 首个 Go buffer 才把 golangcilint override 挂上（连带触发上游
-					-- 模块 require + 两个子进程）；try_lint 之前应用，第一次 Go lint
-					-- 就用上修正后的 args。非 Go buffer 永不付这笔开销。
-					if ft == "go" then
-						ensure_golangcilint_override()
-					end
-					local marker = root_markers[ft]
+					local marker = root_markers[vim.bo.filetype]
 					local cwd = marker and find_root(marker) or nil
 					lint.try_lint(nil, { cwd = cwd })
 					run_actionlint_if_applicable(ev.buf)

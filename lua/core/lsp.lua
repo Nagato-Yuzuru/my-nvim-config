@@ -187,6 +187,12 @@ local function enable_servers()
 		vim.lsp.enable(s)
 	end
 
+	-- golangci_fix：进程内 codeAction server（lsp/golangci_fix.lua），把 nvim-lint
+	-- 存进 diagnostic user_data 的 golangci SuggestedFixes 变成 <leader>ca /
+	-- <A-CR> 可用的 quickfix。无外部二进制、无需探测；不进 apply_safe_defaults
+	-- （那套 root/cwd 防御只对外部进程 server 有意义）。
+	vim.lsp.enable("golangci_fix")
+
 	-- Scheme 系 LSP enable 已在上面统一处理（按 scheme_toolchain.is_installed 探测）；
 	-- 后端不在时不挂，避免刷 "Client X quit with exit code 1"。FileType 触发的安装
 	-- 提示走 lua/tools/scheme_toolchain.lua。装好工具后重启一次 nvim 就会启用对应
