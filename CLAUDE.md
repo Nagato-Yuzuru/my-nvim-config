@@ -6,7 +6,9 @@ Personal Neovim config: lazy.nvim, all-Lua, Neovim 0.11+ (native
 > CLAUDE.md holds only what a code comment can't:
 > (1) cross-file constraints, (2) entry-point facts you need before
 > deciding which file to open, (3) forbidding rules / retired designs
-> with no code home. Per-construct rationale lives next to the construct.
+> with no code home. Per-construct rationale lives next to the construct
+> — when a bullet below names a file, the full story is in that file's
+> header comment; don't duplicate it here.
 
 ## Core Principle: Cross-editor Parity
 
@@ -36,8 +38,8 @@ what's bound where.
 | Core navigation `g*` (`gd`/`gD`/`gi`/`gr`)                  | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/trouble.lua` (`gr`) |
 | Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua` (goto-preview)                       |
 | Surround / Unwrap `<leader>g{t,T,u}`                        | `lua/plugins/edit/wrap.lua`（三键位 + deleft.vim spec）; engine/templates in `lua/tools/wrap.lua` |
-| Navigation extras `<leader>n*` (no `g*` equivalent), plus `<leader>n{h,j,k,l}` walker hydra (nvim-only) | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (treewalker) |
-| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua`                                       |
+| Navigation extras `<leader>n*` (no `g*` equivalent), plus `<leader>n{h,j,k,l}` walker hydra (nvim-only) | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (bindings; treewalker plugin spec is `lua/plugins/edit/treewalker.lua`) |
+| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua` (bulk), plus `<leader>sr` `edit/rip-substitute.lua`, `<leader>sR` `edit/grug-far.lua`, `<leader>sm` `edit/marks.lua` |
 | Views `<leader>v*`                                          | Spread across `lua/plugins/{ui,git,runtime,edit}/` — `grep '<leader>v'` |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
@@ -52,54 +54,48 @@ what's bound where.
 The layout is self-describing — see `ls`. The non-obvious bits:
 
 - **Native LSP only** — never `lspconfig[server].setup()`. Per-server
-  configs go in `lsp/<server>.lua`, enabled via `vim.lsp.enable()` from
-  `lua/core/lsp.lua`.
-- **DAP per-adapter** (mirrors `lsp/`): per-adapter specs in
-  `dap/<adapter>.lua`, wired by `lua/core/dap.lua`. **Add a debugger by
-  dropping a file in `dap/`** — never grow `lua/plugins/runtime/dap.lua`.
+  configs go in `lsp/<server>.lua`, enabled from `lua/core/lsp.lua`.
+- **DAP per-adapter** (mirrors `lsp/`): **add a debugger by dropping a
+  file in `dap/<adapter>.lua`** (wired by `lua/core/dap.lua`) — never
+  grow `lua/plugins/runtime/dap.lua`.
 - **LSP keymaps live in `LspAttach`** (in `lua/core/lsp.lua`), not in
   `core/keymaps.lua` — so they're scoped to clients that actually
   attached. `gr` is owned by `lua/plugins/ui/trouble.lua`.
 - **Mason auto-install**: `lua/tools/mason_ensure.lua` is SSOT for **LSP
-  + formatters + linters**. DAP installs separately via `mason-registry`
-  from `lua/core/dap.lua` (not `mason-nvim-dap`). Skipped under
-  `CI=true` / `NO_AUTO_INSTALL=1`.
-- **Picker is Snacks.nvim** — no Telescope.
+  + formatters + linters** (conform / nvim-lint pull from it via
+  getters). DAP installs separately via `mason-registry` from
+  `lua/core/dap.lua` (not `mason-nvim-dap`). Both skip under `CI=true` /
+  `NO_AUTO_INSTALL=1` — init.lua's firenvim branch relies on that env
+  contract.
+- **Picker is Snacks.nvim** (no Telescope for picking). telescope.nvim
+  is present only as gitignore.nvim's multi-select dependency
+  (`lua/plugins/git/gitignore.lua`) — don't add new telescope consumers.
 - **Go IDEA-style auto-import** (bare `Builder`→`strings.Builder`+import)
-  is **go-deep.nvim**, not gopls — gopls only does *qualified*-prefix
-  unimported completion (golang/go#58291). Cross-file wiring: the plugin
-  + `vim.g.go_deep` config (the SSOT) live in
-  `lua/plugins/completion/go_deep.lua`; the blink source/provider is
-  registered in `lua/plugins/completion/blink.lua`
-  (`sources.per_filetype.go` + `providers.go_deep`). Needs Go 1.25+; the
-  backend auto-builds from vendored source. **Tracks `master` (unpinned)**,
-  so `:Lazy update` pulls + recompiles new code — re-review each update
-  (or pin a `commit` to lock). Neovim-only — GoLand has it natively.
-- **golangci-lint quickfixes are custom-wired** (nvim-lint has no code
-  action channel; upstream's `golangcilint` adapter drops
-  `SuggestedFixes`, so it is **never required** — the linter is fully
-  self-owned in `lua/plugins/lint/nvim-lint.lua`). Cross-file flow:
-  its parser (`lua/tools/golangci_fix.lua`) stashes fixes in diagnostic
-  `user_data`; the in-process LSP `lsp/golangci_fix.lua` (enabled in
-  `lua/core/lsp.lua`) serves them as code actions, so fixes ride the
-  normal `<leader>ca` / `<A-CR>` flow. Applying a fix is raw-TextEdit
-  (no gofmt pass, unlike `golangci-lint run --fix`) — format-on-save
-  (conform) owns the cleanup.
+  is **go-deep.nvim**, not gopls (golang/go#58291). Cross-file wiring:
+  plugin + `vim.g.go_deep` SSOT in `lua/plugins/completion/go_deep.lua`;
+  blink source/provider registered in
+  `lua/plugins/completion/blink.lua`. **Tracks `master` (unpinned)** —
+  re-review on `:Lazy update`. Neovim-only — GoLand has it natively.
+- **golangci-lint quickfixes are custom-wired** (upstream's nvim-lint
+  adapter drops `SuggestedFixes` — it is **never required**; the linter
+  is self-owned in `lua/plugins/lint/nvim-lint.lua`). Cross-file flow:
+  parser in `lua/tools/golangci_fix.lua` stashes fixes in diagnostic
+  `user_data`; in-process LSP `lsp/golangci_fix.lua` (enabled in
+  `lua/core/lsp.lua`) serves them as code actions on the normal
+  `<leader>ca` / `<A-CR>` flow.
 - **Claude Code integration is coder/claudecode.nvim in `none` mode**
-  (`lua/plugins/ai/claudecode.lua`, the `plugins.ai` domain). nvim hosts
-  ONLY the WebSocket IDE server + writes `~/.claude/ide/<port>.lock`; the
-  `claude` CLI runs in a separate tmux pane and attaches via its `/ide`
-  picker — which is also how multiple nvim instances are disambiguated
-  (listed by workspace). The protocol is **reverse-engineered** from the
-  official Claude Code editor extensions and release tags lag `main`, so
-  it's **pinned by `commit`** — re-review on `:Lazy update` (same policy as
-  go-deep.nvim). Flipping `terminal.provider` to `snacks`/`native` runs
-  claude *inside* nvim (deterministic 1:1 pairing via injected
-  `CLAUDE_CODE_SSE_PORT`, but drops the two-pane setup). Neovim-only —
-  JetBrains has the official Claude Code plugin.
-- **Plugin domains are bisection units**: each `lua/plugins/<domain>/`
-  is imported separately in `init.lua` so any one can be commented out
-  to isolate breakage.
+  (`lua/plugins/ai/claudecode.lua`): nvim hosts only the WebSocket IDE
+  server; the `claude` CLI runs in a tmux pane and attaches via `/ide`.
+  Protocol is reverse-engineered upstream → **pinned by `commit`**,
+  re-review on `:Lazy update` (same policy as go-deep.nvim). Neovim-only
+  — JetBrains has the official plugin.
+- **Plugin domains are bisection units**: each domain under
+  `lua/plugins/` is imported separately in `init.lua`, so any one can be
+  commented out to isolate breakage. Two exceptions:
+  `plugins/treesitter.lua` is a single file, and `plugins/schemas/` is
+  not in the lazy spec at all — `init.lua` requires
+  `plugins.schemas.picker` directly at the end, which lazily requires
+  `cloud_native_schema` on `:SchemaSelect`.
 
 ## Forbidding rules / retired designs
 
@@ -120,11 +116,11 @@ These constrain code that *isn't there*; comments have nowhere to live.
   into `.ideavimrc`.
 - **DAP keymaps split into static `<leader>d*` and session-only
   `<localleader>*`** (= `,`). Static binds at startup; session binds
-  attach on `event_initialized`, detach on `event_terminated`. The
-  `actions` local in `lua/plugins/runtime/dap.lua` is SSOT — don't
-  duplicate-bind those actions under `<leader>d*`. F-keys intentionally
-  unused (leader/localleader stays in Vim grammar, works across keyboard
-  layouts).
+  attach/detach via `dap.listeners.on_session` (see
+  `lua/plugins/runtime/dap.lua`). The `actions` local there is SSOT —
+  don't duplicate-bind those actions under `<leader>d*`. F-keys
+  intentionally unused (leader/localleader stays in Vim grammar, works
+  across keyboard layouts).
 
 ## Conventions
 
