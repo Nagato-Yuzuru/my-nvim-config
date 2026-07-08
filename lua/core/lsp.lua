@@ -246,9 +246,9 @@ local function setup_lsp_attach_keymaps()
 			--
 			-- 故意不绑（parity 原则：IdeaVim 有但 nvim 无对应物的键**留空**，
 			-- 避免同键不同义打架肌肉记忆）：
-			--   <leader>r{c,f,p,i,d,j,I}（IntroduceConstant / IntroduceField /
+			--   <leader>r{c,f,p,i,d,j}（IntroduceConstant / IntroduceField /
 			--   IntroduceParameter / ExtractInterface / SafeDelete /
-			--   ConvertPythonToJupyter / inline_func）
+			--   ConvertPythonToJupyter）
 			-- 想用 treesitter 路线的 inline / extract-to-file：
 			--   `:Refactor inline_var` / `inline_func` / `extract_func_to_file`
 			--

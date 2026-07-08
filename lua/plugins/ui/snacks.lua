@@ -554,6 +554,7 @@ return {
 				desc = "Notification History",
 			},
 			{
+				-- 对齐 ideavimrc：<localleader>G = Vcs.QuickListPopupAction
 				"<localleader>G",
 				function() Snacks.lazygit() end,
 				desc = "Git: Lazygit",

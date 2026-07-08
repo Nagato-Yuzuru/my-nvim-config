@@ -39,7 +39,8 @@ return {
 				auto_install = true,
 			})
 
-			-- Treesitter 高亮（Neovim 0.12 原生 API）
+			-- Treesitter 高亮：原生 vim.treesitter.start()，不走 nvim-treesitter
+			-- 的 highlight 模块（main 分支已无 module 机制）
 			vim.api.nvim_create_autocmd("FileType", {
 				group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
 				callback = function(ev)

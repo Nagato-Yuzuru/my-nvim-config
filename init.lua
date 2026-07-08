@@ -1,8 +1,8 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = ","
 
--- 不自动跟系统剪贴板同步；用 <leader>y / <leader>p 显式走 "+ 寄存器
--- vim.opt.clipboard = "unnamedplus"
+-- 不设 clipboard=unnamedplus：不自动跟系统剪贴板同步，用 <leader>y / <leader>p
+-- 显式走 "+ 寄存器
 
 require("core.options")
 require("core.keymaps")

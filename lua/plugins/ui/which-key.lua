@@ -7,8 +7,6 @@ return {
 			win = {
 				border = "rounded",
 				padding = { 1, 2 },
-				-- 如果你想要透明度，which-key v3 把窗口局部选项放到 wo 里：
-				-- wo = { winblend = 10 },
 			},
 			filter = function(mapping) return mapping.desc ~= nil end,
 		},

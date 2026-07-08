@@ -17,7 +17,8 @@ return {
 	-- auto-nohlsearch：lua/core/hlsearch.lua 用 vim.on_key 原生实现（搜索完成后
 	-- 停止移动就自动关高亮，再次 n/N/*/# 等又打开）。
 
-	-- Neovim 0.11+ 内置 vim.hl.on_yank 默认启用，无需 vim-highlightedyank。
+	-- yank 高亮由 core/options.lua 的 TextYankPost + vim.hl.on_yank() 提供
+	-- （Neovim 并无默认行为），无需 vim-highlightedyank。
 	{
 		"keaising/im-select.nvim",
 		event = "VeryLazy",
@@ -41,7 +42,7 @@ return {
 	{
 		"tommcdo/vim-exchange",
 		event = "VeryLazy",
-		-- 默认映射：cx（操作）, cxx（整行）, X（可视模式）
+		-- 默认映射：cx（操作）, cxx（整行）, X（可视模式）, cxc（清除待交换区）
 	},
 	-- 参数 text object 统一使用 treesitter textobjects: ia / aa (@parameter)，
 	-- 不需要 vim-textobj-parameter / vim-textobj-user。

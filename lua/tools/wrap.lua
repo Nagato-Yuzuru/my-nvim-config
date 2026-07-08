@@ -104,6 +104,7 @@ local function esc(text) return (text:gsub("[\\%$]", "\\%0")) end
 ---@param body string
 ---@param sel_lines string[]
 ---@return string
+---@return string
 local function render(body, sel_lines)
 	local s, e = body:find(TOKEN, 1, true)
 	-- 模板是本文件自有数据，记号缺失/多于一个都是编码错误。多记号不能容忍：
@@ -274,6 +275,7 @@ end
 
 -- 光标处最近的多行包裹构造节点；根节点不算（顶层语句没有可剥的壳，
 -- 不能让 chunk/source_file 兜底成"剥文件第一行"）。
+---@param node TSNode?
 ---@return TSNode?
 local function wrapper_node(node)
 	while node do

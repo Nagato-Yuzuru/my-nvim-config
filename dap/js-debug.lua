@@ -1,6 +1,7 @@
 -- Node / TypeScript 调试器 (Microsoft js-debug)
--- mason 包 `js-debug-adapter`；type 名 "pwa-node" 是上游约定（pwa = preview /
--- pretty web apps，新一代 vscode-js-debug 全部走 pwa-* 前缀）。
+-- mason 包 `js-debug-adapter`；type 名 "pwa-node" 是上游约定（pwa = Progressive
+-- Web Apps——js-debug 早期因支持调试 PWA 得名，后来沿用成新一代 debugger 的
+-- 固定前缀，见 microsoft/vscode#151910 维护者说明）。
 
 ---@type DapSpec
 return {

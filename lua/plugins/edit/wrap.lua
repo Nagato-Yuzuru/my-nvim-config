@@ -41,7 +41,7 @@ return {
 		-- 自己 packadd 内建 matchit，和 matchup 重复。
 		dependencies = { "andymass/vim-matchup" },
 		init = function()
-			-- 不占用默认 dh（x 的同义键，肌肉记忆里是删字符）；统一走 <leader>gu
+			-- 不占用默认 dh（X 的同义键，肌肉记忆里是删字符）；统一走 <leader>gu
 			vim.g.deleft_mapping = ""
 		end,
 		cmd = "Deleft",

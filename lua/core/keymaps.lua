@@ -27,20 +27,8 @@ map("v", "J", ":move '>+1<CR>gv=gv", o("Move selection down"))
 -- 向上移动选中文本
 map("v", "K", ":move '<-2<CR>gv=gv", o("Move selection up"))
 
--- format
--- -- 使用 LSP 的格式化
---_G.lsp_format = function()
---    vim.lsp.buf.format({
---        filter = function(client)
---            -- 如果是 null-ls，则调用
---            if client.name == "null-ls" then
---                return true
---            end
---            return client.supports_method("textDocument/formatting")
---        end,
---        async = true,
---    })
---end
+-- 格式化由 conform.nvim 负责（plugins/format/conform.lua，<leader>ff），不走
+-- vim.lsp.buf.format。
 
 -- <C-h/j/k/l> 窗口移动由 vim-tmux-navigator 提供（plugins/ui/tmux.lua），
 -- 它兼顾 nvim 内部窗口 + tmux pane 切换。此处不再重复绑定，否则会被

@@ -35,8 +35,8 @@ return {
 						return cmp.show()
 					end,
 				},
-				["<C-p>"] = { "select_prev", "fallback" }, -- 上一个
-				["<C-n>"] = { "select_next", "fallback" }, -- 下一个
+				["<C-p>"] = { "select_prev", "fallback" },
+				["<C-n>"] = { "select_next", "fallback" },
 				["<C-b>"] = { "scroll_documentation_up", "fallback" },
 				["<C-f>"] = { "scroll_documentation_down", "fallback" },
 			},
@@ -45,8 +45,8 @@ return {
 				default = { "lsp", "path", "buffer", "snippets" },
 				-- Go IDEA 风「裸标识符 → 限定符号 + 自动 import」由 go-deep 补足（gopls 不做，
 				-- 见 lua/plugins/completion/go_deep.lua + lsp/gopls.lua 注释）。per_filetype 会
-				-- **替换**该 ft 的默认源,所以这里显式复列默认四个 + go_deep（go_deep 排首,让 stdlib
-				-- 精确名优先浮出）。go_deep 自身 enabled() 再确认 gopls 已 attach。
+				-- **替换**该 ft 的默认源，所以这里显式复列默认四个 + go_deep（排序由 fuzzy
+				-- score 决定，列表顺序不影响名次）。go_deep 自身 enabled() 再确认 gopls 已 attach。
 				per_filetype = {
 					go = { "go_deep", "lsp", "path", "snippets", "buffer" },
 				},
@@ -153,11 +153,6 @@ return {
 					},
 					ghost_text = { enabled = true },
 				},
-				-- 源的控制（一般默认就行；需要的话可增加 min_keyword_length 等）
-				-- sources = {
-				--   default = { "cmdline", "path" }, -- :cmd 时
-				--   search  = { "buffer" },          -- / ? 时
-				-- },
 			},
 		},
 		config = function(_, opts)
@@ -175,15 +170,6 @@ return {
 				local col = vim.fn.getcmdpos()
 				vim.fn.setcmdline(vim.fn.getcmdline():sub(1, col - 1))
 			end, { noremap = true })
-
-			-- if pcall(require, "lspkind") then
-			--   ...（省略：blink 目前没有 formatting 钩子）
-			-- end
-
-			-- 只保留一次 setup
-
-			-- 手动控制补全的键位：插入模式用 Alt-/ 切换补全菜单（开/关同一个键），
-			-- 实现见上面 keymap 里的 <A-/> 函数命令。
 		end,
 	},
 }

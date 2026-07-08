@@ -62,28 +62,6 @@ return {
 					end
 					return { "indent" }
 				end,
-				-- 可选：自定义折叠行的虚拟文本
-				-- fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
-				--   local newVirtText = {}
-				--   local suffix = ("  ↙ %d lines "):format(endLnum - lnum)
-				--   local sufWidth = vim.fn.strdisplaywidth(suffix)
-				--   local targetWidth = width - sufWidth
-				--   local curWidth = 0
-				--   for _, chunk in ipairs(virtText) do
-				--     local txt, hl = chunk[1], chunk[2]
-				--     local len = vim.fn.strdisplaywidth(txt)
-				--     if targetWidth > curWidth + len then
-				--       table.insert(newVirtText, chunk)
-				--       curWidth = curWidth + len
-				--     else
-				--       txt = truncate(txt, targetWidth - curWidth)
-				--       table.insert(newVirtText, { txt, hl })
-				--       break
-				--     end
-				--   end
-				--   table.insert(newVirtText, { suffix, "Comment" })
-				--   return newVirtText
-				-- end,
 			})
 		end,
 	},

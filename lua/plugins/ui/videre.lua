@@ -14,10 +14,9 @@ return {
 	dependencies = {
 		"Owen-Dechow/graph_view_yaml_parser", -- YAML
 		"Owen-Dechow/graph_view_toml_parser", -- TOML
-		-- XML 名义上 optional，但 videre.langs.xml 缺 xml2lua 时 return nil，而
-		-- langs/init.lua 的 add_lang 用 `result ~= nil` 判空——Lua 里 chunk 返回
-		-- nil 会让 require 返回 true(boolean)，于是 result[1] 索引布尔值崩溃，
-		-- 导致 :Videre 整个挂掉。故此依赖实为必需，直到上游修掉 add_lang。
+		-- videre.langs.xml 顶层 require("xml2lua")，缺了它 add_lang 的 pcall 会
+		-- 静默跳过 XML（不再像旧版那样崩掉 :Videre）——显式声明依赖，别靠静默
+		-- 降级发现少了 XML 支持。
 		"a-usr/xml2lua.nvim",
 	},
 	-- 文件限定查看器：键位走 localleader（同 Obsidian/LeetCode/Conjure 约定），

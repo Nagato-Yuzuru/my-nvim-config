@@ -1,5 +1,5 @@
 -- lua/plugins/edit/marks.lua
--- Marks and bookmarks layer, aligned with the IdeaVim side (.ideavimrc "7) Mark").
+-- Marks and bookmarks layer, aligned with the IdeaVim side (.ideavimrc "8) Mark").
 --
 -- Two layers with different purposes:
 --
@@ -12,7 +12,7 @@
 --      m,          set next available letter mark
 --      m;          toggle next available mark on current line
 --      m]  m[      next / prev mark
---      m:          preview mark list
+--      m:          preview a mark (prompts which one)
 --      dm-         delete all marks on current line
 --      dm<space>   delete all marks in buffer
 --      dm{a-zA-Z}  delete a specific letter mark
@@ -22,7 +22,7 @@
 --    marks; unlimited count, each with name + description, organized into
 --    user-defined lists.
 --
---    Mirrors .ideavimrc "7) Mark" section:
+--    Mirrors .ideavimrc "8) Mark" section:
 --      <leader>M   :BookmarksTree        master / tree view (IdeaVim: Bookmarks panel)
 --      <leader>vm  :BookmarksTree        alias of <leader>M (IdeaVim parity:
 --                                        ActivateBookmarksToolWindow lives at vm there;
@@ -108,7 +108,7 @@ return {
 			"BookmarksInfo",
 		},
 		keys = {
-			-- Mirrors .ideavimrc "7) Mark" section
+			-- Mirrors .ideavimrc "8) Mark" section
 			{ "<leader>M", "<cmd>BookmarksTree<cr>", desc = "Bookmark: tree view" },
 			-- Alias of <leader>M for IdeaVim parity (ActivateBookmarksToolWindow
 			-- is at <leader>vm there). Master singleton remains the canonical entry;

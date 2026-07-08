@@ -17,7 +17,7 @@ return {
 			end,
 			float_opts = { border = "rounded" },
 			start_in_insert = true, -- 打开就进插入模式
-			persist_size = false, -- 记住大小
+			persist_size = false, -- 不记住手动拖过的大小，每次按 size() 重开
 			insert_mappings = true, -- 插入模式下也能用 open_mapping
 			close_on_exit = true,
 			shell = vim.o.shell, -- 跟随当前 shell
@@ -28,12 +28,14 @@ return {
 			vim.api.nvim_create_autocmd("TermOpen", {
 				pattern = "term://*",
 				callback = function()
-					local o = { buffer = 0, noremap = true, silent = true }
-					vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], o) -- 终端 → 普通模式
-					vim.keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], o)
-					vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], o)
-					vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], o)
-					vim.keymap.set("t", "<C-l>", [[<C-\><C-n><C-w>l]], o)
+					local function tmap(lhs, rhs, desc)
+						vim.keymap.set("t", lhs, rhs, { buffer = 0, noremap = true, silent = true, desc = desc })
+					end
+					tmap("<Esc>", [[<C-\><C-n>]], "Terminal: normal mode")
+					tmap("<C-h>", [[<C-\><C-n><C-w>h]], "Terminal: window left")
+					tmap("<C-j>", [[<C-\><C-n><C-w>j]], "Terminal: window down")
+					tmap("<C-k>", [[<C-\><C-n><C-w>k]], "Terminal: window up")
+					tmap("<C-l>", [[<C-\><C-n><C-w>l]], "Terminal: window right")
 				end,
 			})
 		end,

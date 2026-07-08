@@ -10,7 +10,8 @@ return {
 			local npairs = require("nvim-autopairs")
 			npairs.setup(opts)
 
-			-- 常见小优化：只在字符串/注释外自动补引号
+			-- 常见小优化：只在字符串外自动补引号（not_inside_quote 不含注释判断），
+			-- 且单词/闭括号后不补
 			local Rule = require("nvim-autopairs.rule")
 			local cond = require("nvim-autopairs.conds")
 			npairs.add_rules({

@@ -21,7 +21,7 @@ return {
 			-- (underline) + 侧栏图标。这样长文件不会被一堆胶囊撑乱。
 			-- ]d / [d 跳到下一条诊断后光标落在那行，气泡自动出现——等价于浮窗
 			-- 但更轻量（不抢焦点 / 不需要 CursorMoved 关）。
-			-- 临时全显：`:TinyInlineDiagnostic toggle_cursor_only`。
+			-- 临时全显：`:TinyInlineDiag toggle_cursor_only`。
 			-- 气泡已含 code / related info（默认开），等价 open_float 信息量——
 			-- 想"聚焦窗口 yank 长文本"才需要按 <C-w>d。
 			hi = {

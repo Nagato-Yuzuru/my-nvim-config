@@ -10,8 +10,7 @@
 --   2. nvim-paredit  括号 slurp/barf/wrap（,p* 前缀）
 --   3. tree-sitter   高亮 / 文本对象 / rainbow（解析器在 plugins/treesitter.lua）
 --
--- DAP / neotest 不接：Lisp 工作流走 REPL 而不是断点。详见
---   docs/superpowers/specs/2026-04-29-scheme-toolchain-design.md
+-- DAP / neotest 不接：Lisp 工作流走 REPL 而不是断点。
 --
 -- conform 自定义 formatter（raco_fmt / schemat）的定义在 plugins/format/conform.lua
 -- 里——和 mdformat 同一个地方，避免 scheme 这边再去 patch conform.formatters。
