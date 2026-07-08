@@ -2,7 +2,7 @@
 -- 键位一键选 ours/theirs/both/none。键位仅在检测到冲突的 buffer 激活，不污染全局。
 --
 -- 复杂场景（需要看 base、大段重叠）走 diffview 的 merge_tool：在冲突文件里
--- `:DiffviewOpen`，已配 diff3_mixed 布局（OURS | base | THEIRS | result）。
+-- `:DiffviewOpen`，已配 diff4_mixed 布局（上排 OURS | BASE | THEIRS，下排 result）。
 --
 -- Buffer-local keymaps（plugin 默认，保留不改以匹配 git-conflict 文档习惯）：
 --   co  choose ours           ct  choose theirs
@@ -31,7 +31,7 @@ return {
 		init = function()
 			-- 保存时若 buffer 仍含冲突标记，loud warning。git 本身不会阻止 commit
 			-- 带 `<<<<<<<` 的文件——把它当文本处理。这里至少在保存层报警，避免
-			-- 把残留标记 commit 进去。强一致性请配 git pre-commit hook（见文末注释）。
+			-- 把残留标记 commit 进去；强一致性要靠仓库自己的 pre-commit hook。
 			vim.api.nvim_create_autocmd("BufWritePost", {
 				group = vim.api.nvim_create_augroup("conflict-marker-guard", { clear = true }),
 				callback = function(ev)
