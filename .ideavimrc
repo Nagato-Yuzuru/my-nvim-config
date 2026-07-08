@@ -462,6 +462,24 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "                     math (deliberately NOT rendered in-terminal; no
 "                     mmdc / TeX toolchain)
 
+" 6f) AI / Claude Code — <leader>a* nvim-only namespace
+" (lua/plugins/ai/claudecode.lua). nvim runs coder/claudecode.nvim, which
+" speaks the SAME reverse-engineered WebSocket IDE protocol as the official
+" Claude Code editor extensions, in `none` mode: nvim hosts the WS server,
+" `claude` lives in a sibling tmux pane and attaches via its `/ide` picker.
+" JetBrains uses the official Claude Code plugin's own tool window +
+" keybindings — same underlying protocol, but a tool-window plugin with no
+" stable editor Action ID to mirror (same precedent as 6c Typst / 6e
+" Markdown), so no <Action> mapping here.
+"
+" Keys: second letter = verb's first letter (Send/Buffer/Accept/Deny/Close/Info).
+"   <leader>as   Send visual selection to Claude (visual mode)
+"   <leader>ab   add Buffer (current file) to context
+"   <leader>aa   Accept Claude's proposed diff
+"   <leader>ad   Deny Claude's proposed diff
+"   <leader>ac   Close all pending diffs
+"   <leader>ai   connection Info (:ClaudeCodeStatus)
+
 " 7) Reformat
 map <leader>F <Action>(CodeFormatGroup)
 map <leader>ff <Action>(ReformatCode)
