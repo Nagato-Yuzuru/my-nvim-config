@@ -3,7 +3,7 @@
 -- 所以分支审视场景走 diffview。
 --
 -- <leader>vD  指定 base，打开 <base>...HEAD 的文件树 diff
--- <leader>vH  当前分支历史（DiffviewFileHistory）
+-- <leader>vH  当前文件历史（DiffviewFileHistory %）
 -- 在 diffview 内：q 关闭、<tab>/<S-tab> 切文件、g? 看帮助
 --
 -- IdeaVim 对应：Git → Compare with Branch（无现成 action，IDE 走 UI）
@@ -35,7 +35,10 @@ return {
 			local q_close = { "n", "q", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" } }
 			return {
 				enhanced_diff_hl = true,
-				view = { merge_tool = { layout = "diff3_mixed" } },
+				-- diff4_mixed：上排 OURS | BASE | THEIRS，下排 result。选这个而不是
+				-- diff3_mixed 正是为了看 BASE——conflict.lua 把"需要看 base 的复杂
+				-- 冲突"整体路由到这里。
+				view = { merge_tool = { layout = "diff4_mixed" } },
 				keymaps = {
 					file_panel = { q_close },
 					file_history_panel = { q_close },

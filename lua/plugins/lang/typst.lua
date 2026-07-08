@@ -12,8 +12,12 @@ return {
 		"chomosuke/typst-preview.nvim",
 		ft = "typst",
 		build = function()
-			-- 同步预览前端资源（首次启动时拉一次）
-			pcall(function() require("typst-preview").update() end)
+			-- 同步预览前端资源（首次启动时拉一次）；失败要出声，否则 build 报成功
+			-- 而预览悄悄坏掉
+			local ok, err = pcall(function() require("typst-preview").update() end)
+			if not ok then
+				vim.notify("typst-preview: 前端资源同步失败: " .. tostring(err), vim.log.levels.WARN)
+			end
 		end,
 		opts = {
 			dependencies_bin = { ["tinymist"] = "tinymist" },

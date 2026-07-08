@@ -16,7 +16,7 @@ return {
 				"#56B6C2", -- cyan
 			}
 
-			-- 统一用 IblRainbow1..7 命名，便于其它插件 link 复用
+			-- 统一用 IblRainbow1..7 命名
 			local rainbow_groups = {}
 			for i, col in ipairs(palette) do
 				local name = ("IblRainbow%d"):format(i)
@@ -42,7 +42,7 @@ return {
 					highlight = rainbow_groups, -- 彩虹作用域
 				},
 				exclude = {
-					filetypes = { "help", "lazy", "mason", "snacks_picker_list", "Trouble" },
+					filetypes = { "help", "lazy", "mason", "snacks_picker_list", "trouble" },
 					buftypes = { "terminal", "nofile", "prompt" },
 				},
 			}
