@@ -296,10 +296,6 @@ return {
 			end
 
 			local function detach_localleader()
-				-- 嵌套 session 保护：父 session 还活就不 detach。
-				if dap.session() then
-					return
-				end
 				for k, v in pairs(actions) do
 					local modes = v.mode or "n"
 					if type(modes) ~= "table" then
@@ -311,9 +307,20 @@ return {
 				end
 			end
 
-			dap.listeners.after.event_initialized["localleader_keys"] = attach_localleader
-			dap.listeners.before.event_terminated["localleader_keys"] = detach_localleader
-			dap.listeners.before.event_exited["localleader_keys"] = detach_localleader
+			-- 生命周期挂 on_session（:h dap-listeners-on_session）而非 event_terminated/
+			-- event_exited：before.* 阶段全局 session 必然还指着将亡 session（默认
+			-- handler close 之后才清），按 dap.session() 判空的 detach 永远短路 →
+			-- 键位泄漏；且 terminate/disconnect 存在不发 terminated 事件的路径。
+			-- on_session 由 set_session 触发，覆盖启动/终止/崩溃/焦点切换全部路径；
+			-- new == nil 才是真无 session——多 root session 时 set_session 会回退到
+			-- 下一个活 session，子 session 关闭不触发全局变更，天然保住嵌套场景。
+			dap.listeners.on_session["localleader_keys"] = function(_, new_session)
+				if new_session then
+					attach_localleader()
+				else
+					detach_localleader()
+				end
+			end
 		end,
 	},
 }
