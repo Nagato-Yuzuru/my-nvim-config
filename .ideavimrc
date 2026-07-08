@@ -307,7 +307,23 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 " single structured Generate menu (Alt+Insert = <leader>G/<leader>g*) has no 1:1
 " Neovim mirror: Neovim folds generation into the code-action surface (Alt+Enter
 " intentions = <leader>ca) and what's offered varies by language server. That's why
-" <leader>g* lives only here — not a missing feature, a different surface model.
+" the generate tier (<leader>G/go/gi/gd + concept keys below) lives only here —
+" not a missing feature, a different surface model.
+"
+" MIRRORED since 2026-07 — gt/gT/gu DO have Neovim counterparts, all wired in
+" lua/plugins/edit/wrap.lua (engine/templates in lua/tools/wrap.lua):
+"   gt/gT → template picker over the selection. One menu serves both keys: the
+"     SurroundWith vs SurroundWithLiveTemplate split collapses — templates live
+"     in one table. Works in visual AND normal mode (normal = wrap current
+"     line, same as the IDE with no selection).
+"   gu → tools/wrap.lua M.unwrap(): caret anywhere inside the block, same as
+"     the IDE (treesitter walks up to the enclosing construct; the innermost
+"     one at the caret is unwrapped — depth replaces the IDE's level popup).
+"     Brace/keyword languages delegate to deleft.vim; python unwraps in Lua
+"     (deleft's python path is synID-based and silently no-ops under
+"     treesitter highlighting). Multi-branch: python keeps the branch under
+"     the caret + finally, drops the rest (= Unwrap if / Unwrap else / drop
+"     handlers); matchit languages keep all bodies (deleft strategy=none).
 map <leader>G  <Action>(Generate)
 map <leader>go <Action>(OverrideMethods)
 map <leader>gi <Action>(ImplementMethods)
