@@ -49,6 +49,7 @@ require("lazy").setup({
 		{ import = "plugins.format" },
 		{ import = "plugins.lint" },
 		{ import = "plugins.completion" },
+		{ import = "plugins.ai" },
 		{ import = "plugins.ui" },
 		{ import = "plugins.git" },
 		{ import = "plugins.lang" },

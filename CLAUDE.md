@@ -44,6 +44,7 @@ what's bound where.
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
 | Markdown `<localleader>m*` (nvim-only — IDE has built-in editor+preview split) | `lua/plugins/lang/markdown.lua` (render-markdown toggles + live-preview `,mb` browser preview) |
+| AI / Claude Code `<leader>a*` (nvim-only — IDE uses the official Claude Code plugin's tool window) | `lua/plugins/ai/claudecode.lua` (coder/claudecode.nvim, `none` mode + tmux `/ide`) |
 
 ## Architecture (entry-point facts)
 
@@ -83,6 +84,18 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   normal `<leader>ca` / `<A-CR>` flow. Applying a fix is raw-TextEdit
   (no gofmt pass, unlike `golangci-lint run --fix`) — format-on-save
   (conform) owns the cleanup.
+- **Claude Code integration is coder/claudecode.nvim in `none` mode**
+  (`lua/plugins/ai/claudecode.lua`, the `plugins.ai` domain). nvim hosts
+  ONLY the WebSocket IDE server + writes `~/.claude/ide/<port>.lock`; the
+  `claude` CLI runs in a separate tmux pane and attaches via its `/ide`
+  picker — which is also how multiple nvim instances are disambiguated
+  (listed by workspace). The protocol is **reverse-engineered** from the
+  official Claude Code editor extensions and release tags lag `main`, so
+  it's **pinned by `commit`** — re-review on `:Lazy update` (same policy as
+  go-deep.nvim). Flipping `terminal.provider` to `snacks`/`native` runs
+  claude *inside* nvim (deterministic 1:1 pairing via injected
+  `CLAUDE_CODE_SSE_PORT`, but drops the two-pane setup). Neovim-only —
+  JetBrains has the official Claude Code plugin.
 - **Plugin domains are bisection units**: each `lua/plugins/<domain>/`
   is imported separately in `init.lua` so any one can be commented out
   to isolate breakage.
