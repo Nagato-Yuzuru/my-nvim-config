@@ -22,7 +22,7 @@ return {
 			},
 		},
 		-- 不能用纯 `opts`：formatters_by_ft 表是从 tools.mason_ensure 运行时取
-		-- 的，而 ts/js/markdown 的 picker 还要看 buffer 路径动态决定 formatter。
+		-- 的，而 ts/js/markdown/go 的 picker 还要看 buffer 路径动态决定 formatter。
 		-- 接 opts 参数走形式，方便其它 spec 用 `optional = true` 增量扩展。
 		config = function(_, opts)
 			local conform = require("conform")

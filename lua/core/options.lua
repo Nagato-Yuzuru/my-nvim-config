@@ -30,11 +30,13 @@ vim.opt.expandtab = true -- 将 Tab 键转换为空格
 vim.opt.shiftwidth = 4 -- 设置缩进宽度为 4
 vim.opt.softtabstop = 4 -- 设置 Tab 键行为为 4 个空格
 vim.opt.tabstop = 4 -- 设置显示 Tab 的宽度为 4
---vim.opt.clipboard = "unnamedplus"
+
+-- 剪贴板不自动同步的决定（及 why）在 init.lua 顶部
 
 -- 行号颜色在 tokyonight on_highlights 中统一设置
 
--- yank 高亮（Neovim 0.12 不再默认启用）
+-- yank 高亮：Neovim 从不默认启用，需要自己接 TextYankPost + vim.hl.on_yank()
+-- （同 runtime example_init.lua 的建议做法）
 vim.api.nvim_create_autocmd("TextYankPost", {
 	group = vim.api.nvim_create_augroup("UserYankHighlight", { clear = true }),
 	callback = function() vim.hl.on_yank() end,

@@ -34,9 +34,9 @@ return {
 				lualine_x = {
 					(function()
 						-- 录制中显示寄存器名，录完后显示内容（截断）。
-						-- last_reg 由下面 component 函数在 reg_recording() ~= "" 时
-						-- 写入；不要再绑 RecordingLeave —— 该事件触发时
-						-- reg_recording() 已经返回 ""，会反向把 last_reg 抹掉。
+						-- lualine 按刷新周期轮询本 component；录制结束后
+						-- reg_recording() 返回 ""，所以用 last_reg 记住最后一次
+						-- 的寄存器名，结束后仍能展示其内容。
 						local last_reg = nil
 						return {
 							function()

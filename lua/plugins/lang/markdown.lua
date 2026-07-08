@@ -156,7 +156,8 @@ local markdown_cfg = function()
 				head_background = true,
 			},
 		},
-		-- https://github.com/MeanderingProgrammer/render-markdown.nvim/issues/509
+		-- 光标行在 n/v/c 模式保持 conceal（默认 concealcursor="" 会在光标行
+		-- 闪回原始 markdown 源码），配合上面 anti_conceal 的豁免项使用
 		win_options = { concealcursor = { rendered = "nvc" } },
 		completions = {
 			blink = { enabled = true },

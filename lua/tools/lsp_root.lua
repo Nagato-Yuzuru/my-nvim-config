@@ -100,7 +100,8 @@ end
 
 -- 唯一允许在 lsp/<name>.lua 里自带 root_dir 的 server（互斥 / 多 marker 逻辑
 -- 本 helper 表达不了）。中央层对这些放手不覆盖：
---   * denols / vtsls: deno vs node 互斥（谁的 marker 更深谁赢）
+--   * denols / vtsls: deno vs node 互斥——只有 vtsls 侧实现了"node marker 更深
+--     才接管"的让位；denols 命中任意 deno marker 即 attach，无对称深度检查
 --   * eslint: buffer 落在 deno 项目内时让位给 denols
 local SKIP = { denols = true, eslint = true, vtsls = true }
 

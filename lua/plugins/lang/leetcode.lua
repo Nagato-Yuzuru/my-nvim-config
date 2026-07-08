@@ -22,7 +22,8 @@ return {
 			hooks = {
 				["question_enter"] = {
 					function()
-						-- 对所有非 go/python 等代码窗口设置自动换行
+						-- 只给题目描述面板（ft == "leetcode.nvim"）开自动换行；
+						-- 代码窗口是真实语言 ft，不受影响
 						vim.schedule(function()
 							for _, win in ipairs(vim.api.nvim_list_wins()) do
 								local buf = vim.api.nvim_win_get_buf(win)

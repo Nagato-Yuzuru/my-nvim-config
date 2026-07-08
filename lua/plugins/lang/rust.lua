@@ -46,10 +46,6 @@ return {
 				error = "  Error",
 			},
 		},
-		keys = {
-			-- 用 buffer-local autocmd 注册键，避免污染非 Cargo.toml buffer
-			-- 这里给的是触发键（lazy.nvim keys），buffer 局部映射在 config 时注册
-		},
 		config = function(_, opts)
 			require("crates").setup(opts)
 

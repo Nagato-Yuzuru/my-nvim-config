@@ -53,6 +53,12 @@ local MODE = { "n", "x", "o" }
 
 return {
 	{
+		-- 个人 fork：上游在被标记的浮窗于 CmdlineLeave 时关闭后（blink.cmp 的
+		-- cmdline 补全菜单套在 noice cmdline_popup 里就会触发）jump 报
+		-- "Invalid window id"——flash 在打标时记 winid、跳转前不复验。fork 加了
+		-- stale-winid guard（详见 commit ffd5c4c）。跟踪 branch 而非 pin commit，
+		-- :Lazy update 会拉新 commit——更新时 re-review（同 go-deep.nvim 政策）；
+		-- 上游修掉后退役此 fork。
 		url = "https://github.com/Nagato-Yuzuru/flash.nvim",
 		branch = "fix/motion-in-blink",
 		event = "VeryLazy",
