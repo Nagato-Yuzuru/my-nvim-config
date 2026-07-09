@@ -18,7 +18,7 @@ return {
 
 			-- 统一用 IblRainbow1..7 命名
 			local rainbow_groups = {}
-			for i, col in ipairs(palette) do
+			for i in ipairs(palette) do
 				local name = ("IblRainbow%d"):format(i)
 				table.insert(rainbow_groups, name)
 			end
