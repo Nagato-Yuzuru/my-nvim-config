@@ -1,3 +1,4 @@
+-- selene: allow(bad_string_escape) -- \u{} 是 LuaJIT 扩展，selene 的 lua51 基线不认识
 -- 诊断子系统设置（独立于 LSP）。
 --
 -- 为什么不塞进 core/lsp.lua：诊断在 nvim 里是独立子系统——不只 LSP 来源，

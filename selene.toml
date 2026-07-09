@@ -1,0 +1,12 @@
+# selene（lua linter）配置。门禁在 CI 的 lint job（与 test/format 同一
+# workflow）；编辑器内不重复接 nvim-lint——lua_ls 已实时报未用变量等，
+# 再挂一份是双倍噪音。本地按需：selene .
+std = "vim"
+exclude = [".deps/**"]
+
+[rules]
+# lazy.nvim 插件 spec 的固有形态：{ "owner/repo", opts = {…} } 本就是混合表
+mixed_table = "allow"
+# 与 .stylua.toml 的 collapse_simple_statement = "FunctionOnly" 冲突：
+# 格式器把单语句函数收成一行是本仓强制风格，linter 让位
+multiple_statements = "allow"

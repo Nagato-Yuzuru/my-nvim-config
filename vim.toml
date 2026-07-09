@@ -1,0 +1,21 @@
+# selene 的 std 定义（selene.toml 的 std = "vim" 指到本文件）。
+# vim 命名空间形状来自 lua_ls 的 meta 类型，selene 只需要"这些全局存在"，
+# 不做字段级校验——字段/类型层面的检查归 lua_ls。
+[selene]
+base = "lua51"
+name = "vim"
+
+[vim]
+any = true
+
+# LuaJIT 自带
+[jit]
+any = true
+
+# mini.test 注入的测试入口（tests/test_*.lua 顶层使用）
+[MiniTest]
+any = true
+
+# snacks.nvim 注入的全局（:h snacks-init，setup 后可用）
+[Snacks]
+any = true
