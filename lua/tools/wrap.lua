@@ -193,18 +193,19 @@ end
 -- 清掉选区、在插入点展开渲染好的 snippet。
 ---@param sel wrap.Selection
 ---@param body string
+---@return boolean applied false = 选区已失效，中止且不动 buffer
 local function apply(sel, body)
 	-- picker 是异步的：挂起期间源窗口可能被关、buffer 可能被 LSP/lint/AI
 	-- 插件改写——陈旧行列号写回去会毁错行（对抗 review finding #2/#4），
 	-- 任何失配都中止，宁可让用户重来。
 	if not vim.api.nvim_win_is_valid(sel.win) then
 		vim.notify("wrap: source window closed, aborted", vim.log.levels.WARN)
-		return
+		return false
 	end
 	vim.api.nvim_set_current_win(sel.win)
 	if vim.api.nvim_get_current_buf() ~= sel.buf or vim.b.changedtick ~= sel.tick then
 		vim.notify("wrap: buffer changed while picking, aborted", vim.log.levels.WARN)
-		return
+		return false
 	end
 
 	local dedented, base ---@type string[], string
@@ -236,6 +237,7 @@ local function apply(sel, body)
 		vim.api.nvim_buf_set_text(0, row0, sel.scol - 1, sel.erow - 1, sel.ecol_ex, {})
 		expand_at(sel.srow, sel.scol - 1, rendered)
 	end
+	return true
 end
 
 -- 包裹构造的判定用结构而非名字后缀（对抗 review finding #1）：
@@ -388,15 +390,45 @@ function M.unwrap()
 	vim.cmd("Deleft")
 end
 
--- 入口：<leader>gt / <leader>gT（x + n mode）。
-function M.pick()
+-- 采集选区并退出 visual。选区必须在进任何异步/后续步骤前拿到（capture 的
+-- 前置约束），退出 visual 让后续的 buffer 编辑与 snippet 展开在 normal 起步。
+---@return wrap.Selection?
+local function capture_and_exit_visual()
 	local sel = capture()
 	if not sel then
 		vim.notify("wrap: blockwise selection not supported", vim.log.levels.WARN)
-		return
+		return nil
 	end
 	if vim.fn.mode() ~= "n" then
 		vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
+	end
+	return sel
+end
+
+---pick() 的无 UI 内核：对当前选区（或 normal 光标行）应用当前 filetype 下
+---名为 name 的模板，同步完成。headless / 脚本 / 测试直接调用。
+---@param name string M.templates[&filetype] 里的模板 name
+---@return boolean applied 模板命中且选区仍有效、已写入 buffer
+function M.wrap(name)
+	local sel = capture_and_exit_visual()
+	if not sel then
+		return false
+	end
+	for _, tpl in ipairs(M.templates[vim.bo.filetype] or {}) do
+		if tpl.name == name then
+			return apply(sel, tpl.body)
+		end
+	end
+	vim.notify(("wrap: no template %q for filetype %s"):format(name, vim.bo.filetype), vim.log.levels.INFO)
+	return false
+end
+
+-- 入口：<leader>gt / <leader>gT（x + n mode）。选模板的 UI 壳，应用逻辑与
+-- M.wrap 共用 capture + apply。
+function M.pick()
+	local sel = capture_and_exit_visual()
+	if not sel then
+		return
 	end
 	local templates = M.templates[vim.bo.filetype]
 	if not templates then

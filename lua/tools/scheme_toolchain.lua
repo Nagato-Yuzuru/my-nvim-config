@@ -32,17 +32,36 @@ local function has_exec(bin) return vim.fn.executable(bin) == 1 end
 ---@type table<string, boolean>
 local racket_pkg_cache = {}
 
--- 探测 Racket 包是否安装。`raco pkg show <pkg>` 总是 exit 0（不论包在不在），
--- 所以必须解析 stdout。输出形如：
---
---   Installation-wide:
---    Package[*=auto]   Checksum   Source           ← header
---    base*             a7c0b66... catalog base     ← installed row
---   User-specific for installation "X":
---    [none]                                         ← nothing at this scope
---
--- 检测：扫每一缩进行，取第一列（剥掉 `*` 自动安装标记）。匹配 pkg 名 = 安装。
--- `[none]` 行第一列就是 `[none]`，不会撞包名。表头 `Package[*=auto]` 同理。
+---解析 `raco pkg show <pkg>` 的 stdout，判断 pkg 是否已安装。该命令总是
+---exit 0（不论包在不在），所以只能靠解析。输出形如：
+---
+---  Installation-wide:
+---   Package[*=auto]   Checksum   Source           ← header
+---   base*             a7c0b66... catalog base     ← installed row
+---  User-specific for installation "X":
+---   [none]                                         ← nothing at this scope
+---
+---检测：扫每一缩进行，取第一列（剥掉 `*` 自动安装标记）。匹配 pkg 名 = 安装。
+---`[none]` 行第一列就是 `[none]`，不会撞包名。表头 `Package[*=auto]` 同理。
+---（公开成纯函数：上面的 ASCII 示例即测试 fixture，见 tests/test_scheme_toolchain.lua。）
+---@param output string
+---@param pkg string
+---@return boolean
+function M.parse_raco_show(output, pkg)
+	for line in output:gmatch("[^\n]+") do
+		-- 第一列必须有缩进（数据行）+ 后面跟着列分隔的空格（区分 `[none]` 这种孤行）
+		local first = line:match("^%s+(%S+)%s+")
+		if first then
+			first = first:gsub("%*$", "") -- 剥 auto-install 标记
+			if first == pkg then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- 探测 Racket 包是否安装（fork raco + 结果缓存；解析在 M.parse_raco_show）。
 ---@param pkg string
 ---@return boolean
 local function has_racket_pkg(pkg)
@@ -53,19 +72,7 @@ local function has_racket_pkg(pkg)
 		racket_pkg_cache[pkg] = false
 		return false
 	end
-	local out = vim.fn.system({ "raco", "pkg", "show", pkg })
-	local installed = false
-	for line in out:gmatch("[^\n]+") do
-		-- 第一列必须有缩进（数据行）+ 后面跟着列分隔的空格（区分 `[none]` 这种孤行）
-		local first = line:match("^%s+(%S+)%s+")
-		if first then
-			first = first:gsub("%*$", "") -- 剥 auto-install 标记
-			if first == pkg then
-				installed = true
-				break
-			end
-		end
-	end
+	local installed = M.parse_raco_show(vim.fn.system({ "raco", "pkg", "show", pkg }), pkg)
 	racket_pkg_cache[pkg] = installed
 	return installed
 end

@@ -149,3 +149,6 @@ Temporary Items
 .apdisk
 
 .idea/
+
+# 测试依赖（tests/minimal_init.lua 自举）
+.deps/

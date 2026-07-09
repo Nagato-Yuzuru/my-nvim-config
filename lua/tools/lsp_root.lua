@@ -44,15 +44,14 @@ function M.resolve(bufnr, markers, unnamed_cwd)
 		end
 		dir = vim.uv.cwd()
 	else
-		local root = vim.fs.root(bufnr, markers)
-		if root then
-			return root
-		end
-		dir = vim.fs.dirname(bufname)
+		-- marker 根也过下面的 $HOME 兜底：~/.git（dotfiles 直接以 $HOME 为仓库）
+		-- 会让家目录下任何散文件解析出 root == $HOME——正是本模块要防的全扫事故。
+		dir = vim.fs.root(bufnr, markers) or vim.fs.dirname(bufname)
 	end
 
 	local home = vim.uv.os_homedir()
-	-- dir 是 $HOME 本身、$HOME 的祖先、或文件系统根 → 单文件模式
+	-- dir（marker 根或散文件目录）是 $HOME 本身、$HOME 的祖先、或文件系统根
+	-- → 单文件模式
 	if dir == home or (home and vim.startswith(home, dir .. "/")) or dir == "/" then
 		return false
 	end
