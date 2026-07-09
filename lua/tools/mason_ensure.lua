@@ -85,8 +85,10 @@ local LSP_TOOLS = {
 	{ server = "dockerls", bin = "docker-langserver", mason = "dockerfile-language-server" },
 	{ server = "just_ls", bin = "just-lsp", mason = "just-lsp" },
 	{ server = "denols", bin = "deno", mason = "deno" },
-	{ server = "vtsls", bin = "vtsls", mason = "vtsls" },
-	{ server = "eslint", bin = "vscode-eslint-language-server", mason = "eslint-lsp" },
+	-- 注意：原生 TS LSP（tsc，见 lsp/tsc.lua）**不在此表**——它由 mise 管的 tsc /
+	-- 项目本地二进制提供，无 Mason 稳定包，改由 core/lsp.lua 按 executable 探测 enable。
+	-- oxlint --lsp：oxc linter，取代 eslint-lsp（见 lsp/oxlint.lua）。诊断 + oxc.fixAll。
+	{ server = "oxlint", bin = "oxlint", mason = "oxlint" },
 	{ server = "helm_ls", bin = "helm_ls", mason = "helm-ls" },
 	{ server = "zls", bin = "zls", mason = "zls" },
 	-- rust-analyzer 优先用 rustup component（跟激活 toolchain 同步），mason 兜底安装；
@@ -115,7 +117,7 @@ local TOOL_MAP = {
 	ruff_format = { bin = "ruff", mason = "ruff" },
 	goimports = { bin = "goimports", mason = "goimports" },
 	shfmt = { bin = "shfmt", mason = "shfmt" },
-	prettier = { bin = "prettier", mason = "prettier" },
+	oxfmt = { bin = "oxfmt", mason = "oxfmt" },
 	taplo = { bin = "taplo", mason = "taplo" },
 	shellcheck = { bin = "shellcheck", mason = "shellcheck" },
 	hadolint = { bin = "hadolint", mason = "hadolint" },
@@ -138,16 +140,16 @@ local FORMATTERS_BY_FT = {
 	sh = { "shfmt" },
 	bash = { "shfmt" },
 	zsh = { "shfmt" },
-	json = { "prettier" },
-	jsonc = { "prettier" },
-	yaml = { "prettier" },
-	markdown = { "prettier" },
-	-- ts/js: conform.lua 会按 buffer root 运行时切换 deno_fmt / prettier
-	-- 这里列 prettier 是为了 Mason 自动安装；deno_fmt 随 deno 二进制而来
-	typescript = { "prettier" },
-	typescriptreact = { "prettier" },
-	javascript = { "prettier" },
-	javascriptreact = { "prettier" },
+	json = { "oxfmt" },
+	jsonc = { "oxfmt" },
+	yaml = { "oxfmt" },
+	markdown = { "oxfmt" },
+	-- ts/js: conform.lua 会按 buffer root 运行时切换 deno_fmt / oxfmt
+	-- 这里列 oxfmt 是为了 Mason 自动安装；deno_fmt 随 deno 二进制而来
+	typescript = { "oxfmt" },
+	typescriptreact = { "oxfmt" },
+	javascript = { "oxfmt" },
+	javascriptreact = { "oxfmt" },
 	toml = { "taplo" },
 	-- d2 fmt 由 d2 CLI 自带（brew 装），不经 Mason 管理；conform 的 d2 formatter 从 PATH 找
 	d2 = { "d2" },

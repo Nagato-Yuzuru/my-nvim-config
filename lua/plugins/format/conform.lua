@@ -6,7 +6,8 @@ return {
 			{
 				"<leader>ff",
 				function()
-					if vim.bo.filetype == "python" then
+					local ft = vim.bo.filetype
+					if ft == "python" then
 						vim.lsp.buf.code_action({
 							context = { only = { "source.fixAll.ruff" }, diagnostics = {} },
 							apply = true,
@@ -15,6 +16,21 @@ return {
 							context = { only = { "source.organizeImports.ruff" }, diagnostics = {} },
 							apply = true,
 						})
+					elseif
+						ft == "javascript"
+						or ft == "javascriptreact"
+						or ft == "typescript"
+						or ft == "typescriptreact"
+					then
+						-- oxlint 一键修全部（= eslint 的 source.fixAll）。oxlint LSP 把 fixAll
+						-- 暴露为工作区命令 oxc.fixAll（非 code-action kind），故走 exec_cmd。
+						for _, client in ipairs(vim.lsp.get_clients({ bufnr = 0, name = "oxlint" })) do
+							client:exec_cmd({
+								title = "Apply Oxlint automatic fixes",
+								command = "oxc.fixAll",
+								arguments = { { uri = vim.uri_from_bufnr(0) } },
+							})
+						end
 					end
 					require("conform").format({ async = true, lsp_fallback = true })
 				end,
@@ -28,23 +44,23 @@ return {
 			local conform = require("conform")
 			local formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft()
 
-			-- ts/js: Deno 项目用 deno fmt，其余用 prettier
+			-- ts/js: Deno 项目用 deno fmt，其余用 oxfmt（Prettier 100% 一致的 Rust formatter）
 			local function pick_js_formatter(bufnr)
 				local deno_root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" })
 				if deno_root then
 					return { "deno_fmt" }
 				end
-				return { "prettier" }
+				return { "oxfmt" }
 			end
 			for _, ft in ipairs({ "typescript", "typescriptreact", "javascript", "javascriptreact" }) do
 				formatters_by_ft[ft] = pick_js_formatter
 			end
 
 			-- markdown: 项目显式声明 .mdformat.toml 时走 mdformat（opt-in，由项目自行决定
-			-- 是否需要 pymdown / MDX / admonition 等扩展的安全格式化），否则默认 prettier。
+			-- 是否需要 pymdown / MDX / admonition 等扩展的安全格式化），否则默认 oxfmt。
 			-- 作用域随 .mdformat.toml 位置下沉：放 docs/ 下只影响 docs/；放项目根则全仓库。
 			-- 安装：uv tool install mdformat --with mdformat-mkdocs --with mdformat-gfm --with mdformat-frontmatter
-			-- mdformat 缺失时跳过 fmt（不降级到 prettier），以免破坏项目已声明要保留的语法。
+			-- mdformat 缺失时跳过 fmt（不降级到 oxfmt），以免破坏项目已声明要保留的语法。
 			local function pick_md_formatter(bufnr)
 				if vim.fs.root(bufnr, { ".mdformat.toml" }) then
 					if vim.fn.executable("mdformat") == 1 then
@@ -52,7 +68,7 @@ return {
 					end
 					return {}
 				end
-				return { "prettier" }
+				return { "oxfmt" }
 			end
 			formatters_by_ft.markdown = pick_md_formatter
 
