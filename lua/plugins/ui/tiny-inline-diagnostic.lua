@@ -45,7 +45,7 @@ return {
 				-- show_code (默认 true) 与 show_related (默认 enabled=true, max_count=3)
 				-- 不显式设——沿用默认即得到 `[E0308]` 诊断码 + 关联位置 `[file:line]`，
 				-- 与 open_float 信息等价。
-				-- 行尾胶囊里附带来源标签（gopls / golangci-lint / tsc / eslint…），
+				-- 行尾胶囊里附带来源标签（gopls / golangci-lint / tsc / oxlint…），
 				-- 同一行有多源时尤其重要——单源时省略避免噪音。
 				show_source = {
 					enabled = true,

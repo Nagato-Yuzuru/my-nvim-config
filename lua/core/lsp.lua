@@ -162,7 +162,7 @@ local function enable_servers()
 	-- 统一为所有"未自定义 root_dir"的 server 注入散文件/$HOME-safe 行为：
 	-- 没 marker 命中时走 single-file（on_dir(nil)）+ cmd cwd 钉到 cache 空目录，
 	-- 防 ruff/ty/lua_ls 这类服务器把 $HOME 当 fallback workspace。
-	-- 自定义了 root_dir 的（denols / eslint / vtsls 的互斥逻辑）会被跳过。
+	-- 自定义了 root_dir 的（denols / oxlint / tsc 的互斥逻辑）会被跳过。
 	-- sourcekit-lsp 随 Swift 工具链来（Xcode CLT / swiftly），不是 Mason 包，故不进
 	-- LSP_TOOLS；同 Scheme 系按存在探测决定是否 enable，无 Swift 环境时不挂、不刷
 	-- client-quit。此机 /usr/bin/sourcekit-lsp 直接在 PATH；executable("xcrun") 兜住
@@ -173,8 +173,17 @@ local function enable_servers()
 		table.insert(swift_servers, "sourcekit")
 	end
 
+	-- 原生 TS LSP（lsp/tsc.lua）：稳定通道二进制 `tsc`（typescript@7，本机由 mise 装），
+	-- 预览通道 `tsgo`。都不在 Mason 稳定通道（mason 只有 tsgo 每夜版，且撞 min-release-age），
+	-- 故同 Swift/Scheme 走 PATH 探测决定是否 enable，不进 LSP_TOOLS。cmd 在 tsc/tsgo 间解析。
+	local ts_servers = {}
+	if vim.fn.executable("tsc") == 1 or vim.fn.executable("tsgo") == 1 then
+		table.insert(ts_servers, "tsc")
+	end
+
 	local all_servers = {}
 	vim.list_extend(all_servers, native_servers)
+	vim.list_extend(all_servers, ts_servers)
 	vim.list_extend(all_servers, scheme_servers)
 	vim.list_extend(all_servers, swift_servers)
 	require("tools.lsp_root").apply_safe_defaults(all_servers)
@@ -184,6 +193,9 @@ local function enable_servers()
 		vim.lsp.enable(s)
 	end
 	for _, s in ipairs(swift_servers) do
+		vim.lsp.enable(s)
+	end
+	for _, s in ipairs(ts_servers) do
 		vim.lsp.enable(s)
 	end
 
@@ -305,7 +317,7 @@ local function setup_lsp_attach_keymaps()
 			-- tmux 传统 ESC+CR 编码即可，不需要 extended-keys。
 			map("n", "<A-CR>", vim.lsp.buf.code_action, "Code Action (IDE Alt-Enter)")
 			-- Codelens：运行光标行的 lens（gopls test runner / rustaceanvim Run|Debug /
-			-- vtsls "N references" / clangd parameters 等）。对应上游默认键里已禁用的
+			-- tsc references/implementations / clangd parameters 等）。对应上游默认键里已禁用的
 			-- `grx`（见 clear_default_lsp_keymaps）。
 			-- IdeaVim 侧无对应键——JetBrains 的 lens 走 gutter 图标 + IDE Run/Debug 快捷键
 			-- (Shift+F10 等)，不通过 IdeaVim mapping。这是 CLAUDE.md 允许的"genuinely
