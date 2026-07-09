@@ -129,7 +129,9 @@ These constrain code that *isn't there*; comments have nowhere to live.
   `nvim --headless --noplugin -u tests/minimal_init.lua -c "lua MiniTest.run()"`
   (same command as CI; `tests/minimal_init.lua` self-bootstraps `.deps/`,
   pins follow lazy-lock.json). Gate is CI only
-  (`.github/workflows/test.yml`) — no local hooks, by design.
+  (`.github/workflows/test.yml`, which also runs `stylua --check` and
+  `selene`) — no local hooks, by design. selene is deliberately NOT wired
+  into nvim-lint (lua_ls already lints live; see selene.toml).
 - Non-plugin config in `lua/core/` only.
 - Prefer `opts` over `config` functions.
 - Lazy-load with `event` / `ft` / `cmd` / `keys`.

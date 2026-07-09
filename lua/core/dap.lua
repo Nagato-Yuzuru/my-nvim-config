@@ -152,9 +152,8 @@ function M.ensure_mason(pkgs)
 	end
 	local install_if_missing = require("tools.mason_install").install_if_missing
 	for _, p in ipairs(pkgs) do
-		if p.bin and vim.fn.executable(p.bin) == 1 then
-			-- 已在 PATH，mason 不用插手
-		else
+		-- p.bin 已在 PATH 时 mason 不用插手
+		if not (p.bin and vim.fn.executable(p.bin) == 1) then
 			install_if_missing(p.name)
 		end
 	end
