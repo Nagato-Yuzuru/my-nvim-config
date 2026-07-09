@@ -50,6 +50,7 @@
   "mini.bufremove": { "branch": "main", "commit": "281bb1a2c60c3618c854bef2c0933276eb2362c2" },
   "mini.diff": { "branch": "main", "commit": "be4ca6953040332d77a5a05bb5600152c5c36e7a" },
   "mini.icons": { "branch": "main", "commit": "98faae31e9be1cc054ae63485e58ceb185efcad0" },
+  "mini.test": { "branch": "main", "commit": "86a2f85cca908077f29ab11565472e8055fa13e8" },
   "multicursor.nvim": { "branch": "1.0", "commit": "704b99f10a72cc05d370cfeb294ff83412a8ab55" },
   "neominimap.nvim": { "branch": "main", "commit": "0676085d898019f06044923934e38663f5efa290" },
   "neotest": { "branch": "master", "commit": "fb84d87285698f7055f618083c351984449119b8" },
