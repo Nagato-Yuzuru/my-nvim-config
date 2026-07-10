@@ -1,15 +1,19 @@
 -- plugins/ui/flatten.lua
 -- 让内嵌终端里的 `nvim file` / `git commit`（$EDITOR）不再套娃：guest 实例
 -- 检测到 $NVIM（宿主自动注入终端子进程的 socket）后，把参数转发给宿主打开，
--- 自己立即退出；gitcommit/gitrebase 默认阻塞到宿主里对应 buffer 关闭，语义
--- 与真 shell 一致。配合 ui/toggleterm.lua 的“裸 shell”设计。
--- callbacks 基于 upstream README 的 toggleterm 配方，但有意不采用其
--- “阻塞期间收起终端”部分：终端收起后 commit buffer 是唯一窗口，肌肉记忆
--- 的 :wq 会关掉最后一个窗口 → 整个 nvim 退出（实测）。终端保持可见即永远
--- 有第二个窗口，:wq 安全；shell 反正被 git 阻塞，可见无副作用。
+-- 自己立即退出；gitcommit/gitrebase 默认阻塞到宿主里对应窗口关闭，语义与
+-- 真 shell 一致。配合 ui/toggleterm.lua 的“裸 shell”设计。
+-- 有意不用 upstream README 的两段 toggleterm 配方（都实测踩过坑）：
+--   * “阻塞期间收起终端”——commit buffer 成为唯一窗口后，肌肉记忆的 :wq
+--     会关掉最后一个窗口 → 整个 nvim 退出；
+--   * “BufWritePost 写入即删”——真 git 语义是编辑器退出才算提交完成，
+--     写入即删会让中途 :w 存草稿直接提前提交、之后的编辑被静默丢弃。
+-- 清理挂在 QuitPre + bufhidden=wipe 上，见 callbacks 内注释。
 return {
 	{
 		"willothy/flatten.nvim",
+		-- callbacks 依赖 v0.5.x 的 post_open 签名与 smart_open 行为，
+		-- :Lazy update 跳版本后 re-review（同 go-deep.nvim 政策）
 		version = "*",
 		-- guest 实例必须抢在其它插件加载前拦截并退出，无法 lazy-load（上游要求）
 		lazy = false,
@@ -26,36 +30,54 @@ return {
 					if not is_blocking then
 						vim.api.nvim_set_current_win(winnr)
 					end
-					-- commit/rebase buffer 写入即删：:w 即完成提交，不留残窗残 buffer。
-					-- 删除前先把还显示它的窗口换到别的普通 buffer——直接 bdelete 会
-					-- 连窗口一起关，瞬间只剩 edgy dock（toggleterm），触发 edgy 的
-					-- 兜底逻辑把终端也收掉（实测）。:wq 的 q 先于本回调关窗，走不到
-					-- swap，落点由 edgy 兜底，安全但终端会被收起。
-					if ft == "gitcommit" or ft == "gitrebase" then
-						vim.api.nvim_create_autocmd("BufWritePost", {
-							buffer = bufnr,
-							once = true,
-							callback = vim.schedule_wrap(function()
-								-- :wq 时 buffer 可能已被 q + bufhidden 回收
-								if not vim.api.nvim_buf_is_valid(bufnr) then
-									return
+					-- 这对 filetype 同时硬编码在 neominimap.lua 的 exclude_filetypes
+					-- （minimap 关窗竞态豁免），增删时两处同步
+					if ft ~= "gitcommit" and ft ~= "gitrebase" then
+						return
+					end
+					-- 提交在窗口关闭时完成（flatten 监听 QuitPre/BufUnload 解锁 guest），
+					-- :w 只是存草稿、无副作用；wipe 让残留 buffer 随关窗自动回收
+					vim.bo[bufnr].bufhidden = "wipe"
+					-- :wq 关窗前，若 commit 窗是最后一个普通窗，先补一个窗放回被顶掉
+					-- 的原 buffer——否则关窗瞬间 main 区落空，edgy 的 check_main 兜底
+					-- 会乱排布局连终端 dock 一起收掉（实测）。回调幂等（补的窗存在时
+					-- 直接 return），故不设 once：:q 因未保存失败后重试仍受保护。
+					-- :close 不触发 QuitPre，罕见路径，接受 edgy 兜底。
+					vim.api.nvim_create_autocmd("QuitPre", {
+						buffer = bufnr,
+						callback = function()
+							for _, win in ipairs(vim.api.nvim_list_wins()) do
+								local b = vim.api.nvim_win_get_buf(win)
+								if
+									b ~= bufnr
+									and vim.bo[b].buftype == ""
+									and vim.api.nvim_win_get_config(win).relative == ""
+								then
+									return -- 还有别的普通窗，edgy 兜底不会触发
 								end
-								local alt
+							end
+							-- 被顶掉的原 buffer 优先从本窗 alternate 拿回（nvim_win_set_buf
+							-- 会维护窗口局部的 #），兜底任一 listed 普通 buffer / 新空 buffer
+							local prev = vim.fn.bufnr("#")
+							if
+								prev == -1
+								or prev == bufnr
+								or not vim.bo[prev].buflisted
+								or vim.bo[prev].buftype ~= ""
+							then
+								prev = nil
 								for _, b in ipairs(vim.api.nvim_list_bufs()) do
 									if b ~= bufnr and vim.bo[b].buflisted and vim.bo[b].buftype == "" then
-										alt = b
+										prev = b
 										break
 									end
 								end
-								for _, win in ipairs(vim.api.nvim_list_wins()) do
-									if vim.api.nvim_win_get_buf(win) == bufnr then
-										vim.api.nvim_win_set_buf(win, alt or vim.api.nvim_create_buf(true, false))
-									end
-								end
-								vim.api.nvim_buf_delete(bufnr, {})
-							end),
-						})
-					end
+							end
+							vim.cmd("split")
+							vim.api.nvim_win_set_buf(0, prev or vim.api.nvim_create_buf(true, false))
+							vim.cmd.wincmd("p") -- 焦点还给 commit 窗，:q 关的才是它
+						end,
+					})
 				end,
 			},
 		},

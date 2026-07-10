@@ -5,11 +5,17 @@
 -- Esc 本身，物理 Esc 键会被一并劫持——吃掉 zsh 的 Meta 前缀（Alt-.）、fzf 的
 -- 取消、lazygit 的返回；kitty 键盘协议也不消歧这一对（实测 CSI 91;5u 仍触发
 -- <C-[> 映射）。normal mode 定位成 tmux copy-mode：只在主动按 <C-]> 翻屏/拷
--- 输出时进入，切窗回来自动回 Terminal-mode（见下面 WinEnter autocmd）。
--- 窗间导航不再需要终端侧 <C-h/j/k/l> tmap：<C-]> 出来后走 ui/tmux.lua 的
+-- 输出时进入。切窗/点击回来自动回 Terminal-mode 由 toggleterm 自身负责——
+-- persist_mode=false + start_in_insert=true 时其 BufEnter 处理器
+-- （handle_term_enter → set_mode(INSERT)）每次进入都拉回插入。不要再叠加
+-- 自定义 startinsert autocmd：实测同一次进入会排队 3 个 startinsert，且上游
+-- set_mode 的 vim.schedule 不做当前 buffer 复查（快速切焦点时 insert 会漏进
+-- 普通 buffer——上游缺陷，叠加自定义层只会扩大竞态面，修不掉它）。
+-- 窗间导航不需要终端侧 <C-h/j/k/l> tmap：<C-]> 出来后走 ui/tmux.lua 的
 -- vim-tmux-navigator 统一导航。嵌套 nvim（git commit / $EDITOR）由
 -- ui/flatten.lua 转发到宿主实例。
--- nvim-only：JetBrains 终端不归 IdeaVim 管，无需镜像 .ideavimrc。
+-- nvim-only：JetBrains 终端不归 IdeaVim 管，见 .ideavimrc 的 Terminal
+-- asymmetry 注释块（parity 记录的 SSOT 在那边）。
 return {
 	{
 		"akinsho/toggleterm.nvim",
@@ -29,7 +35,10 @@ return {
 			end,
 			float_opts = { border = "rounded" },
 			start_in_insert = true, -- 打开就进插入模式
-			persist_mode = false, -- 不记住上次停在 normal mode，每次 toggle 都落回 Terminal-mode
+			-- 不记忆 normal mode：配合 start_in_insert，toggleterm 的 BufEnter
+			-- 处理器在每次进入（toggle 重开/切窗/点击）都拉回 Terminal-mode，
+			-- 这是“自动回插入”行为的唯一所有者（见文件头）
+			persist_mode = false,
 			persist_size = false, -- 不记住手动拖过的大小，每次按 size() 重开
 			insert_mappings = true, -- 插入模式下也能用 open_mapping
 			close_on_exit = true,
@@ -40,6 +49,7 @@ return {
 			-- pattern 只匹配 toggleterm 自家 buffer（名字带 #toggleterm#N），
 			-- 不波及 snacks lazygit 等其他终端
 			vim.api.nvim_create_autocmd("TermOpen", {
+				group = vim.api.nvim_create_augroup("user_toggleterm", { clear = true }),
 				pattern = "term://*toggleterm#*",
 				callback = function()
 					vim.keymap.set("t", "<C-]>", [[<C-\><C-n>]], {
@@ -47,20 +57,6 @@ return {
 						silent = true,
 						desc = "Terminal: normal mode",
 					})
-				end,
-			})
-			-- 切窗/点击回到终端窗口时自动回 Terminal-mode。
-			-- schedule + 复查 filetype：flatten 的 git-commit 阻塞流程里焦点会连续
-			-- 跳变（commit buffer 关闭 → 终端 → 代码窗），同步 startinsert 会把
-			-- insert 泄漏进随后聚焦的普通 buffer（实测踩过）
-			vim.api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
-				pattern = "term://*toggleterm#*",
-				callback = function()
-					vim.schedule(function()
-						if vim.bo.filetype == "toggleterm" then
-							vim.cmd.startinsert()
-						end
-					end)
 				end,
 			})
 		end,

@@ -76,6 +76,16 @@ nmap K <Action>(QuickJavaDoc)
 " tab 创建/切换那几个 (<C-x>T / <C-x><Tab> / <C-x><S-Tab> / <C-x>X) 同理：
 " JetBrains 用 "New Window"（独立 IDE 窗口）和文件 tab 已经覆盖大部分场景。
 
+" -- Terminal asymmetry (nvim-only)
+" JetBrains 的 Terminal 工具窗是独立的非模态界面，不经过 IdeaVim——终端里
+" 的按键 IDE 自己处理，天然没有"vim 键和 shell 键抢按键"的问题。nvim 侧的
+" 整套设计（lua/plugins/ui/toggleterm.lua + ui/flatten.lua）因此不映射：
+"   <C-x>`    toggleterm 开关（IDE 用 ⌥F12 / "Terminal" 工具窗）
+"   <C-]>     Terminal-mode 逃生舱——只因 nvim 终端是模态的才需要它；
+"             其余按键全部直通 shell（Esc/Meta/fzf/lazygit 不被劫持）
+"   flatten   终端里 nvim file / git commit 转发宿主防套娃——IDE 终端里
+"             这类操作本来就开在编辑器区，无对应问题
+
 " -- LSP hover / signature help: both sides use community defaults
 " normal K          → Quick Documentation  (IdeaVim native)
 " insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;

@@ -132,9 +132,11 @@ return {
 				"dapui_watches",
 				"dapui_console",
 				"toggleterm",
-				-- flatten 的 git commit 阻塞流程会快速开/关 COMMIT_EDITMSG 窗口，
-				-- minimap float 在关窗竞态下会陈旧 window id 报错循环（实测）；
-				-- 几行的 commit message 也用不上缩略图
+				-- flatten 的 git commit 流程会快速开/关 COMMIT_EDITMSG 窗口，踩中
+				-- neominimap 上游竞态：float autocmds 的 schedule 回调不做
+				-- win_is_valid 复查（window/util.lua sync_to_source），任何快速关窗
+				-- 流程都可能触发陈旧 window id 报错循环。此处排除是局部缓解，
+				-- 几行的 commit message 也用不上缩略图。ft 对与 ui/flatten.lua 同步
 				"gitcommit",
 				"gitrebase",
 				"lazy",
