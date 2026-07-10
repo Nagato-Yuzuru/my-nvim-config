@@ -132,6 +132,11 @@ return {
 				"dapui_watches",
 				"dapui_console",
 				"toggleterm",
+				-- flatten 的 git commit 阻塞流程会快速开/关 COMMIT_EDITMSG 窗口，
+				-- minimap float 在关窗竞态下会陈旧 window id 报错循环（实测）；
+				-- 几行的 commit message 也用不上缩略图
+				"gitcommit",
+				"gitrebase",
 				"lazy",
 				"mason",
 				"checkhealth",
