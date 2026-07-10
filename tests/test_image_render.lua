@@ -14,8 +14,16 @@ local eq = MiniTest.expect.equality
 
 local function is_remote(src) return child.lua_get(("require('tools.image_render').is_remote_src(%q)"):format(src)) end
 -- 返回值可能是 nil,child.lua_get 会把它变 vim.NIL——统一用 type() 断言消歧。
+-- 先把 state/cache 隔离到临时目录:否则 block_remote('doc.md',…) 会读**真实**
+-- 持久库、且 repo_root('doc.md') 解析到本仓库——一旦你 ,iar 信任过 ~/.config/nvim,
+-- 「remote → 占位图」这条断言就会翻红(环境耦合)。
 local function block_type(src)
-	return child.lua_get(("type(require('tools.image_render').block_remote('doc.md', %q))"):format(src))
+	return child.lua_get(([[(function()
+			local base = vim.fn.tempname()
+			vim.env.XDG_STATE_HOME = base .. "/state"
+			vim.env.XDG_CACHE_HOME = base .. "/cache"
+			return type(require('tools.image_render').block_remote('doc.md', %q))
+		end)()]]):format(src))
 end
 
 -- ======================================================= is_remote_src:正例

@@ -108,7 +108,9 @@ end
 ---@return boolean
 function M.is_remote_src(src)
 	local scheme = src:match("^(%w%w+)://")
-	return scheme ~= nil and scheme ~= "file"
+	-- RFC 3986: scheme 大小写不敏感,故 FILE:// 也是本地——比较前先降为小写,
+	-- 否则大写 file scheme 会被误判为远程而拦掉(见 test #11)。
+	return scheme ~= nil and scheme:lower() ~= "file"
 end
 
 local uv = vim.uv or vim.loop
@@ -124,6 +126,11 @@ local tried_gen = false
 local function ensure_placeholder()
 	local path = placeholder_path or vim.fs.joinpath(vim.fn.stdpath("cache"), "snacks-image-blocked.png")
 	placeholder_path = path
+	-- fresh cache / CI 上 stdpath("cache") 可能尚不存在;magick 无处落盘会静默失败
+	-- (本仓库 convert.notify=false),占位图神隐。无条件先建目录,且放在 fast-event
+	-- 守卫**之外**(见 test #5)。block_remote 只从 snacks resolve 调用——那里 snacks
+	-- 自己也 vim.api/vim.fn 满地跑,绝非快事件,mkdir 安全。
+	vim.fn.mkdir(vim.fs.dirname(path), "p")
 	if not uv.fs_stat(path) and not tried_gen and not vim.in_fast_event() then
 		tried_gen = true
 		-- 深色底 + 红叉 = 通用的「blocked/broken」,明暗背景都读得出。pcall 只兜
@@ -162,25 +169,53 @@ local trusted_images = {} ---@type table<string, true> key: 精确 URL(snacks ur
 local trusted_files = {} ---@type table<string, true> key: realpath
 local trusted_repos ---@type table<string, true>? nil = 尚未加载
 
---- 与 vim.secure 同款的键归一化:解符号链接,同一实体只有一个 key。
---- 路径不存在时退回 normalize 结果。
+--- 与 vim.secure 同款的键归一化:解符号链接,同一实体只有一个 key。叶子尚未
+--- 落盘时(如 ,iaf 授予一个还没 :w 的文件),对**最深的存在祖先** realpath 再拼
+--- 回未落盘的尾段——否则符号链接目录下的叶子,:w 前(realpath 失败→退回 normalize)
+--- 与 :w 后(realpath 解掉符号链接)会得到两个不同 key,授予静默漂失(见 test #9)。
 ---@param p string
 ---@return string
 local function norm_path(p)
 	local n = vim.fs.normalize(p)
-	return uv.fs_realpath(n) or n
+	local real = uv.fs_realpath(n)
+	if real then
+		return real
+	end
+	local parent = vim.fs.dirname(n)
+	if parent == n then
+		return n -- 已到根,无从再上溯
+	end
+	return vim.fs.joinpath(norm_path(parent), vim.fs.basename(n))
 end
 
--- git root 按目录 memoize:block_remote 在渲染热路径上逐图调用,免每图上溯。
-local root_cache = {} ---@type table<string, string|false>
----@param file string
+--- file 所在的 git 仓库 root(已 realpath 归一)。过宽的 root——等于 $HOME 或
+--- 文件系统根——返回 nil:dotfiles-as-repo(~/.git)会让 vim.fs.root 一路冒泡到
+--- 家目录,授予它等于信任整个家目录下所有文档的远程图(见 test #2)。
+---@param dir string 已 norm_path 归一的目录
 ---@return string?
-local function repo_root(file)
-	local dir = vim.fs.dirname(norm_path(file))
+local function git_root(dir)
+	local root = vim.fs.root(dir, ".git")
+	if not root then
+		return nil
+	end
+	root = norm_path(root)
+	if root == "/" or root == norm_path(uv.os_homedir()) then
+		return nil
+	end
+	return root
+end
+
+-- git root 按目录 memoize:block_remote 在渲染热路径上逐图调用,免每图上溯。只服务
+-- is_trusted 热路径;trust_repo(冷路径)绕开它现算,以免 git init 之前的负结果把
+-- session 内新建的仓库永久挡在门外(见 test #6)。
+local root_cache = {} ---@type table<string, string|false>
+---@param norm_file string 已 norm_path 归一的文件路径
+---@return string?
+local function repo_root(norm_file)
+	local dir = vim.fs.dirname(norm_file)
 	local hit = root_cache[dir]
 	if hit == nil then
-		local root = vim.fs.root(dir, ".git")
-		hit = root and norm_path(root) or false
+		hit = git_root(dir) or false
 		root_cache[dir] = hit
 	end
 	return hit or nil
@@ -189,17 +224,15 @@ end
 -- 每次调用取 stdpath:测试经 $XDG_STATE_HOME 隔离持久层(stdpath 读 env 是活的)。
 local function state_file() return vim.fs.joinpath(vim.fn.stdpath("state"), "image-remote-trust.json") end
 
---- 惰性读持久仓库库。fail-safe:文件缺失 → 空集;损坏 → 空集 + WARN
---- (**默认拒绝**,绝不因读失败而放行)。
+--- 从磁盘现读持久仓库集(不走内存缓存)。fail-safe:文件缺失 → 空集;损坏 →
+--- 空集 + WARN(**默认拒绝**,绝不因读失败而放行)。写盘前用它重读+合并,是多实例
+--- (tmux)并发授予不互相覆盖丢更新的关键(见 test #3)。
 ---@return table<string, true>
-local function load_repos()
-	if trusted_repos then
-		return trusted_repos
-	end
-	trusted_repos = {}
+local function read_disk_repos()
+	local set = {}
 	local f = io.open(state_file(), "r")
 	if not f then
-		return trusted_repos
+		return set
 	end
 	local raw = f:read("*a")
 	f:close()
@@ -207,27 +240,48 @@ local function load_repos()
 	if ok and type(data) == "table" and type(data.repos) == "table" then
 		for _, r in ipairs(data.repos) do
 			if type(r) == "string" then
-				trusted_repos[r] = true
+				set[r] = true
 			end
 		end
 	else
 		vim.notify("image_render: 信任库损坏,按空库处理(默认拦截): " .. state_file(), vim.log.levels.WARN)
 	end
+	return set
+end
+
+--- 惰性把持久库读进内存(一进程一次)。热路径判定读它;写路径改走 read_disk_repos
+--- 现读并集,避免用陈旧内存快照覆盖别的实例的授予。
+---@return table<string, true>
+local function load_repos()
+	if not trusted_repos then
+		trusted_repos = read_disk_repos()
+	end
 	return trusted_repos
 end
 
---- 原子写持久库(临时文件 + rename),排序保证稳定内容。改时即写,不等
---- VimLeave(被 kill/崩溃时不触发)。
-local function save_repos()
-	local repos = vim.tbl_keys(load_repos())
+-- 进程内单调计数:.tmp 用「pid + 计数器」拼唯一名,并发实例/同进程连写都不撞固定
+-- 的 path..".tmp"(运行时 Lua,os_getpid + 计数器即足够唯一)。
+local write_seq = 0
+
+--- 原子写给定集合到持久库(唯一临时文件 + rename),排序保证内容稳定。写失败抛错
+--- ——调用方靠它实现 persist-then-commit:写盘成功了才改内存,失败则内存/盘不发散
+--- (见 test #8)。
+---@param set table<string, true>
+local function persist_repos(set)
+	local repos = vim.tbl_keys(set)
 	table.sort(repos)
 	local path = state_file()
 	vim.fn.mkdir(vim.fs.dirname(path), "p")
-	local tmp = path .. ".tmp"
+	write_seq = write_seq + 1
+	local tmp = ("%s.tmp.%d.%d"):format(path, uv.os_getpid(), write_seq)
 	local f = assert(io.open(tmp, "w"))
 	f:write(vim.json.encode({ version = 1, repos = repos }))
 	f:close()
-	assert(uv.fs_rename(tmp, path))
+	local ok, err = uv.fs_rename(tmp, path)
+	if not ok then
+		os.remove(tmp)
+		error(err)
+	end
 end
 
 --- (file, src) 是否命中任一信任档。unnamed buffer(file == "")只认逐图档
@@ -242,10 +296,16 @@ function M.is_trusted(file, src)
 	if file == "" then
 		return false
 	end
-	if trusted_files[norm_path(file)] then
+	-- 零授予快路径:文件档与仓库档皆空时,免掉后面每图一次的 norm_path/repo_root
+	-- 系统调用(未放行文档是常态,这条最热)。trusted_images 上面已查过。
+	if not next(trusted_files) and not next(load_repos()) then
+		return false
+	end
+	local norm = norm_path(file)
+	if trusted_files[norm] then
 		return true
 	end
-	local root = repo_root(file)
+	local root = repo_root(norm)
 	return root ~= nil and load_repos()[root] == true
 end
 
@@ -270,12 +330,23 @@ end
 ---@param file string
 ---@return string? root
 function M.trust_repo(file)
-	local root = file ~= "" and repo_root(file) or nil
+	if file == "" then
+		return nil
+	end
+	-- 冷路径:现算 root(绕开 root_cache 的负缓存,让 session 内 git init 后的仓库
+	-- 也能授予,见 test #6),并回填缓存让 is_trusted 立刻认这个仓库。
+	local dir = vim.fs.dirname(norm_path(file))
+	local root = git_root(dir)
 	if not root then
 		return nil
 	end
-	load_repos()[root] = true
-	save_repos()
+	root_cache[dir] = root
+	-- persist-then-commit(#8)+ 并发合并(#3):把「磁盘 ∪ 内存 ∪ {root}」先写盘成功,
+	-- 再并入内存;写盘失败则内存不动、盘/内存不发散。
+	local merged = vim.tbl_extend("force", read_disk_repos(), load_repos())
+	merged[root] = true
+	persist_repos(merged)
+	trusted_repos = merged
 	return root
 end
 
@@ -332,8 +403,10 @@ end
 
 --- 清空三档信任并把持久库改写为空。调用方负责 refresh_docs。
 function M.trust_clear()
+	-- persist-then-commit(#8):先把空库写盘成功,再清内存三集;写盘失败(如 state
+	-- 目录只读)则抛错传出、内存不动,避免盘上仍有而内存已空的发散。
+	persist_repos({})
 	trusted_images, trusted_files, trusted_repos = {}, {}, {}
-	save_repos()
 end
 
 --- 重渲所有已加载文档 buffer(跳过被 ,ii 手动关掉的),让信任变化立即生效
