@@ -470,8 +470,10 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "
 "   <localleader>mr   render toggle, text + inline images follow (buffer)
 "   <localleader>mR   render toggle, text + inline images follow (global)
-"   (<localleader>ii  image-only on/off, <localleader>it inline↔float —
-"    snacks.image, nvim-only; see lua/tools/image_render.lua)
+"   (<localleader>ii  image-only on/off, <localleader>it inline↔float,
+"    <localleader>ia{i,f,r}  allow blocked remote image/file/repo (trust
+"    tiers; :ImageTrust to audit/clear) — snacks.image, nvim-only; see
+"    lua/tools/image_render.lua)
 "   <localleader>mp   render-markdown preview (split)
 "   <localleader>mb   :LivePreview start/close (toggle) — browser live
 "                     preview, the only rendering outlet for mermaid / KaTeX

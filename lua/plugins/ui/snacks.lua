@@ -335,6 +335,25 @@ return {
 		"folke/snacks.nvim",
 		priority = 1000,
 		lazy = false,
+		-- :ImageTrust — 远程图片放行的审计/撤销面(授予键位在下方 keys 的
+		-- ,ia*;机制与持久库在 lua/tools/image_render.lua)。挂 init:命令
+		-- 注册不该等首次按键,module 本身仍按需 require。
+		init = function()
+			vim.api.nvim_create_user_command("ImageTrust", function(cmd)
+				local ir = require("tools.image_render")
+				if cmd.args == "clear" then
+					ir.trust_clear()
+					ir.refresh_docs()
+					vim.notify("Image trust: 已清空(含持久库)")
+				else
+					vim.notify(table.concat(ir.trust_list(), "\n"))
+				end
+			end, {
+				nargs = "?",
+				complete = function() return { "list", "clear" } end,
+				desc = "List/clear remote-image trust grants",
+			})
+		end,
 		-- 预加载 notifier,绕过 snacks 装的 vim.notify 懒加载 shim
 		-- (snacks/init.lua:220-223)。该 shim 在第一次 vim.notify 调用时
 		-- 才 require('snacks.notifier');如果加载链里再触发一次 vim.notify
@@ -473,6 +492,13 @@ return {
 			-- 处理是警告一次 + 跳过该类型,不影响普通图片。
 			image = {
 				enabled = true,
+				-- 远程图片默认不自动联网:任何 scheme:// 的图片 src,snacks 会用
+				-- curl -L 自动拉取(inline + ,iv hover 同一条链、跟随重定向、不校验
+				-- content-type)=「打开文档就向任意主机发请求」。官方 resolve 钩子
+				-- 把远程 src 换成本地占位图断掉它;放行走 ,ia* 三档信任(图/文件/
+				-- 仓库,命中才交回 snacks 抓)。策略/占位图/持久库全在
+				-- tools.image_render(含 SSRF/tracking-pixel 说明)。file:// 本地读放行。
+				resolve = function(file, src) return require("tools.image_render").block_remote(file, src) end,
 				math = { enabled = false }, -- 数学位图渲染永久关闭,见上
 				doc = {
 					enabled = true,
@@ -571,6 +597,10 @@ return {
 			--   ,ii 图片渲染 on/off(仅当前 buffer;,mr/,mR 会把它拉回和文字
 			--       渲染一致的状态)
 			--   ,it 切换 inline 内联 ↔ float 浮窗模式,当前 buffer 立即重渲
+			--   ,ia* 放行(信任)子命名空间——被拦的远程图按尺度放行:
+			--       ,iai 光标处这张图(session) ,iaf 本文件(session)
+			--       ,iar 本仓库(持久落 state;非 git 目录拒绝)
+			--       审计/撤销 :ImageTrust [list|clear](上方 init 注册)
 			{
 				"<localleader>iv",
 				function() Snacks.image.hover() end,
@@ -596,6 +626,42 @@ return {
 				end,
 				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
 				desc = "Image: toggle inline rendering",
+			},
+			{
+				"<localleader>iai",
+				function() require("tools.image_render").trust_image_at_cursor() end,
+				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				desc = "Image: allow image at cursor (session)",
+			},
+			{
+				"<localleader>iaf",
+				function()
+					local ir = require("tools.image_render")
+					local key = ir.trust_file(vim.api.nvim_buf_get_name(0))
+					if key then
+						ir.refresh_docs()
+						vim.notify("Image trust: 本文件已放行(session) " .. key)
+					else
+						vim.notify("Image trust: buffer 没有文件名", vim.log.levels.WARN)
+					end
+				end,
+				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				desc = "Image: allow this file (session)",
+			},
+			{
+				"<localleader>iar",
+				function()
+					local ir = require("tools.image_render")
+					local root = ir.trust_repo(vim.api.nvim_buf_get_name(0))
+					if root then
+						ir.refresh_docs()
+						vim.notify("Image trust: 仓库已持久放行 " .. root)
+					else
+						vim.notify("Image trust: 不在 git 仓库内,用 ,iaf/,iai", vim.log.levels.WARN)
+					end
+				end,
+				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				desc = "Image: allow this repo (persistent)",
 			},
 		},
 	},
