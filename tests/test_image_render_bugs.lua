@@ -160,4 +160,108 @@ T["#5 blocked remote render creates its cache dir"] = function()
 	)
 end
 
+-- ============================================================ #12 snacks 缺席不崩
+-- :ImageTrust 命令注册于 snacks 的 init(与 snacks load 解耦)。snacks 加载失败时
+-- Snacks 全局为 nil,`:ImageTrust clear` → refresh_docs 遍历到已加载的 doc buffer
+-- → detach 里 Snacks.image.placement.clean 索引 nil 崩溃。应 no-op 而非报错。
+-- (child 里本就没加载 snacks,Snacks==nil 天然复现该环境。)
+T["#12 refresh_docs no-ops when snacks is absent"] = function()
+	child.lua([[
+		local buf = vim.api.nvim_create_buf(true, false)
+		vim.bo[buf].filetype = "markdown"
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "# doc" })
+	]])
+	eq(child.lua_get([[Snacks == nil]]), true) -- 前提:snacks 未加载
+	eq(child.lua_get("select(1, pcall(" .. IR .. ".refresh_docs))"), true)
+end
+
+-- ============================================================ #1 buf.attach 旁路
+-- 直接打开 URL 图片(`:e https://…png` 的 BufReadCmd、picker 图片预览)走
+-- Snacks.image.buf.attach → placement → curl,**从不过 config.resolve**。
+-- guard_buf_attach 包住 attach 补一道 default-deny。用假 buf 模块记录 orig 收到的 src。
+
+-- 未获信任的远程 URL:orig 收到的应是本地占位图(不会 curl),不是原 URL。
+T["#1 buf.attach guard swaps an untrusted remote src for a local placeholder"] = function()
+	isolate({})
+	local got = child.lua_get([[(function()
+		local captured = {}
+		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		local ir = require("tools.image_render")
+		ir.guard_buf_attach()
+		local b = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_name(b, "https://evil.com/x.png")
+		require("snacks.image.buf").attach(b) -- BufReadCmd 回调形态:无 opts,src 取自 buffer 名
+		return captured.src
+	end)()]])
+	eq(child.lua_get("type(...)", { got }), "string")
+	eq(child.lua_get(IR .. ".is_remote_src(...)", { got }), false) -- 换成本地占位图 = 断网
+end
+
+-- 本地图 src 原样透传(不能误伤本地图片文件的查看)。
+T["#1 buf.attach guard passes a local image src through untouched"] = function()
+	isolate({})
+	local got = child.lua_get([[(function()
+		local captured = {}
+		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		local ir = require("tools.image_render")
+		ir.guard_buf_attach()
+		local b = vim.api.nvim_create_buf(false, true)
+		require("snacks.image.buf").attach(b, { src = "/local/a.png" })
+		return captured.src
+	end)()]])
+	eq(got, "/local/a.png")
+end
+
+-- 已放行(逐图)的远程 URL 原样透传,交回原 attach 正常抓取。
+T["#1 buf.attach guard passes a session-trusted URL through untouched"] = function()
+	isolate({})
+	local got = child.lua_get([[(function()
+		local captured = {}
+		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		local ir = require("tools.image_render")
+		ir.trust_image("https://ok.com/a.png")
+		ir.guard_buf_attach()
+		local b = vim.api.nvim_create_buf(false, true)
+		require("snacks.image.buf").attach(b, { src = "https://ok.com/a.png" })
+		return captured.src
+	end)()]])
+	eq(got, "https://ok.com/a.png")
+end
+
+-- ============================================================ #4/#10 ,iai 直取 src
+-- ,iai 不再靠 reveal_active 哨兵穿过渲染管线,而是直接跑 "images" treesitter query
+-- 现取光标处 image 的原始 src(测试环境没装 snacks 的 query 文件,用 query.set 现挂
+-- 一个同形的)。这消除了并发泄漏 / session 卡死(#4)与哨兵伪造(#10)。
+
+-- 正例:光标落在被拦远程图上 → 放行的正是它的原始 URL,且不波及别的 URL。
+T["#4 iai grants exactly the raw URL of the image at the cursor"] = function()
+	isolate({})
+	child.lua([[
+		vim.treesitter.query.set("markdown_inline", "images", "(image (link_destination) @image.src) @image")
+		local b = vim.api.nvim_create_buf(true, false)
+		vim.bo[b].filetype = "markdown"
+		vim.api.nvim_buf_set_lines(b, 0, -1, false, { "![x](https://example.com/a.png)" })
+		vim.api.nvim_set_current_buf(b)
+		vim.api.nvim_win_set_cursor(0, { 1, 6 })
+	]])
+	child.lua(IR .. ".trust_image_at_cursor()")
+	eq(child.lua_get(IR .. ".is_trusted('', 'https://example.com/a.png')"), true)
+	eq(child.lua_get(IR .. ".is_trusted('', 'https://other.com/b.png')"), false)
+end
+
+-- 边界:光标不在图那一行 → 什么都不放行(行级取址不外溢)。
+T["#4 iai off the image's line grants nothing"] = function()
+	isolate({})
+	child.lua([[
+		vim.treesitter.query.set("markdown_inline", "images", "(image (link_destination) @image.src) @image")
+		local b = vim.api.nvim_create_buf(true, false)
+		vim.bo[b].filetype = "markdown"
+		vim.api.nvim_buf_set_lines(b, 0, -1, false, { "text line", "![x](https://example.com/a.png)" })
+		vim.api.nvim_set_current_buf(b)
+		vim.api.nvim_win_set_cursor(0, { 1, 0 }) -- 图在第 2 行,光标在第 1 行
+	]])
+	child.lua(IR .. ".trust_image_at_cursor()")
+	eq(child.lua_get(IR .. ".is_trusted('', 'https://example.com/a.png')"), false)
+end
+
 return T

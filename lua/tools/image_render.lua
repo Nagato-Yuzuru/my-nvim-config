@@ -41,6 +41,12 @@ local M = {}
 --- snacks.image doc 覆盖的文档 filetype(与 snacks.lua 键位的 ft 一致)
 M.doc_fts = { "markdown", "markdown.mdx", "tex", "typst", "norg" }
 
+--- snacks.image 是否已加载可用。:ImageTrust 命令注册于 snacks 的 init、与 snacks
+--- load 解耦,snacks 加载失败时 Snacks 全局为 nil——依赖它重挂/清占位的操作应
+--- no-op 而非索引 nil 崩溃(见 test #12)。
+---@return boolean
+local function image_ready() return Snacks ~= nil and Snacks.image ~= nil end
+
 ---@param buf integer
 local function detach(buf)
 	pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.inline." .. buf)
@@ -52,6 +58,17 @@ end
 ---@param buf? integer nil/0 = 当前 buffer
 ---@return integer
 local function norm_buf(buf) return (buf == nil or buf == 0) and vim.api.nvim_get_current_buf() or buf end
+
+--- 遍历所有已加载的文档 buffer(doc_fts filetype),对每个调用 fn(buf)。
+--- global_set(全局开关)与 refresh_docs(信任变化重渲)共用这段筛选。
+---@param fn fun(buf: integer)
+local function for_each_doc_buf(fn)
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_loaded(buf) and vim.tbl_contains(M.doc_fts, vim.bo[buf].filetype) then
+			fn(buf)
+		end
+	end
+end
 
 --- buffer 级图片渲染开关。全局闸关着时开 buffer 级无效(attach 会 no-op)。
 ---@param buf? integer
@@ -82,11 +99,7 @@ function M.global_set(on)
 		on = Snacks.image.config.enabled == false
 	end
 	Snacks.image.config.enabled = on
-	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-		if vim.api.nvim_buf_is_loaded(buf) and vim.tbl_contains(M.doc_fts, vim.bo[buf].filetype) then
-			M.buf_set(buf, on)
-		end
-	end
+	for_each_doc_buf(function(buf) M.buf_set(buf, on) end)
 	return on
 end
 
@@ -222,7 +235,8 @@ local function repo_root(norm_file)
 end
 
 -- 每次调用取 stdpath:测试经 $XDG_STATE_HOME 隔离持久层(stdpath 读 env 是活的)。
-local function state_file() return vim.fs.joinpath(vim.fn.stdpath("state"), "image-remote-trust.json") end
+-- 暴露给测试引用真实路径(单一事实源,免测试硬编码文件名)。
+function M.state_file() return vim.fs.joinpath(vim.fn.stdpath("state"), "image-remote-trust.json") end
 
 --- 从磁盘现读持久仓库集(不走内存缓存)。fail-safe:文件缺失 → 空集;损坏 →
 --- 空集 + WARN(**默认拒绝**,绝不因读失败而放行)。写盘前用它重读+合并,是多实例
@@ -230,7 +244,7 @@ local function state_file() return vim.fs.joinpath(vim.fn.stdpath("state"), "ima
 ---@return table<string, true>
 local function read_disk_repos()
 	local set = {}
-	local f = io.open(state_file(), "r")
+	local f = io.open(M.state_file(), "r")
 	if not f then
 		return set
 	end
@@ -244,7 +258,10 @@ local function read_disk_repos()
 			end
 		end
 	else
-		vim.notify("image_render: 信任库损坏,按空库处理(默认拦截): " .. state_file(), vim.log.levels.WARN)
+		vim.notify(
+			"image_render: 信任库损坏,按空库处理(默认拦截): " .. M.state_file(),
+			vim.log.levels.WARN
+		)
 	end
 	return set
 end
@@ -270,7 +287,7 @@ local write_seq = 0
 local function persist_repos(set)
 	local repos = vim.tbl_keys(set)
 	table.sort(repos)
-	local path = state_file()
+	local path = M.state_file()
 	vim.fn.mkdir(vim.fs.dirname(path), "p")
 	write_seq = write_seq + 1
 	local tmp = ("%s.tmp.%d.%d"):format(path, uv.os_getpid(), write_seq)
@@ -350,34 +367,91 @@ function M.trust_repo(file)
 	return root
 end
 
--- ,iai 的取址难点:渲染管线里远程 URL 已被 block_remote 换成占位图,直接问
--- snacks「光标处是什么」只能拿到占位图路径。做法:置 reveal 标志后走
--- Snacks.image.doc.at_cursor(对 snacks 内部命名的又一处耦合,按本模块约定
--- 集中于此),reveal 期间 block_remote 对未信任远程 src 返回「哨兵前缀+原
--- URL」——哨兵不含 `://`、不是 URI,即便撞上并发渲染也只会被当成不存在的
--- 本地路径而报错,**不可能触发联网**;at_cursor 只找不抓,回调里解出原 URL。
-local REVEAL_PREFIX = "image-trust-reveal:"
-local reveal_active = false
+-- ,iai 的取址难点:渲染管线里远程 URL 已被 block_remote 换成占位图,直接问 snacks
+-- 「光标处是什么」只能拿到占位图路径。改为**直接跑 snacks 装的 "images" treesitter
+-- query**(所有 doc 语言通用)现取光标处 image 节点的原始 src——同步、无全局标志、
+-- 无哨兵,免掉旧 reveal_active 方案的并发泄漏 / session 卡死(#4)与哨兵伪造(#10)。
+-- 对 snacks 内部命名(query 名 "images"、capture "image.src")的又一处耦合,集中于此。
+
+--- 镜像 snacks doc.url_decode:snacks 在 resolve 里对 src 先 url_decode 再交给
+--- block_remote,故 trust key 存的是解码后形态;此处取原始节点文本后须同样解码,
+--- 两端 key 才对得上(参照 is_remote_src 镜像 is_uri 的做法)。
+---@param s string
+---@return string
+local function url_decode(s)
+	return (s:gsub("+", " "):gsub("%%(%x%x)", function(h) return string.char(tonumber(h, 16)) end))
+end
+
+--- 光标所在行 image 节点的原始 src(未经 block_remote 改写),无则 nil。
+---@return string?
+local function src_at_cursor()
+	local buf = vim.api.nvim_get_current_buf()
+	local ok, parser = pcall(vim.treesitter.get_parser, buf)
+	if not ok or not parser then
+		return nil
+	end
+	parser:parse(true)
+	local row = vim.api.nvim_win_get_cursor(0)[1] - 1 -- 0-based
+	local found ---@type string?
+	parser:for_each_tree(function(tstree, tree)
+		if found or not tstree then
+			return
+		end
+		local query = vim.treesitter.query.get(tree:lang(), "images")
+		if not query then
+			return
+		end
+		for _, match, meta in query:iter_matches(tstree:root(), buf, row, row + 1) do
+			for id, nodes in pairs(match) do
+				if query.captures[id] == "image.src" then
+					local node = type(nodes) == "userdata" and nodes or nodes[#nodes]
+					found = url_decode(vim.treesitter.get_node_text(node, buf, { metadata = meta[id] }))
+					return
+				end
+			end
+		end
+	end)
+	return found
+end
 
 --- ,iai:放行光标处那张被拦的远程图(session),成功后立即重渲。
 function M.trust_image_at_cursor()
-	reveal_active = true
-	local ok, err = pcall(Snacks.image.doc.at_cursor, function(src)
-		reveal_active = false
-		local url = src and src:match("^" .. vim.pesc(REVEAL_PREFIX) .. "(.+)$") or nil
-		if url then
-			M.trust_image(url)
-			M.refresh_docs()
-			vim.notify("Image trust: 已放行(session) " .. url)
-		elseif src and M.is_remote_src(src) then
-			vim.notify("Image trust: 该图已在放行范围内")
-		else
-			vim.notify("Image trust: 光标处没有被拦截的远程图片", vim.log.levels.WARN)
-		end
-	end)
-	if not ok then
-		reveal_active = false
-		error(err)
+	local src = src_at_cursor()
+	if not (src and M.is_remote_src(src)) then
+		vim.notify("Image trust: 光标处没有被拦截的远程图片", vim.log.levels.WARN)
+		return
+	end
+	-- file 传当前 buffer 名:该图可能已经由文件/仓库档信任,这时提示「已放行」而非
+	-- 冗余地再记一条逐图授予。
+	if M.is_trusted(vim.api.nvim_buf_get_name(0), src) then
+		vim.notify("Image trust: 该图已在放行范围内")
+		return
+	end
+	M.trust_image(src)
+	M.refresh_docs()
+	vim.notify("Image trust: 已放行(session) " .. src)
+end
+
+--- ,iaf:放行当前 buffer 文件(session),成功后重渲;buffer 无文件名则告警。
+--- (grant+notify+refresh 的编排住模块里,snacks spec 只 delegate,保持声明式。)
+function M.grant_file_interactive()
+	local key = M.trust_file(vim.api.nvim_buf_get_name(0))
+	if key then
+		M.refresh_docs()
+		vim.notify("Image trust: 本文件已放行(session) " .. key)
+	else
+		vim.notify("Image trust: buffer 没有文件名", vim.log.levels.WARN)
+	end
+end
+
+--- ,iar:持久放行当前 buffer 所在 git 仓库,成功后重渲;不在 git 仓库则告警。
+function M.grant_repo_interactive()
+	local root = M.trust_repo(vim.api.nvim_buf_get_name(0))
+	if root then
+		M.refresh_docs()
+		vim.notify("Image trust: 仓库已持久放行 " .. root)
+	else
+		vim.notify("Image trust: 不在 git 仓库内,用 ,iaf/,iai", vim.log.levels.WARN)
 	end
 end
 
@@ -397,7 +471,7 @@ function M.trust_list()
 	end
 	section("图(session)", trusted_images)
 	section("文件(session)", trusted_files)
-	section("仓库(持久 " .. state_file() .. ")", load_repos())
+	section("仓库(持久 " .. M.state_file() .. ")", load_repos())
 	return lines
 end
 
@@ -412,15 +486,14 @@ end
 --- 重渲所有已加载文档 buffer(跳过被 ,ii 手动关掉的),让信任变化立即生效
 --- ——仓库/URL 级放行可能影响多个 buffer,不止当前。
 function M.refresh_docs()
-	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-		if
-			vim.api.nvim_buf_is_loaded(buf)
-			and vim.tbl_contains(M.doc_fts, vim.bo[buf].filetype)
-			and not vim.b[buf].image_render_off
-		then
+	if not image_ready() then
+		return
+	end
+	for_each_doc_buf(function(buf)
+		if not vim.b[buf].image_render_off then
 			M.buf_refresh(buf)
 		end
-	end
+	end)
 end
 
 --- Snacks.image.config.resolve 钩子:远程且未获信任的 src → 本地占位图
@@ -436,10 +509,32 @@ function M.block_remote(file, src)
 	if M.is_trusted(file, src) then
 		return nil
 	end
-	if reveal_active then
-		return REVEAL_PREFIX .. src
-	end
 	return ensure_placeholder()
+end
+
+--- 给 Snacks.image.buf.attach 补一道 default-deny。直接打开 URL 图片文件
+--- (`:e https://…png` 的 BufReadCmd、picker 图片预览)走 buf.attach → placement →
+--- convert → curl,**从不过 config.resolve**(resolve 只在 doc 内联 / hover 链上)。
+--- 这里包住 attach:src 是未获信任的远程 URL 就换成本地占位图交给原 attach(渲染
+--- 占位、绝不联网);本地图 / 已放行 URL 原样放行。裸 URL buffer 无文档/仓库上下文
+--- ——只认逐图放行(file=""),文件/仓库档是「某文档信任其内嵌图」,与之无关。
+--- 幂等(重复调用只 patch 一次)。由 snacks.lua 在 setup 后调用。
+function M.guard_buf_attach()
+	local buf = require("snacks.image.buf")
+	if buf._image_render_guarded then
+		return
+	end
+	buf._image_render_guarded = true
+	local orig = buf.attach
+	---@param bufnr integer
+	---@param opts? table
+	buf.attach = function(bufnr, opts)
+		local src = (opts and opts.src) or vim.api.nvim_buf_get_name(bufnr)
+		if M.is_remote_src(src) and not M.is_trusted("", src) then
+			opts = vim.tbl_extend("force", opts or {}, { src = ensure_placeholder() })
+		end
+		return orig(bufnr, opts)
+	end
 end
 
 return M

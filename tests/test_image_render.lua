@@ -11,8 +11,9 @@ local child, hooks = H.new_child()
 
 local T = MiniTest.new_set({ hooks = hooks })
 local eq = MiniTest.expect.equality
+local IR = "require('tools.image_render')"
 
-local function is_remote(src) return child.lua_get(("require('tools.image_render').is_remote_src(%q)"):format(src)) end
+local function is_remote(src) return child.lua_get((IR .. ".is_remote_src(%q)"):format(src)) end
 -- 返回值可能是 nil,child.lua_get 会把它变 vim.NIL——统一用 type() 断言消歧。
 -- 先把 state/cache 隔离到临时目录:否则 block_remote('doc.md',…) 会读**真实**
 -- 持久库、且 repo_root('doc.md') 解析到本仓库——一旦你 ,iar 信任过 ~/.config/nvim,
@@ -101,9 +102,7 @@ local function setup_trust_env(with_repo)
 	)
 end
 local URL = "https://example.com/a.png"
-local function trusted(file, src)
-	return child.lua_get(("require('tools.image_render').is_trusted(%q, %q)"):format(file, src))
-end
+local function trusted(file, src) return child.lua_get((IR .. ".is_trusted(%q, %q)"):format(file, src)) end
 
 T["is_trusted"] = MiniTest.new_set()
 
@@ -116,7 +115,7 @@ end
 -- 正例:逐图档按精确 URL 命中,与 file 无关。
 T["is_trusted: granted image URL matches in any file"] = function()
 	setup_trust_env(false)
-	child.lua(("require('tools.image_render').trust_image(%q)"):format(URL))
+	child.lua((IR .. ".trust_image(%q)"):format(URL))
 	eq(trusted("/tmp/a.md", URL), true)
 	eq(trusted("/elsewhere/b.md", URL), true)
 end
@@ -124,7 +123,7 @@ end
 -- 边界:精确匹配——fragment / 大小写不同即不是同一张。
 T["is_trusted: image grant is exact (fragment/case differ = miss)"] = function()
 	setup_trust_env(false)
-	child.lua(("require('tools.image_render').trust_image(%q)"):format(URL))
+	child.lua((IR .. ".trust_image(%q)"):format(URL))
 	eq(trusted("/tmp/a.md", URL .. "#frag"), false)
 	eq(trusted("/tmp/a.md", "https://EXAMPLE.com/a.png"), false)
 end
@@ -132,7 +131,7 @@ end
 -- 正例:文件档 realpath 归一化——经符号链接访问同一文件也命中。
 T["is_trusted: granted file matches through symlink (realpath key)"] = function()
 	local env = setup_trust_env(true)
-	child.lua(("require('tools.image_render').trust_file(%q)"):format(env.doc))
+	child.lua((IR .. ".trust_file(%q)"):format(env.doc))
 	eq(trusted(env.doc, URL), true)
 	local link = env.tmp .. "/link.md"
 	child.lua(("vim.uv.fs_symlink(%q, %q)"):format(env.doc, link))
@@ -144,13 +143,13 @@ end
 -- 反例:trust_file 拒绝空文件名(unnamed buffer 无档可放)。
 T["is_trusted: trust_file rejects empty name"] = function()
 	setup_trust_env(false)
-	eq(child.lua_get([[type(require('tools.image_render').trust_file(""))]]), "nil")
+	eq(child.lua_get("type(" .. IR .. [[.trust_file(""))]]), "nil")
 end
 
 -- 正例:仓库档 git root 命中,覆盖仓库内所有文件;仓库外不命中。
 T["is_trusted: granted repo covers files inside, not outside"] = function()
 	local env = setup_trust_env(true)
-	local root = child.lua_get(("require('tools.image_render').trust_repo(%q)"):format(env.doc))
+	local root = child.lua_get((IR .. ".trust_repo(%q)"):format(env.doc))
 	eq(root, env.repo)
 	eq(trusted(env.doc, URL), true)
 	eq(trusted(env.repo .. "/README.md", URL), true)
@@ -162,16 +161,55 @@ T["is_trusted: trust_repo outside git returns nil"] = function()
 	local env = setup_trust_env(false)
 	local out = env.tmp .. "/plain.md"
 	child.lua(("vim.fn.writefile({ 'x' }, %q)"):format(out))
-	eq(child.lua_get(("type(require('tools.image_render').trust_repo(%q))"):format(out)), "nil")
+	eq(child.lua_get(("type(" .. IR .. ".trust_repo(%q))"):format(out)), "nil")
 end
 
 -- 边界:unnamed buffer(file == "")只认逐图档——不继承 cwd 仓库的信任。
 T["is_trusted: unnamed buffer only honors image grants"] = function()
 	local env = setup_trust_env(true)
-	child.lua(("require('tools.image_render').trust_repo(%q)"):format(env.doc))
+	child.lua((IR .. ".trust_repo(%q)"):format(env.doc))
 	eq(trusted("", URL), false)
-	child.lua(("require('tools.image_render').trust_image(%q)"):format(URL))
+	child.lua((IR .. ".trust_image(%q)"):format(URL))
 	eq(trusted("", URL), true)
+end
+
+-- ============================================ ,iaf/,iar 交互放行(读当前 buffer)
+-- spec 键位只 delegate 到这两个;编排(读 buffer 名 + grant + refresh + notify)住模块。
+T["grant"] = MiniTest.new_set()
+
+-- 正例:,iaf 放行当前 buffer 的文件。
+T["grant: grant_file_interactive trusts the current buffer's file"] = function()
+	local env = setup_trust_env(true)
+	child.lua(([[
+		local b = vim.api.nvim_create_buf(true, false)
+		vim.api.nvim_buf_set_name(b, %q)
+		vim.api.nvim_set_current_buf(b)
+		require("tools.image_render").grant_file_interactive()
+	]]):format(env.doc))
+	eq(trusted(env.doc, URL), true)
+end
+
+-- 反例:unnamed buffer 无档可放 → 不放行、不报错。
+T["grant: grant_file_interactive on an unnamed buffer is a no-op, not an error"] = function()
+	setup_trust_env(false)
+	local ok = child.lua_get([[select(1, pcall(function()
+		vim.api.nvim_set_current_buf(vim.api.nvim_create_buf(true, false))
+		require("tools.image_render").grant_file_interactive()
+	end))]])
+	eq(ok, true)
+	eq(trusted("/tmp/whatever.md", URL), false)
+end
+
+-- 正例:,iar 放行当前 buffer 所在 git 仓库(覆盖仓库内其它文件)。
+T["grant: grant_repo_interactive trusts the current buffer's git repo"] = function()
+	local env = setup_trust_env(true)
+	child.lua(([[
+		local b = vim.api.nvim_create_buf(true, false)
+		vim.api.nvim_buf_set_name(b, %q)
+		vim.api.nvim_set_current_buf(b)
+		require("tools.image_render").grant_repo_interactive()
+	]]):format(env.doc))
+	eq(trusted(env.repo .. "/README.md", URL), true)
 end
 
 -- ==================================================== 持久层:落盘/加载
@@ -180,13 +218,13 @@ T["persistence"] = MiniTest.new_set()
 -- 正例:round-trip——授予落盘后,新进程(模块重载)从磁盘读回。
 T["persistence: repo grant survives module reload"] = function()
 	local env = setup_trust_env(true)
-	child.lua(("require('tools.image_render').trust_repo(%q)"):format(env.doc))
+	child.lua((IR .. ".trust_repo(%q)"):format(env.doc))
 	-- 模拟重启:卸掉模块,信任集归零,仅剩磁盘
 	child.lua([[package.loaded["tools.image_render"] = nil]])
 	eq(trusted(env.doc, URL), true)
 	-- session 档不落盘:重载后图档消失
 	child.lua([[package.loaded["tools.image_render"] = nil]])
-	child.lua(("require('tools.image_render').trust_image(%q)"):format(URL))
+	child.lua((IR .. ".trust_image(%q)"):format(URL))
 	child.lua([[package.loaded["tools.image_render"] = nil]])
 	eq(trusted("/no/repo/here.md", URL), false)
 end
@@ -195,9 +233,9 @@ end
 T["persistence: corrupt state file denies, does not error"] = function()
 	local env = setup_trust_env(true)
 	child.lua([[
-		local dir = vim.env.XDG_STATE_HOME .. "/nvim"
-		vim.fn.mkdir(dir, "p")
-		vim.fn.writefile({ "{ not json !!" }, dir .. "/image-remote-trust.json")
+		local f = require("tools.image_render").state_file()
+		vim.fn.mkdir(vim.fs.dirname(f), "p")
+		vim.fn.writefile({ "{ not json !!" }, f)
 	]])
 	eq(trusted(env.doc, URL), false)
 end
@@ -205,9 +243,8 @@ end
 -- 边界:trust_clear 清空三档且改写持久库;重载后仓库档也不再命中。
 T["persistence: trust_clear wipes memory and disk"] = function()
 	local env = setup_trust_env(true)
-	local ir = "require('tools.image_render')"
-	child.lua(("%s.trust_repo(%q); %s.trust_image(%q)"):format(ir, env.doc, ir, URL))
-	child.lua(ir .. ".trust_clear()")
+	child.lua(("%s.trust_repo(%q); %s.trust_image(%q)"):format(IR, env.doc, IR, URL))
+	child.lua(IR .. ".trust_clear()")
 	eq(trusted(env.doc, URL), false)
 	child.lua([[package.loaded["tools.image_render"] = nil]])
 	eq(trusted(env.doc, URL), false)
@@ -217,9 +254,9 @@ end
 -- 放行命中 → nil(交回 snacks 抓);未命中维持占位图。
 T["block_remote: trusted remote returns nil, untrusted stays blocked"] = function()
 	local env = setup_trust_env(true)
-	eq(child.lua_get(("type(require('tools.image_render').block_remote(%q, %q))"):format(env.doc, URL)), "string")
-	child.lua(("require('tools.image_render').trust_repo(%q)"):format(env.doc))
-	eq(child.lua_get(("type(require('tools.image_render').block_remote(%q, %q))"):format(env.doc, URL)), "nil")
+	eq(child.lua_get(("type(" .. IR .. ".block_remote(%q, %q))"):format(env.doc, URL)), "string")
+	child.lua((IR .. ".trust_repo(%q)"):format(env.doc))
+	eq(child.lua_get(("type(" .. IR .. ".block_remote(%q, %q))"):format(env.doc, URL)), "nil")
 end
 
 return T

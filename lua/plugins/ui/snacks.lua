@@ -330,6 +330,10 @@ end
 -- Plugin spec
 -- ============================================================
 
+-- snacks.image doc filetypes 的单一事实源:下方 ,ia*/,i* 键位的 `ft =` 引用它,
+-- 别再抄一份(改一处即可)。见 tools/image_render.lua M.doc_fts。
+local doc_fts = require("tools.image_render").doc_fts
+
 return {
 	{
 		"folke/snacks.nvim",
@@ -350,7 +354,11 @@ return {
 				end
 			end, {
 				nargs = "?",
-				complete = function() return { "list", "clear" } end,
+				-- customlist 补全不自动按 ArgLead 过滤——手动过滤,否则 `:ImageTrust c<Tab>`
+				-- 仍列出 list/clear 两项。
+				complete = function(lead)
+					return vim.tbl_filter(function(x) return x:find(lead, 1, true) == 1 end, { "list", "clear" })
+				end,
 				desc = "List/clear remote-image trust grants",
 			})
 		end,
@@ -365,6 +373,12 @@ return {
 			require("snacks").setup(opts)
 			if opts.notifier and opts.notifier.enabled then
 				vim.notify = require("snacks.notifier").notify
+			end
+			-- 直接打开 URL 图片(`:e https://…png` 的 BufReadCmd、picker 图片预览)走
+			-- buf.attach → curl,绕过下面的 image.resolve 钩子——补一道同样的
+			-- default-deny(实现见 tools.image_render.guard_buf_attach)。
+			if opts.image and opts.image.enabled then
+				require("tools.image_render").guard_buf_attach()
 			end
 		end,
 		opts = {
@@ -604,7 +618,7 @@ return {
 			{
 				"<localleader>iv",
 				function() Snacks.image.hover() end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				ft = doc_fts,
 				desc = "Image: view at cursor (float)",
 			},
 			{
@@ -613,7 +627,7 @@ return {
 					local on = require("tools.image_render").buf_set(nil, nil)
 					vim.notify("snacks.image render: " .. (on and "on" or "off"))
 				end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				ft = doc_fts,
 				desc = "Image: toggle rendering (buffer)",
 			},
 			{
@@ -624,43 +638,25 @@ return {
 					require("tools.image_render").buf_refresh()
 					vim.notify("snacks.image inline: " .. tostring(doc.inline))
 				end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				ft = doc_fts,
 				desc = "Image: toggle inline rendering",
 			},
 			{
 				"<localleader>iai",
 				function() require("tools.image_render").trust_image_at_cursor() end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				ft = doc_fts,
 				desc = "Image: allow image at cursor (session)",
 			},
 			{
 				"<localleader>iaf",
-				function()
-					local ir = require("tools.image_render")
-					local key = ir.trust_file(vim.api.nvim_buf_get_name(0))
-					if key then
-						ir.refresh_docs()
-						vim.notify("Image trust: 本文件已放行(session) " .. key)
-					else
-						vim.notify("Image trust: buffer 没有文件名", vim.log.levels.WARN)
-					end
-				end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				function() require("tools.image_render").grant_file_interactive() end,
+				ft = doc_fts,
 				desc = "Image: allow this file (session)",
 			},
 			{
 				"<localleader>iar",
-				function()
-					local ir = require("tools.image_render")
-					local root = ir.trust_repo(vim.api.nvim_buf_get_name(0))
-					if root then
-						ir.refresh_docs()
-						vim.notify("Image trust: 仓库已持久放行 " .. root)
-					else
-						vim.notify("Image trust: 不在 git 仓库内,用 ,iaf/,iai", vim.log.levels.WARN)
-					end
-				end,
-				ft = { "markdown", "markdown.mdx", "tex", "typst", "norg" },
+				function() require("tools.image_render").grant_repo_interactive() end,
+				ft = doc_fts,
 				desc = "Image: allow this repo (persistent)",
 			},
 		},
