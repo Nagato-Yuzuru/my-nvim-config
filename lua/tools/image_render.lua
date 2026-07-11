@@ -259,7 +259,7 @@ local function read_disk_repos()
 		end
 	else
 		vim.notify(
-			"image_render: 信任库损坏,按空库处理(默认拦截): " .. M.state_file(),
+			"Image trust: trust store corrupt, treating as empty (default-deny): " .. M.state_file(),
 			vim.log.levels.WARN
 		)
 	end
@@ -418,18 +418,18 @@ end
 function M.trust_image_at_cursor()
 	local src = src_at_cursor()
 	if not (src and M.is_remote_src(src)) then
-		vim.notify("Image trust: 光标处没有被拦截的远程图片", vim.log.levels.WARN)
+		vim.notify("Image trust: no blocked remote image at cursor", vim.log.levels.WARN)
 		return
 	end
 	-- file 传当前 buffer 名:该图可能已经由文件/仓库档信任,这时提示「已放行」而非
 	-- 冗余地再记一条逐图授予。
 	if M.is_trusted(vim.api.nvim_buf_get_name(0), src) then
-		vim.notify("Image trust: 该图已在放行范围内")
+		vim.notify("Image trust: this image is already allowed")
 		return
 	end
 	M.trust_image(src)
 	M.refresh_docs()
-	vim.notify("Image trust: 已放行(session) " .. src)
+	vim.notify("Image trust: allowed (session) " .. src)
 end
 
 --- ,iaf:放行当前 buffer 文件(session),成功后重渲;buffer 无文件名则告警。
@@ -438,9 +438,9 @@ function M.grant_file_interactive()
 	local key = M.trust_file(vim.api.nvim_buf_get_name(0))
 	if key then
 		M.refresh_docs()
-		vim.notify("Image trust: 本文件已放行(session) " .. key)
+		vim.notify("Image trust: file allowed (session) " .. key)
 	else
-		vim.notify("Image trust: buffer 没有文件名", vim.log.levels.WARN)
+		vim.notify("Image trust: buffer has no file name", vim.log.levels.WARN)
 	end
 end
 
@@ -449,16 +449,16 @@ function M.grant_repo_interactive()
 	local root = M.trust_repo(vim.api.nvim_buf_get_name(0))
 	if root then
 		M.refresh_docs()
-		vim.notify("Image trust: 仓库已持久放行 " .. root)
+		vim.notify("Image trust: repo allowed (persistent) " .. root)
 	else
-		vim.notify("Image trust: 不在 git 仓库内,用 ,iaf/,iai", vim.log.levels.WARN)
+		vim.notify("Image trust: not in a git repo — use ,iaf/,iai", vim.log.levels.WARN)
 	end
 end
 
 --- :ImageTrust list 的内容:三档信任的可审计快照。
 ---@return string[]
 function M.trust_list()
-	local lines = { "Image trust(远程图片放行):" }
+	local lines = { "Image trust (allowed remote images):" }
 	---@param title string
 	---@param set table<string, true>
 	local function section(title, set)
@@ -469,9 +469,9 @@ function M.trust_list()
 			lines[#lines + 1] = "    " .. k
 		end
 	end
-	section("图(session)", trusted_images)
-	section("文件(session)", trusted_files)
-	section("仓库(持久 " .. M.state_file() .. ")", load_repos())
+	section("images (session)", trusted_images)
+	section("files (session)", trusted_files)
+	section("repos (persistent " .. M.state_file() .. ")", load_repos())
 	return lines
 end
 

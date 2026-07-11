@@ -348,7 +348,7 @@ return {
 				if cmd.args == "clear" then
 					ir.trust_clear()
 					ir.refresh_docs()
-					vim.notify("Image trust: 已清空(含持久库)")
+					vim.notify("Image trust: cleared (including persistent store)")
 				else
 					vim.notify(table.concat(ir.trust_list(), "\n"))
 				end
