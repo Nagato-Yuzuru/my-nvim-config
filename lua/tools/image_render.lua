@@ -9,31 +9,45 @@
 --- 自有状态用 vim.b[buf].image_render_off 记录(不能复用 attach 守卫做
 --- toggle 判断:守卫在"渲染中"和"已禁用"两态下都是 true)。
 ---
---- 本模块还持有**远程图片安全策略**(M.block_remote):snacks 的 doc 渲染
---- 对任何 `scheme://` 图片 src 会自动 `curl -L` 拉取(convert.lua 的 url
---- 步骤,inline 渲染与 ,iv hover 都过这条链),curl 跟随重定向、不校验
---- content-type。等于「打开一份文档就自动向里面写的任意主机发请求」——
---- tracking pixel 泄露 IP、以及跳内网 / 169.254.169.254 的 SSRF 面。经
---- snacks 官方钩子 config.resolve(file, src)(doc.lua:184,curl 之前调用、
---- 返回非 nil 即短路解析)把远程 src 换成本地占位图,彻底断掉自动联网。
---- resolve 全局生效,inline 与 hover 一视同仁——不存在「hover 偷偷联网」。
+--- 本模块还持有**远程图片安全策略**:snacks 对任何 `scheme://` 图片 src 会
+--- 自动 `curl -L` 拉取(跟随重定向、不校验 content-type)=「打开一份文档就
+--- 自动向里面写的任意主机发请求」——tracking pixel 泄露 IP、以及跳内网 /
+--- 169.254.169.254 的 SSRF 面。两道闸,默认全拦、命中信任才放行:
+---   1. M.block_remote 挂 config.resolve(file, src)(snacks 官方钩子,doc
+---      内联与 ,iv hover 都过它):远程且未获信任 → 换本地占位图;信任命中
+---      → 记入 approved 后交回 snacks。这是唯一拿得到 (file, src) 文档上下
+---      文的地方,文件/仓库档只能在此判定。
+---   2. M.guard_convert 包住 snacks.image.convert.convert——所有抓取路径
+---      (doc 渲染、`:e https://…png` 的 BufReadCmd、picker 图片预览)最终
+---      都汇聚到这一个函数,curl 只从这个模块发出。approved / 逐图档之外
+---      的远程 src 一律换占位图:兜住 resolve 覆盖不到的路径,也兜住
+---      snacks 未来新增的抓取路径(失效模式是 fail-closed,不是悄悄联网)。
 ---
---- 放行走三档信任(,ia*;默认全拦,命中才交回 snacks 抓)——粒度与来源
---- 边界的可信度对齐。范式参照 vim.secure(default-deny + per-path 显式
---- 授予 + 落 state)但不依赖它(信任「项目代码」≠ 信任「项目的远程图」):
+--- 放行走三档信任(,ia*)——粒度与来源边界的可信度对齐。范式参照
+--- vim.secure(default-deny + per-path 显式授予 + 落 state)但不依赖它
+--- (信任「项目代码」≠ 信任「项目的远程图」):
 ---   图   ,iai  key=精确 URL     session 内存(一次性决定,用完即弃)
 ---   文件 ,iaf  key=realpath     session 内存(路径稳定但内容会漂移,
 ---              session 寿命把漂移窗压到最小,故不持久化)
 ---   仓库 ,iar  key=git root 的 realpath,持久
 ---              stdpath("state")/image-remote-trust.json(稳定信任边界,
----              值得记住;非 git 目录拒绝授予——绝不退回 cwd,cwd 可能
----              是 $HOME,等于信任整个家目录)
+---              值得记住;过宽 root——文件系统根 / $HOME 及其祖先——拒绝
+---              授予,判定与 LSP root 共用 tools/lsp_root.overbroad,
+---              非 git 目录同样拒绝、绝不退回 cwd)
 --- 持久库原子写、损坏时按空库 + WARN(fail-safe:读不出=谁都不信)。
 --- 审计/撤销::ImageTrust [list|clear](lua/plugins/ui/snacks.lua 注册)。
 ---
+--- 对 snacks 内部的依赖同顶部原则集中在本模块;snacks 未 pin,:Lazy update
+--- 后复查这份清单:convert.convert 的 opts.src 契约(guard_convert)、
+--- resolve 收到的 src 已 url_decode、"images" query 与 "image.src" capture、
+--- doc.transforms / doc.url_decode(直接调用其函数,不复制)、is_uri 的
+--- `^%w%w+://` 模式(此一处是镜像:convert 模块脱离 Snacks 全局加载不了,
+--- 而 is_remote_src 要在无 snacks 的测试子进程里独立可跑)。
+---
 --- 引用方:lua/plugins/lang/markdown.lua(,mr/,mR 联动)、
 ---         lua/plugins/ui/snacks.lua(,ii 开关 / ,it inline-float 切换、
----         ,ia* 放行三键 + :ImageTrust、image.resolve = block_remote)。
+---         ,ia* 放行三键 + :ImageTrust、image.resolve = block_remote、
+---         setup 后调 guard_convert)。
 ---
 
 local M = {}
@@ -127,53 +141,13 @@ function M.is_remote_src(src)
 end
 
 local uv = vim.uv or vim.loop
-local placeholder_path ---@type string? 首次拦截时物化并 memoize
-local tried_gen = false
 
---- 「远程图已拦截」占位图:落磁盘缓存,一个 session 至多尝试生成一次。
---- imagemagick 本就是整条图片链的硬依赖(没它什么都渲染不了),不引入新
---- 依赖;纯几何、无文字 → 不碰字体(snacks 在 SVG 缺字体上踩过坑)。生成
---- 失败/跳过也照常返回路径:snacks 至多对该图告警一次——响亮,且关键在于
---- **永不回退成联网抓取**。
----@return string
-local function ensure_placeholder()
-	local path = placeholder_path or vim.fs.joinpath(vim.fn.stdpath("cache"), "snacks-image-blocked.png")
-	placeholder_path = path
-	-- fresh cache / CI 上 stdpath("cache") 可能尚不存在;magick 无处落盘会静默失败
-	-- (本仓库 convert.notify=false),占位图神隐。无条件先建目录,且放在 fast-event
-	-- 守卫**之外**(见 test #5)。block_remote 只从 snacks resolve 调用——那里 snacks
-	-- 自己也 vim.api/vim.fn 满地跑,绝非快事件,mkdir 安全。
-	vim.fn.mkdir(vim.fs.dirname(path), "p")
-	if not uv.fs_stat(path) and not tried_gen and not vim.in_fast_event() then
-		tried_gen = true
-		-- 深色底 + 红叉 = 通用的「blocked/broken」,明暗背景都读得出。pcall 只兜
-		-- spawn 失败(magick 缺席时 ENOENT 抛错);:wait 在有效 proc 上不抛。
-		-- stroke/fill 分组的顺序:magick 按参数从左到右应用,画完矩形边框再叠红叉。
-		local ok, proc = pcall(vim.system, {
-			"magick",
-			"-size",
-			"220x44",
-			"xc:#202020",
-			"-stroke",
-			"#c04040",
-			"-strokewidth",
-			"2",
-			"-fill",
-			"none",
-			"-draw",
-			"rectangle 2,2 217,41",
-			"-draw",
-			"line 2,2 217,41",
-			"-draw",
-			"line 217,2 2,41",
-			path,
-		})
-		if ok then
-			proc:wait(5000)
-		end
-	end
-	return path
-end
+-- 「远程图已拦截」占位图:仓库里的静态资产(220x44 深底红叉,纯几何、无文字,
+-- 明暗背景都读得出),路径即常量——不在运行时生成,渲染路径上零 spawn / 零
+-- mkdir / 零阻塞。关键契约:block_remote 永远返回这个本地路径,**绝不回退成
+-- 联网抓取**。
+local placeholder_png =
+	vim.fs.joinpath(vim.fs.dirname(debug.getinfo(1, "S").source:sub(2)), "assets", "image-blocked.png")
 
 -- ── 远程图片信任分级(,ia* 放行)─────────────────────────────────────
 
@@ -182,28 +156,28 @@ local trusted_images = {} ---@type table<string, true> key: 精确 URL(snacks ur
 local trusted_files = {} ---@type table<string, true> key: realpath
 local trusted_repos ---@type table<string, true>? nil = 尚未加载
 
---- 与 vim.secure 同款的键归一化:解符号链接,同一实体只有一个 key。叶子尚未
---- 落盘时(如 ,iaf 授予一个还没 :w 的文件),对**最深的存在祖先** realpath 再拼
---- 回未落盘的尾段——否则符号链接目录下的叶子,:w 前(realpath 失败→退回 normalize)
---- 与 :w 后(realpath 解掉符号链接)会得到两个不同 key,授予静默漂失(见 test #9)。
+-- resolve 已放行的远程 src(session)。guard_convert 没有 (file, src) 文档上下文,
+-- 文件/仓库档的判定只能发生在 block_remote;它放行时记到这里,convert 层凭此
+-- 放过同一 src。单调增、trust_clear 时清空——撤销后下一次 resolve 不再补记,
+-- 重渲即回到拦截态。
+local approved = {} ---@type table<string, true>
+
+--- 与 vim.secure 同款的键归一化:解符号链接,同一实体只有一个 key。路径尚未
+--- 落盘时(如 ,iaf 授予一个还没 :w 的文件)退回 normalize——文件档本就是
+--- session 级,极端情况(符号链接目录下的未保存文件,:w 后 key 漂移)重按
+--- 一次 ,iaf 即恢复,不为它付「递归上溯最深存在祖先」的复杂度。
 ---@param p string
 ---@return string
 local function norm_path(p)
 	local n = vim.fs.normalize(p)
-	local real = uv.fs_realpath(n)
-	if real then
-		return real
-	end
-	local parent = vim.fs.dirname(n)
-	if parent == n then
-		return n -- 已到根,无从再上溯
-	end
-	return vim.fs.joinpath(norm_path(parent), vim.fs.basename(n))
+	return uv.fs_realpath(n) or n
 end
 
---- file 所在的 git 仓库 root(已 realpath 归一)。过宽的 root——等于 $HOME 或
---- 文件系统根——返回 nil:dotfiles-as-repo(~/.git)会让 vim.fs.root 一路冒泡到
---- 家目录,授予它等于信任整个家目录下所有文档的远程图(见 test #2)。
+--- file 所在的 git 仓库 root(已 realpath 归一)。过宽的 root——文件系统根、
+--- $HOME 及其祖先——返回 nil:dotfiles-as-repo(~/.git)会让 vim.fs.root 一路
+--- 冒泡到家目录,授予它等于信任整个家目录下所有文档的远程图(见 test #2)。
+--- 不做缓存:is_trusted 的零授予快路径已挡住常态,vim.fs.root 只是一次向上
+--- stat 走查;负缓存曾让「git init 前被摸过的目录」永久挡在门外(见 test #6)。
 ---@param dir string 已 norm_path 归一的目录
 ---@return string?
 local function git_root(dir)
@@ -212,26 +186,10 @@ local function git_root(dir)
 		return nil
 	end
 	root = norm_path(root)
-	if root == "/" or root == norm_path(uv.os_homedir()) then
+	if require("tools.lsp_root").overbroad(root) then
 		return nil
 	end
 	return root
-end
-
--- git root 按目录 memoize:block_remote 在渲染热路径上逐图调用,免每图上溯。只服务
--- is_trusted 热路径;trust_repo(冷路径)绕开它现算,以免 git init 之前的负结果把
--- session 内新建的仓库永久挡在门外(见 test #6)。
-local root_cache = {} ---@type table<string, string|false>
----@param norm_file string 已 norm_path 归一的文件路径
----@return string?
-local function repo_root(norm_file)
-	local dir = vim.fs.dirname(norm_file)
-	local hit = root_cache[dir]
-	if hit == nil then
-		hit = git_root(dir) or false
-		root_cache[dir] = hit
-	end
-	return hit or nil
 end
 
 -- 每次调用取 stdpath:测试经 $XDG_STATE_HOME 隔离持久层(stdpath 读 env 是活的)。
@@ -276,21 +234,17 @@ local function load_repos()
 	return trusted_repos
 end
 
--- 进程内单调计数:.tmp 用「pid + 计数器」拼唯一名,并发实例/同进程连写都不撞固定
--- 的 path..".tmp"(运行时 Lua,os_getpid + 计数器即足够唯一)。
-local write_seq = 0
-
---- 原子写给定集合到持久库(唯一临时文件 + rename),排序保证内容稳定。写失败抛错
+--- 原子写给定集合到持久库(临时文件 + rename),排序保证内容稳定。写失败抛错
 --- ——调用方靠它实现 persist-then-commit:写盘成功了才改内存,失败则内存/盘不发散
---- (见 test #8)。
+--- (见 test #8)。tmp 用固定名:授予是人手速级别的低频操作,两实例同毫秒写同
+--- 一个 tmp 的窗口不值得为它维护 pid/序号拼名。
 ---@param set table<string, true>
 local function persist_repos(set)
 	local repos = vim.tbl_keys(set)
 	table.sort(repos)
 	local path = M.state_file()
 	vim.fn.mkdir(vim.fs.dirname(path), "p")
-	write_seq = write_seq + 1
-	local tmp = ("%s.tmp.%d.%d"):format(path, uv.os_getpid(), write_seq)
+	local tmp = path .. ".tmp"
 	local f = assert(io.open(tmp, "w"))
 	f:write(vim.json.encode({ version = 1, repos = repos }))
 	f:close()
@@ -313,17 +267,18 @@ function M.is_trusted(file, src)
 	if file == "" then
 		return false
 	end
-	-- 零授予快路径:文件档与仓库档皆空时,免掉后面每图一次的 norm_path/repo_root
+	-- 零授予快路径:文件档与仓库档皆空时,免掉后面每图一次的 norm_path/git_root
 	-- 系统调用(未放行文档是常态,这条最热)。trusted_images 上面已查过。
-	if not next(trusted_files) and not next(load_repos()) then
+	local repos = load_repos()
+	if not next(trusted_files) and not next(repos) then
 		return false
 	end
 	local norm = norm_path(file)
 	if trusted_files[norm] then
 		return true
 	end
-	local root = repo_root(norm)
-	return root ~= nil and load_repos()[root] == true
+	local root = git_root(vim.fs.dirname(norm))
+	return root ~= nil and repos[root] == true
 end
 
 --- 放行一张图(session)。key 为精确 URL——一张就是一张。
@@ -350,16 +305,13 @@ function M.trust_repo(file)
 	if file == "" then
 		return nil
 	end
-	-- 冷路径:现算 root(绕开 root_cache 的负缓存,让 session 内 git init 后的仓库
-	-- 也能授予,见 test #6),并回填缓存让 is_trusted 立刻认这个仓库。
-	local dir = vim.fs.dirname(norm_path(file))
-	local root = git_root(dir)
+	local root = git_root(vim.fs.dirname(norm_path(file)))
 	if not root then
 		return nil
 	end
-	root_cache[dir] = root
 	-- persist-then-commit(#8)+ 并发合并(#3):把「磁盘 ∪ 内存 ∪ {root}」先写盘成功,
-	-- 再并入内存;写盘失败则内存不动、盘/内存不发散。
+	-- 再并入内存;写盘失败则内存不动、盘/内存不发散。合并保留:tmux 多实例是日常
+	-- 工作形态,另一实例的持久授予不该被本实例的陈旧快照覆盖。
 	local merged = vim.tbl_extend("force", read_disk_repos(), load_repos())
 	merged[root] = true
 	persist_repos(merged)
@@ -373,18 +325,15 @@ end
 -- 无哨兵,免掉旧 reveal_active 方案的并发泄漏 / session 卡死(#4)与哨兵伪造(#10)。
 -- 对 snacks 内部命名(query 名 "images"、capture "image.src")的又一处耦合,集中于此。
 
---- 镜像 snacks doc.url_decode:snacks 在 resolve 里对 src 先 url_decode 再交给
---- block_remote,故 trust key 存的是解码后形态;此处取原始节点文本后须同样解码,
---- 两端 key 才对得上(参照 is_remote_src 镜像 is_uri 的做法)。
----@param s string
----@return string
-local function url_decode(s)
-	return (s:gsub("+", " "):gsub("%%(%x%x)", function(h) return string.char(tonumber(h, 16)) end))
-end
-
 --- 光标所在行 image 节点的原始 src(未经 block_remote 改写),无则 nil。
+--- key 必须与 block_remote 收到的 src 逐字节一致,故镜像 doc._img 的 src 流水线:
+--- 节点文本 → per-language transform(norg 会把 src 重写成「节点起点到行尾」,
+--- 见 test #13)→ url_decode(resolve 在调 config.resolve 前先解码)。transform
+--- 与 url_decode 直接调 snacks.image.doc 的原函数(该模块不碰 Snacks 全局、可
+--- 独立 require),不本地复制——snacks 改解码/transform 规则时两端同步漂移。
 ---@return string?
 local function src_at_cursor()
+	local sdoc = require("snacks.image.doc")
 	local buf = vim.api.nvim_get_current_buf()
 	local ok, parser = pcall(vim.treesitter.get_parser, buf)
 	if not ok or not parser then
@@ -397,7 +346,8 @@ local function src_at_cursor()
 		if found or not tstree then
 			return
 		end
-		local query = vim.treesitter.query.get(tree:lang(), "images")
+		local lang = tree:lang()
+		local query = vim.treesitter.query.get(lang, "images")
 		if not query then
 			return
 		end
@@ -405,7 +355,17 @@ local function src_at_cursor()
 			for id, nodes in pairs(match) do
 				if query.captures[id] == "image.src" then
 					local node = type(nodes) == "userdata" and nodes or nodes[#nodes]
-					found = url_decode(vim.treesitter.get_node_text(node, buf, { metadata = meta[id] }))
+					local img = { src = vim.treesitter.get_node_text(node, buf, { metadata = meta[id] }), lang = lang }
+					local transform = sdoc.transforms[lang]
+					if transform then
+						transform(
+							img,
+							{ buf = buf, lang = lang, meta = meta, src = { node = node, meta = meta[id] or {} } }
+						)
+					end
+					if img.src then
+						found = (sdoc.url_decode(img.src))
+					end
 					return
 				end
 			end
@@ -444,14 +404,15 @@ function M.grant_file_interactive()
 	end
 end
 
---- ,iar:持久放行当前 buffer 所在 git 仓库,成功后重渲;不在 git 仓库则告警。
+--- ,iar:持久放行当前 buffer 所在 git 仓库,成功后重渲;不在 git 仓库或 root
+--- 过宽($HOME 及其祖先)则告警。
 function M.grant_repo_interactive()
 	local root = M.trust_repo(vim.api.nvim_buf_get_name(0))
 	if root then
 		M.refresh_docs()
 		vim.notify("Image trust: repo allowed (persistent) " .. root)
 	else
-		vim.notify("Image trust: not in a git repo — use ,iaf/,iai", vim.log.levels.WARN)
+		vim.notify("Image trust: no git repo here (or root too broad, e.g. ~) — use ,iaf/,iai", vim.log.levels.WARN)
 	end
 end
 
@@ -480,7 +441,7 @@ function M.trust_clear()
 	-- persist-then-commit(#8):先把空库写盘成功,再清内存三集;写盘失败(如 state
 	-- 目录只读)则抛错传出、内存不动,避免盘上仍有而内存已空的发散。
 	persist_repos({})
-	trusted_images, trusted_files, trusted_repos = {}, {}, {}
+	trusted_images, trusted_files, trusted_repos, approved = {}, {}, {}, {}
 end
 
 --- 重渲所有已加载文档 buffer(跳过被 ,ii 手动关掉的),让信任变化立即生效
@@ -497,8 +458,8 @@ function M.refresh_docs()
 end
 
 --- Snacks.image.config.resolve 钩子:远程且未获信任的 src → 本地占位图
---- (不联网);信任命中 → nil(交回 snacks 用原 URL 抓取);本地 → nil。
---- 见模块头注释的安全策略段。
+--- (不联网);信任命中 → 记入 approved(guard_convert 凭此放行)后返回 nil
+--- (交回 snacks 用原 URL 抓取);本地 → nil。见模块头注释的安全策略段。
 ---@param file string
 ---@param src string
 ---@return string?
@@ -507,33 +468,32 @@ function M.block_remote(file, src)
 		return nil
 	end
 	if M.is_trusted(file, src) then
+		approved[src] = true
 		return nil
 	end
-	return ensure_placeholder()
+	return placeholder_png
 end
 
---- 给 Snacks.image.buf.attach 补一道 default-deny。直接打开 URL 图片文件
---- (`:e https://…png` 的 BufReadCmd、picker 图片预览)走 buf.attach → placement →
---- convert → curl,**从不过 config.resolve**(resolve 只在 doc 内联 / hover 链上)。
---- 这里包住 attach:src 是未获信任的远程 URL 就换成本地占位图交给原 attach(渲染
---- 占位、绝不联网);本地图 / 已放行 URL 原样放行。裸 URL buffer 无文档/仓库上下文
---- ——只认逐图放行(file=""),文件/仓库档是「某文档信任其内嵌图」,与之无关。
+--- 抓取的单一收口:所有路径(doc 内联 / hover、`:e https://…png` 的 BufReadCmd、
+--- picker 图片预览)最终都汇聚到 snacks.image.convert.convert({src}),curl 只从
+--- 那个模块发出——在这里包一层 default-deny,未获批的远程 src 换成本地占位图,
+--- 则**任何**现在或未来的 snacks 抓取路径都拿不到未信任 URL。放行两种:resolve
+--- 已按 (file, src) 判过并记入 approved 的;逐图档命中的(裸 URL buffer / picker
+--- 无文档上下文,只认这一档——文件/仓库档是「某文档信任其内嵌图」,与之无关)。
 --- 幂等(重复调用只 patch 一次)。由 snacks.lua 在 setup 后调用。
-function M.guard_buf_attach()
-	local buf = require("snacks.image.buf")
-	if buf._image_render_guarded then
+function M.guard_convert()
+	local convert = require("snacks.image.convert")
+	if convert._image_render_guarded then
 		return
 	end
-	buf._image_render_guarded = true
-	local orig = buf.attach
-	---@param bufnr integer
-	---@param opts? table
-	buf.attach = function(bufnr, opts)
-		local src = (opts and opts.src) or vim.api.nvim_buf_get_name(bufnr)
-		if M.is_remote_src(src) and not M.is_trusted("", src) then
-			opts = vim.tbl_extend("force", opts or {}, { src = ensure_placeholder() })
+	convert._image_render_guarded = true
+	local orig = convert.convert
+	---@param opts { src: string }
+	convert.convert = function(opts)
+		if M.is_remote_src(opts.src) and not approved[opts.src] and not M.is_trusted("", opts.src) then
+			opts = vim.tbl_extend("force", opts, { src = placeholder_png })
 		end
-		return orig(bufnr, opts)
+		return orig(opts)
 	end
 end
 

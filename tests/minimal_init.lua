@@ -81,6 +81,12 @@ end
 vim.opt.runtimepath:prepend(root)
 vim.opt.runtimepath:prepend(ensure_plugin("mini.test", "https://github.com/nvim-mini/mini.test"))
 vim.opt.runtimepath:append(ensure_plugin("deleft.vim", "https://github.com/AndrewRadev/deleft.vim"))
+-- image_render 直接复用 snacks.image.doc 的 url_decode/transforms(该模块不碰
+-- Snacks 全局,可独立 require)。只挂 package.path 暴露其 lua 模块,**不上
+-- rtp**:mini.test 的 child 不带 --noplugin,rtp 上的 snacks 会在 plugin/ 阶段
+-- 被 source、定义 Snacks 全局,破坏「snacks 缺席」类用例的前提(bugs #12)。
+local snacks_dir = ensure_plugin("snacks.nvim", "https://github.com/folke/snacks.nvim")
+package.path = ("%s;%s/lua/?.lua;%s/lua/?/init.lua"):format(package.path, snacks_dir, snacks_dir)
 
 for lang, spec in pairs(PARSERS) do
 	ensure_parser(lang, spec)

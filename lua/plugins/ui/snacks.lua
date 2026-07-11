@@ -374,11 +374,11 @@ return {
 			if opts.notifier and opts.notifier.enabled then
 				vim.notify = require("snacks.notifier").notify
 			end
-			-- 直接打开 URL 图片(`:e https://…png` 的 BufReadCmd、picker 图片预览)走
-			-- buf.attach → curl,绕过下面的 image.resolve 钩子——补一道同样的
-			-- default-deny(实现见 tools.image_render.guard_buf_attach)。
+			-- 远程抓取的单一收口:image.resolve 钩子只在 doc 链上,`:e https://…png`
+			-- 的 BufReadCmd、picker 图片预览等路径绕过它——在所有路径汇聚的
+			-- convert 层再包一道 default-deny(实现见 tools.image_render.guard_convert)。
 			if opts.image and opts.image.enabled then
-				require("tools.image_render").guard_buf_attach()
+				require("tools.image_render").guard_convert()
 			end
 		end,
 		opts = {

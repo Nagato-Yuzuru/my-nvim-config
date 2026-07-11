@@ -1,8 +1,8 @@
 -- lua/tools/image_render.lua 的远程拦截安全策略测试。核心是 is_remote_src
 -- (哪些 src 会被 snacks 自动 `curl` = 编辑器的对外网络面)与 is_trusted
--- (三档放行判定)——均可在 child 里直接调用,无需 Snacks/magick。
--- block_remote 只验接线:本地 → nil、远程 → 占位图路径(生成走 magick,
--- pcall 兜底,故断言只看返回契约、不依赖 magick 是否在场)。
+-- (三档放行判定)——均可在 child 里直接调用,无需 Snacks 全局。
+-- block_remote 只验接线:本地 → nil、远程 → 占位图路径(仓库静态资产,
+-- 存在性契约见 bugs 套件 #5)。
 -- 持久层经 $XDG_STATE_HOME 指到临时目录隔离(stdpath 读 env 是活的,
 -- 模块每次 save/load 都现取 stdpath),不碰真实 state。
 
@@ -15,14 +15,12 @@ local IR = "require('tools.image_render')"
 
 local function is_remote(src) return child.lua_get((IR .. ".is_remote_src(%q)"):format(src)) end
 -- 返回值可能是 nil,child.lua_get 会把它变 vim.NIL——统一用 type() 断言消歧。
--- 先把 state/cache 隔离到临时目录:否则 block_remote('doc.md',…) 会读**真实**
--- 持久库、且 repo_root('doc.md') 解析到本仓库——一旦你 ,iar 信任过 ~/.config/nvim,
--- 「remote → 占位图」这条断言就会翻红(环境耦合)。
+-- 先把 state 隔离到临时目录:否则 block_remote('doc.md',…) 会读**真实**持久库、
+-- 且 git_root 解析到本仓库——一旦你 ,iar 信任过 ~/.config/nvim,「remote →
+-- 占位图」这条断言就会翻红(环境耦合)。
 local function block_type(src)
 	return child.lua_get(([[(function()
-			local base = vim.fn.tempname()
-			vim.env.XDG_STATE_HOME = base .. "/state"
-			vim.env.XDG_CACHE_HOME = base .. "/cache"
+			vim.env.XDG_STATE_HOME = vim.fn.tempname() .. "/state"
 			return type(require('tools.image_render').block_remote('doc.md', %q))
 		end)()]]):format(src))
 end
@@ -69,7 +67,7 @@ T["is_remote_src: boundaries"]["data uri is not remote"] = function() eq(is_remo
 -- ========================================================= block_remote:接线
 T["block_remote"] = MiniTest.new_set()
 
--- 远程 → 返回字符串(占位图路径);magick 缺席时 pcall 兜底仍返回路径。
+-- 远程 → 返回字符串(静态占位图路径)。
 T["block_remote: remote src returns a placeholder path (string)"] = function()
 	eq(block_type("https://example.com/a.png"), "string")
 end

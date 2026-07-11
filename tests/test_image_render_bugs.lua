@@ -1,9 +1,9 @@
--- 回归/缺陷测试:每个用例复现 image-remote-trust 代码审查(xhigh)确认的一个
--- bug,断言的是**期望行为**,故当前应全部 RED——把它们改绿是另一个 agent 的
--- GREEN 相(见 docs/rfcs/image-remote-trust-handoff.md)。用例名前缀 #N 对应
--- 交接文档里的 finding 编号。审查里另有几条无法在 child 单元层复现(buf.attach
--- 绕过、reveal 异步卡死、sentinel 伪造、热路径 syscall 等),那些只在交接文档
--- 里描述,不在本文件。
+-- 回归测试:每个用例对应一个代码审查确认过、已修复的 image-remote-trust bug,
+-- 断言期望行为、防止回归(用例名前缀 #N 是当轮审查的 finding 编号,仅作稳定
+-- 标识)。有的 finding 修法是把肇事机制整个删掉(root 负缓存、运行时生成占位
+-- 图):机制没了 bug 无从复发,对应用例改为断言替代机制的契约。原 #9(未落盘
+-- 文件跨 :w 的 key 漂移)随 norm_path 递归的移除不再承诺——重按 ,iaf 即恢复,
+-- 用例一并删除。
 
 local H = require("tests.helpers")
 local child, hooks = H.new_child()
@@ -46,40 +46,22 @@ T["#11 is_remote_src treats uppercase FILE:// as local"] = function()
 	eq(child.lua_get(IR .. ".is_remote_src('FILE:///Users/me/x.png')"), false)
 end
 
--- ============================================================ #6 repo_root 负缓存
--- repo_root 把「非 git 目录」永久负缓存,git init 后 ,iar 仍拒绝。
+-- ============================================================ #6 root 负缓存(已删机制)
+-- 曾经:repo_root 把「非 git 目录」永久负缓存,git init 后 ,iar 仍拒绝。修复是
+-- 删掉缓存本身(git_root 每次现算);本用例断言其行为契约:mid-session git init
+-- 后授予立即可行,且已被渲染路径摸过的目录不受影响。
 T["#6 trust_repo succeeds after git init mid-session"] = function()
 	local env = isolate({})
 	child.lua(
 		("vim.fn.mkdir(%q, 'p'); vim.fn.writefile({'x'}, %q)"):format(env.base .. "/proj", env.base .. "/proj/doc.md")
 	)
 	local doc = env.base .. "/proj/doc.md"
-	-- 渲染路径先摸一次 → 该目录被负缓存为「非 git」
+	-- 渲染路径先摸一次(曾把该目录负缓存为「非 git」的动作)
 	child.lua((IR .. ".is_trusted(%q, %q)"):format(doc, URL))
 	-- 用户随后 git init
 	child.lua(("vim.fn.mkdir(%q, 'p')"):format(env.base .. "/proj/.git"))
-	-- 期望:现在能授予
+	-- 期望:现在能授予,且渲染判定同步认账
 	eq(child.lua_get(("type(" .. IR .. ".trust_repo(%q))"):format(doc)), "string")
-end
-
--- ============================================================ #9 norm_path key 漂移
--- 未落盘时 realpath 失败 → 存 normalize 回退 key;:w 后 realpath 解掉符号链接
--- → key 变、授予静默失效。
-T["#9 file grant survives :w through a symlinked dir"] = function()
-	local env = isolate({})
-	child.lua(
-		([[vim.fn.mkdir(%q, "p"); vim.uv.fs_symlink(%q, %q)]]):format(
-			env.base .. "/real",
-			env.base .. "/real",
-			env.base .. "/link"
-		)
-	)
-	local doc = env.base .. "/link/new.md"
-	-- 文件尚不存在 → ,iaf 授予(存 normalize 回退 key)
-	child.lua((IR .. ".trust_file(%q)"):format(doc))
-	-- 用户 :w 落盘
-	child.lua(("vim.fn.writefile({'x'}, %q)"):format(doc))
-	-- 期望:同一逻辑文件仍被信任
 	eq(child.lua_get((IR .. ".is_trusted(%q, %q)"):format(doc, URL)), true)
 end
 
@@ -102,6 +84,23 @@ T["#2 trust_repo rejects a git root equal to $HOME"] = function()
 	)
 	-- 期望:拒绝($HOME 作为 root 太宽)
 	eq(child.lua_get(("type(" .. IR .. ".trust_repo(%q))"):format(home .. "/notes.md")), "nil")
+end
+
+-- 边界:root 是 $HOME 的**祖先**同样过宽(信任面 ⊇ 整个家目录)。判定共用
+-- tools/lsp_root.overbroad——LSP workspace 与 ,iar 对「过宽」的定义保持一致。
+T["#2 trust_repo rejects a git root that is an ancestor of $HOME"] = function()
+	local env = isolate({})
+	child.lua_get(
+		[[(function(base)
+			vim.fn.mkdir(base .. "/wide/.git", "p")
+			vim.fn.mkdir(base .. "/wide/home", "p")
+			vim.fn.writefile({ "x" }, base .. "/wide/notes.md")
+			vim.env.HOME = vim.uv.fs_realpath(base .. "/wide/home")
+			return true
+		end)(...)]],
+		{ env.base }
+	)
+	eq(child.lua_get(("type(" .. IR .. ".trust_repo(%q))"):format(env.base .. "/wide/notes.md")), "nil")
 end
 
 -- ============================================================ #3 多实例互相覆盖
@@ -145,19 +144,13 @@ T["#8 failed persist does not wipe in-memory trust"] = function()
 	eq(child.lua_get((IR .. ".is_trusted(%q, %q)"):format(env.repos.A.doc, URL)), true)
 end
 
--- ============================================================ #5 占位图 cache 目录
--- ensure_placeholder 写 stdpath('cache') 前不 mkdir → fresh cache 上 magick 无处
--- 写,占位图静默缺失(本仓库 convert.notify=false + inline=true 连报错都没有)。
-T["#5 blocked remote render creates its cache dir"] = function()
+-- ============================================================ #5 占位图可用性
+-- 曾经:占位图运行时用 magick 生成,fresh cache 上目录缺失/spawn 失败都会让它
+-- 静默神隐(convert.notify=false 连报错都没有)。修复是彻底不再运行时生成——
+-- 占位图是仓库静态资产。契约:block_remote 返回的路径永远指向真实存在的本地文件。
+T["#5 blocked remote render points at an existing local file"] = function()
 	isolate({})
-	child.lua((IR .. ".block_remote('doc.md', %q)"):format(URL))
-	eq(
-		child.lua_get([[(function()
-			local p = vim.fs.joinpath(vim.fn.stdpath("cache"), "snacks-image-blocked.png")
-			return vim.fn.isdirectory(vim.fs.dirname(p)) == 1
-		end)()]]),
-		true
-	)
+	eq(child.lua_get(("vim.uv.fs_stat(%s.block_remote('doc.md', %q)) ~= nil"):format(IR, URL)), true)
 end
 
 -- ============================================================ #12 snacks 缺席不崩
@@ -175,22 +168,21 @@ T["#12 refresh_docs no-ops when snacks is absent"] = function()
 	eq(child.lua_get("select(1, pcall(" .. IR .. ".refresh_docs))"), true)
 end
 
--- ============================================================ #1 buf.attach 旁路
--- 直接打开 URL 图片(`:e https://…png` 的 BufReadCmd、picker 图片预览)走
--- Snacks.image.buf.attach → placement → curl,**从不过 config.resolve**。
--- guard_buf_attach 包住 attach 补一道 default-deny。用假 buf 模块记录 orig 收到的 src。
+-- ============================================================ #1 resolve 旁路收口
+-- config.resolve 只在 doc 链上;`:e https://…png` 的 BufReadCmd、picker 图片预览
+-- 等路径绕过它。所有抓取路径最终都汇聚到 snacks.image.convert.convert({src})——
+-- guard_convert 在这一个函数上补 default-deny。用假 convert 模块记录 orig 收到
+-- 的 src(真 convert 模块脱离 Snacks 全局加载不了,child 里必须 fake)。
 
 -- 未获信任的远程 URL:orig 收到的应是本地占位图(不会 curl),不是原 URL。
-T["#1 buf.attach guard swaps an untrusted remote src for a local placeholder"] = function()
+T["#1 convert guard swaps an untrusted remote src for a local placeholder"] = function()
 	isolate({})
 	local got = child.lua_get([[(function()
 		local captured = {}
-		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		package.loaded["snacks.image.convert"] = { convert = function(opts) captured.src = opts.src end }
 		local ir = require("tools.image_render")
-		ir.guard_buf_attach()
-		local b = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_name(b, "https://evil.com/x.png")
-		require("snacks.image.buf").attach(b) -- BufReadCmd 回调形态:无 opts,src 取自 buffer 名
+		ir.guard_convert()
+		require("snacks.image.convert").convert({ src = "https://evil.com/x.png" })
 		return captured.src
 	end)()]])
 	eq(child.lua_get("type(...)", { got }), "string")
@@ -198,40 +190,73 @@ T["#1 buf.attach guard swaps an untrusted remote src for a local placeholder"] =
 end
 
 -- 本地图 src 原样透传(不能误伤本地图片文件的查看)。
-T["#1 buf.attach guard passes a local image src through untouched"] = function()
+T["#1 convert guard passes a local image src through untouched"] = function()
 	isolate({})
 	local got = child.lua_get([[(function()
 		local captured = {}
-		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		package.loaded["snacks.image.convert"] = { convert = function(opts) captured.src = opts.src end }
 		local ir = require("tools.image_render")
-		ir.guard_buf_attach()
-		local b = vim.api.nvim_create_buf(false, true)
-		require("snacks.image.buf").attach(b, { src = "/local/a.png" })
+		ir.guard_convert()
+		require("snacks.image.convert").convert({ src = "/local/a.png" })
 		return captured.src
 	end)()]])
 	eq(got, "/local/a.png")
 end
 
--- 已放行(逐图)的远程 URL 原样透传,交回原 attach 正常抓取。
-T["#1 buf.attach guard passes a session-trusted URL through untouched"] = function()
+-- 已放行(逐图)的远程 URL 原样透传,交回原 convert 正常抓取。
+T["#1 convert guard passes a session-trusted URL through untouched"] = function()
 	isolate({})
 	local got = child.lua_get([[(function()
 		local captured = {}
-		package.loaded["snacks.image.buf"] = { attach = function(_, opts) captured.src = opts and opts.src end }
+		package.loaded["snacks.image.convert"] = { convert = function(opts) captured.src = opts.src end }
 		local ir = require("tools.image_render")
 		ir.trust_image("https://ok.com/a.png")
-		ir.guard_buf_attach()
-		local b = vim.api.nvim_create_buf(false, true)
-		require("snacks.image.buf").attach(b, { src = "https://ok.com/a.png" })
+		ir.guard_convert()
+		require("snacks.image.convert").convert({ src = "https://ok.com/a.png" })
 		return captured.src
 	end)()]])
 	eq(got, "https://ok.com/a.png")
 end
 
+-- doc 链放行的联动:resolve(block_remote)按 (file, src) 判过并放行的远程 src
+-- 记入 approved,convert 层凭此放过——文件/仓库档的图不会在 convert 再被拦死。
+T["#1 convert guard passes a resolve-approved URL through"] = function()
+	local env = isolate({ repos = { "A" } })
+	local got = child.lua_get(([[(function()
+		local captured = {}
+		package.loaded["snacks.image.convert"] = { convert = function(opts) captured.src = opts.src end }
+		local ir = require("tools.image_render")
+		ir.trust_repo(%q)
+		assert(ir.block_remote(%q, %q) == nil, "resolve should allow the repo-trusted src")
+		ir.guard_convert()
+		require("snacks.image.convert").convert({ src = %q })
+		return captured.src
+	end)()]]):format(env.repos.A.doc, env.repos.A.doc, URL, URL))
+	eq(got, URL)
+end
+
+-- 档位边界:仓库档信任**不外溢**到无文档上下文的路径——同一 URL 未经 resolve
+-- 放行(approved 为空)、也无逐图授予时,convert 层维持拦截。
+T["#1 convert guard still blocks a repo-trusted URL outside doc context"] = function()
+	local env = isolate({ repos = { "A" } })
+	local got = child.lua_get(([[(function()
+		local captured = {}
+		package.loaded["snacks.image.convert"] = { convert = function(opts) captured.src = opts.src end }
+		local ir = require("tools.image_render")
+		ir.trust_repo(%q)
+		ir.guard_convert()
+		require("snacks.image.convert").convert({ src = %q })
+		return captured.src
+	end)()]]):format(env.repos.A.doc, URL))
+	eq(child.lua_get(IR .. ".is_remote_src(...)", { got }), false)
+end
+
 -- ============================================================ #4/#10 ,iai 直取 src
 -- ,iai 不再靠 reveal_active 哨兵穿过渲染管线,而是直接跑 "images" treesitter query
--- 现取光标处 image 的原始 src(测试环境没装 snacks 的 query 文件,用 query.set 现挂
--- 一个同形的)。这消除了并发泄漏 / session 卡死(#4)与哨兵伪造(#10)。
+-- 现取光标处 image 的原始 src。这消除了并发泄漏 / session 卡死(#4)与哨兵伪造
+-- (#10)。snacks 在 rtp 上,但它 markdown_inline 的 query 文件用 #gsub! 指令
+-- (nvim-treesitter 注册,child 里没有,query.get 读文件会报错)——用 query.set
+-- 挂一个同形无指令的覆盖,顺带保证用例不随上游 query 内容漂移。
 
 -- 正例:光标落在被拦远程图上 → 放行的正是它的原始 URL,且不波及别的 URL。
 T["#4 iai grants exactly the raw URL of the image at the cursor"] = function()
@@ -261,6 +286,28 @@ T["#4 iai off the image's line grants nothing"] = function()
 		vim.api.nvim_win_set_cursor(0, { 1, 0 }) -- 图在第 2 行,光标在第 1 行
 	]])
 	child.lua(IR .. ".trust_image_at_cursor()")
+	eq(child.lua_get(IR .. ".is_trusted('', 'https://example.com/a.png')"), false)
+end
+
+-- ============================================================ #13 transform 对齐
+-- snacks 对部分语言在 resolve 前重写 src(norg:节点起点到行尾整段)——,iai 的
+-- key 必须走同一条流水线,否则授予的 key 与 block_remote 收到的对不上、放行静默
+-- 失效。src_at_cursor 直接调 snacks 的 doc.transforms;此处给 markdown_inline 注
+-- 入一个假 transform(child 进程级隔离,不污染别的用例)验证流水线确实过它。
+T["#13 iai src pipeline applies snacks per-language transforms"] = function()
+	isolate({})
+	child.lua([[
+		vim.treesitter.query.set("markdown_inline", "images", "(image (link_destination) @image.src) @image")
+		require("snacks.image.doc").transforms.markdown_inline = function(img) img.src = img.src .. "?sig=1" end
+		local b = vim.api.nvim_create_buf(true, false)
+		vim.bo[b].filetype = "markdown"
+		vim.api.nvim_buf_set_lines(b, 0, -1, false, { "![x](https://example.com/a.png)" })
+		vim.api.nvim_set_current_buf(b)
+		vim.api.nvim_win_set_cursor(0, { 1, 6 })
+	]])
+	child.lua(IR .. ".trust_image_at_cursor()")
+	-- 放行的 key 是 transform 后的形态,不是裸节点文本
+	eq(child.lua_get(IR .. ".is_trusted('', 'https://example.com/a.png?sig=1')"), true)
 	eq(child.lua_get(IR .. ".is_trusted('', 'https://example.com/a.png')"), false)
 end
 

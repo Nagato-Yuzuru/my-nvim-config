@@ -21,6 +21,28 @@
 --   * nil    : 跳过启动（buffer 没文件名）
 local M = {}
 
+--- dir 是否「过宽」——文件系统根、$HOME 本身或 $HOME 的祖先。把这种 dir 当
+--- root 等于把整个家目录树纳入辖区(LSP:全扫 workspace;image_render 的
+--- ,iar:信任家目录下所有文档的远程图)——两个消费方共用这一处判定。
+--- $HOME 同时按原值与 realpath 比较:调用方传来的 dir 可能归一过也可能没有。
+---@param dir string
+---@return boolean
+function M.overbroad(dir)
+	if dir == "/" then
+		return true
+	end
+	local home = vim.uv.os_homedir()
+	if not home then
+		return false
+	end
+	for _, h in ipairs({ home, vim.uv.fs_realpath(home) or home }) do
+		if dir == h or vim.startswith(h, dir .. "/") then
+			return true
+		end
+	end
+	return false
+end
+
 ---@param bufnr integer
 ---@param markers string[]
 ---@param unnamed_cwd? boolean 无名 buffer 是否落到 cwd（仅 ty 用，见 UNNAMED_CWD）
@@ -49,10 +71,9 @@ function M.resolve(bufnr, markers, unnamed_cwd)
 		dir = vim.fs.root(bufnr, markers) or vim.fs.dirname(bufname)
 	end
 
-	local home = vim.uv.os_homedir()
 	-- dir（marker 根或散文件目录）是 $HOME 本身、$HOME 的祖先、或文件系统根
 	-- → 单文件模式
-	if dir == home or (home and vim.startswith(home, dir .. "/")) or dir == "/" then
+	if M.overbroad(dir) then
 		return false
 	end
 	return dir
