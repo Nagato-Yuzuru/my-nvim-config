@@ -132,6 +132,15 @@ return {
 				"dapui_watches",
 				"dapui_console",
 				"toggleterm",
+				-- flatten 的 git commit 流程会快速开/关 COMMIT_EDITMSG 窗口，踩中
+				-- neominimap 上游竞态：float autocmds 的 schedule 回调不做
+				-- win_is_valid 复查（window/util.lua sync_to_source），任何快速关窗
+				-- 流程都可能触发陈旧 window id 报错循环。此处排除是局部缓解，
+				-- 几行的 commit message 也用不上缩略图。ft 对与 ui/flatten.lua 同步；
+				-- 同属该竞态面的 zsh edit-command-line 临时文件 ft=zsh、按 ft 排会
+				-- 误伤普通 zsh 文件，改在 ui/flatten.lua post_open 按 buffer 变量禁用
+				"gitcommit",
+				"gitrebase",
 				"lazy",
 				"mason",
 				"checkhealth",

@@ -48,6 +48,7 @@ what's bound where.
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
 | Markdown `<localleader>m*` (nvim-only — IDE has built-in editor+preview split) | `lua/plugins/lang/markdown.lua` (render-markdown toggles + live-preview `,mb` browser preview) |
 | AI / Claude Code `<leader>a*` (nvim-only — IDE uses the official Claude Code plugin's tool window) | `lua/plugins/ai/claudecode.lua` (coder/claudecode.nvim, `none` mode + tmux `/ide`) |
+| Terminal asymmetry 注释块（`<C-x>\`` toggle + `<C-]>` 逃生舱，nvim-only — JetBrains 终端非 IdeaVim 辖区） | `lua/plugins/ui/toggleterm.lua`（裸 shell 设计）+ `lua/plugins/ui/flatten.lua`（防套娃） |
 
 ## Architecture (entry-point facts)
 
