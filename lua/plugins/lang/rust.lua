@@ -4,10 +4,7 @@
 -- 编辑 Cargo.toml 必备（rust-analyzer 不管 Cargo.toml 本身的 UX）。
 --
 -- rustaceanvim：rust-analyzer LSP + neotest adapter + DAP 集成的统一前端。
--- 替换了原先 `lsp/rust_analyzer.lua` + `rouge8/neotest-rust`（后者 upstream
--- 已 archived，对 `#[cfg(test)] mod tests` 与 `#[tokio::test]` 等 proc-macro
--- 测试识别不可靠）。rustaceanvim 的 test 发现走 rust-analyzer 的 runnables
--- 请求，编得过 `cargo test` 的就找得到。
+-- test 发现走 rust-analyzer 的 runnables 请求，编得过 `cargo test` 的就找得到。
 --   * 没有 setup() —— 配置走 `vim.g.rustaceanvim`，必须在 init 阶段设
 --   * 接管 rust-analyzer：`core/lsp.lua` 已从 vim.lsp.enable 列表移除
 --     "rust_analyzer"，顶层 `lsp/rust_analyzer.lua` 已删

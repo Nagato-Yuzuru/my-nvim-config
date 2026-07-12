@@ -476,15 +476,15 @@ return {
 			},
 			explorer = {
 				enabled = true,
-				replace_netrw = true, -- hijack directory opens (was Neo-tree hijack_netrw)
+				replace_netrw = true, -- hijack directory opens
 			},
 			dashboard = { enabled = true }, -- 启动页
 			notifier = { enabled = true },
 			-- 终端内嵌图片渲染:markdown 内联图 + LaTeX 数学 + mermaid + PDF
-			-- + 打开图片文件预览。取代旧的 image.nvim markdown 集成
-			-- (image.nvim 现仅留给 leetcode,见 lua/plugins/ui/image.lua)。
+			-- + 打开图片文件预览(image.nvim 仅留给 leetcode,见
+			-- lua/plugins/ui/image.lua)。
 			--
-			-- 为什么换:snacks 判转换失败只看进程退出码、不看 stderr
+			-- 为什么选 snacks 而非 image.nvim:snacks 判转换失败只看进程退出码、不看 stderr
 			-- (snacks/util/spawn.lua:231),所以 SVG 缺字体只是 stderr 告警、
 			-- 退出码仍 0 → 照常出图,不像 image.nvim 的 magick_cli 会报错。
 			-- vector(svg/pdf)默认 -density 192 更清晰,转换结果落磁盘缓存

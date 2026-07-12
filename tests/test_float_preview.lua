@@ -1,5 +1,4 @@
 -- lua/tools/float_preview.lua 的边界测试：真实 buffer/window，零 mock。
--- 前身是手写 harness 的 tests/float_preview_spec.lua，行为清单原样迁入 mini.test。
 
 local H = require("tests.helpers")
 local child, hooks = H.new_child()

@@ -105,9 +105,9 @@ local function register_lsp_verylazy_hooks()
 end
 
 -- Hover popup buffer 内把 K 绑为关闭 popup：
--- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg (:help)。虽然我们已
--- 经把 keywordprg 从 :Man 改成 :help（见 core/options.lua），popup 里按 K 跳
--- 出一个 no-help 提示仍然不直觉。更符合直觉的是"再按一次 K 关掉 popup"。
+-- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg（:help，见
+-- core/options.lua），popup 里按 K 跳出一个 no-help 提示并不直觉。更符合
+-- 直觉的是"再按一次 K 关掉 popup"。
 local function patch_hover_close()
 	local orig = vim.lsp.util.open_floating_preview
 	vim.lsp.util.open_floating_preview = function(contents, syntax, opts, ...)

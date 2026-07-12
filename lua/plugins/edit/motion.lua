@@ -1,6 +1,6 @@
 -- lua/plugins/edit/motion.lua
 -- Flash.nvim: EasyMotion-style jump layout aligned with the IdeaVim side.
--- Replaces the archived hop.nvim. See ~/.config/nvim/.ideavimrc for mirror.
+-- See ~/.config/nvim/.ideavimrc for mirror.
 --
 -- Layout:
 --   <leader><leader>h/l   line-scoped word ← / →

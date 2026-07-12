@@ -15,8 +15,7 @@ return {
 		"Owen-Dechow/graph_view_yaml_parser", -- YAML
 		"Owen-Dechow/graph_view_toml_parser", -- TOML
 		-- videre.langs.xml 顶层 require("xml2lua")，缺了它 add_lang 的 pcall 会
-		-- 静默跳过 XML（不再像旧版那样崩掉 :Videre）——显式声明依赖，别靠静默
-		-- 降级发现少了 XML 支持。
+		-- 静默跳过 XML——显式声明依赖，别靠静默降级发现少了 XML 支持。
 		"a-usr/xml2lua.nvim",
 	},
 	-- 文件限定查看器：键位走 localleader（同 Obsidian/LeetCode/Conjure 约定），

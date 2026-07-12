@@ -1,9 +1,7 @@
 -- 回归测试:每个用例对应一个代码审查确认过、已修复的 image-remote-trust bug,
 -- 断言期望行为、防止回归(用例名前缀 #N 是当轮审查的 finding 编号,仅作稳定
 -- 标识)。有的 finding 修法是把肇事机制整个删掉(root 负缓存、运行时生成占位
--- 图):机制没了 bug 无从复发,对应用例改为断言替代机制的契约。原 #9(未落盘
--- 文件跨 :w 的 key 漂移)随 norm_path 递归的移除不再承诺——重按 ,iaf 即恢复,
--- 用例一并删除。
+-- 图):机制没了 bug 无从复发,对应用例改为断言替代机制的契约。
 
 local H = require("tests.helpers")
 local child, hooks = H.new_child()
@@ -46,9 +44,8 @@ T["#11 is_remote_src treats uppercase FILE:// as local"] = function()
 	eq(child.lua_get(IR .. ".is_remote_src('FILE:///Users/me/x.png')"), false)
 end
 
--- ============================================================ #6 root 负缓存(已删机制)
--- 曾经:repo_root 把「非 git 目录」永久负缓存,git init 后 ,iar 仍拒绝。修复是
--- 删掉缓存本身(git_root 每次现算);本用例断言其行为契约:mid-session git init
+-- ============================================================ #6 root 每次现算
+-- git_root 不缓存判定结果、每次现算;本用例断言其行为契约:mid-session git init
 -- 后授予立即可行,且已被渲染路径摸过的目录不受影响。
 T["#6 trust_repo succeeds after git init mid-session"] = function()
 	local env = isolate({})
@@ -56,7 +53,7 @@ T["#6 trust_repo succeeds after git init mid-session"] = function()
 		("vim.fn.mkdir(%q, 'p'); vim.fn.writefile({'x'}, %q)"):format(env.base .. "/proj", env.base .. "/proj/doc.md")
 	)
 	local doc = env.base .. "/proj/doc.md"
-	-- 渲染路径先摸一次(曾把该目录负缓存为「非 git」的动作)
+	-- 渲染路径先摸一次,建立「已被摸过」前置
 	child.lua((IR .. ".is_trusted(%q, %q)"):format(doc, URL))
 	-- 用户随后 git init
 	child.lua(("vim.fn.mkdir(%q, 'p')"):format(env.base .. "/proj/.git"))
@@ -145,9 +142,8 @@ T["#8 failed persist does not wipe in-memory trust"] = function()
 end
 
 -- ============================================================ #5 占位图可用性
--- 曾经:占位图运行时用 magick 生成,fresh cache 上目录缺失/spawn 失败都会让它
--- 静默神隐(convert.notify=false 连报错都没有)。修复是彻底不再运行时生成——
--- 占位图是仓库静态资产。契约:block_remote 返回的路径永远指向真实存在的本地文件。
+-- 占位图是仓库静态资产,不做运行时生成。契约:block_remote 返回的路径永远指向
+-- 真实存在的本地文件。
 T["#5 blocked remote render points at an existing local file"] = function()
 	isolate({})
 	eq(child.lua_get(("vim.uv.fs_stat(%s.block_remote('doc.md', %q)) ~= nil"):format(IR, URL)), true)
@@ -252,9 +248,9 @@ T["#1 convert guard still blocks a repo-trusted URL outside doc context"] = func
 end
 
 -- ============================================================ #4/#10 ,iai 直取 src
--- ,iai 不再靠 reveal_active 哨兵穿过渲染管线,而是直接跑 "images" treesitter query
--- 现取光标处 image 的原始 src。这消除了并发泄漏 / session 卡死(#4)与哨兵伪造
--- (#10)。snacks 在 rtp 上,但它 markdown_inline 的 query 文件用 #gsub! 指令
+-- ,iai 直接跑 "images" treesitter query 现取光标处 image 的原始 src,不与渲染
+-- 管线共享状态——杜绝并发泄漏 / session 卡死(#4)与哨兵伪造(#10)。
+-- snacks 在 rtp 上,但它 markdown_inline 的 query 文件用 #gsub! 指令
 -- (nvim-treesitter 注册,child 里没有,query.get 读文件会报错)——用 query.set
 -- 挂一个同形无指令的覆盖,顺带保证用例不随上游 query 内容漂移。
 

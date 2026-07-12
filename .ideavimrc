@@ -229,7 +229,7 @@ nmap gr <Action>(FindUsages)
 "   nb  → supertypes / GotoSuperClass
 "   nt  → GotoTest
 "   nf  → FindInPath (search, not jump)
-"   ns  → structure popup (transient; persistent sidebar moved to <leader>vs)
+"   ns  → structure popup (transient; persistent sidebar at <leader>vs)
 " GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
 " class-level, not method-level — keep parity with Neovim side.
 "
@@ -320,7 +320,7 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 " the generate tier (<leader>G/go/gi/gd + concept keys below) lives only here —
 " not a missing feature, a different surface model.
 "
-" MIRRORED since 2026-07 — gt/gT/gu DO have Neovim counterparts, all wired in
+" gt/gT/gu have Neovim counterparts, all wired in
 " lua/plugins/edit/wrap.lua (engine/templates in lua/tools/wrap.lua):
 "   gt/gT → template picker over the selection. One menu serves both keys: the
 "     SurroundWith vs SurroundWithLiveTemplate split collapses — templates live
@@ -347,7 +347,7 @@ map <leader>gu <Action>(Unwrap)
 "   gJ/gj type/struct-from-JSON — Go-only concepts, no cross-language meaning.
 " Only Go + JS/TS expose standalone generator action IDs; everywhere else the
 " concept key falls back to the generic Generate popup (set in the `BufEnter *`
-" reset). Removed gf/gm/gs (GoGenerateFile/Method/ForStruct) — unclear/low value.
+" reset).
 "
 " ⚠ Validate when first sourced (this whole tier depends on it):
 "   1) that IdeaVim runs `nmap` inside autocmd and matches comma-separated

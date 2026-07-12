@@ -51,7 +51,7 @@ return {
 			--      **永久缓存**；首次触发时 cwd 不在 Go module 里（或 buffer 不带
 			--      name）就缓存到错误模式，之后每次 lint 都给 v2 喂错路径，exit 5
 			--      (NoGoFiles)。直接按 v2 写死 args、目标路径每次 lint 重算，
-			--      探测开销和缓存坑一起消失（此前用惰性 override 绕，已不需要）。
+			--      探测开销和缓存坑一起消失。
 			--   2. 上游 parser 丢弃 Issues[].SuggestedFixes；per-diagnostic code
 			--      action 靠它（tools/golangci_fix.lua + lsp/golangci_fix.lua）。
 			-- v2 在 NoGoFiles / ErrorLogged 时非零 exit 是预期行为，不是 nvim-lint

@@ -8,10 +8,8 @@
 -- 文件里那份 root_dir 一律成死代码、永不执行——且**静默**失效（没有报错）。
 -- 要自定义 root_dir 的 server 必须显式加入 SKIP，否则它的 root_dir 被无声吞掉。
 --
--- 背景：从 nvim-lspconfig 迁到 Neovim 0.12 native LSP 后，原本由 lspconfig 的
--- `single_file_support = true` + `root_pattern(...)` 提供的兜底没了——手写的
--- `root_dir` fallback 到 `vim.fs.dirname(bufname)`，导致 `~/foo.py` 这种散文件
--- 把 $HOME 当 workspace，ty/ruff 直接全扫家目录树。
+-- 动机：naive 的 root_dir fallback（`vim.fs.dirname(bufname)`）会让 `~/foo.py`
+-- 这种散文件把 $HOME 当 workspace，ty/ruff 直接全扫家目录树。
 --
 -- 这里的 resolve 区分三种结果：
 --   * string : 真正的项目 root（有 marker，或散文件但目录"够小"）

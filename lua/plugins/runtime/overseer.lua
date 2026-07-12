@@ -85,7 +85,6 @@ return {
 				min_height = 12,
 				max_height = 20,
 				-- 渲染走 task_list.render 函数（默认 format_standard 已含 duration / output summary）
-				-- 旧的 display_duration / on_output_summarize component 已废弃，不再用 component 定渲染
 			},
 			-- 默认模板：自动发现 npm/cargo/make/just 等（无 generic shell 模板，ad-hoc 走 <leader>os）
 			templates = { "builtin" },
