@@ -175,8 +175,14 @@ return {
 					["<localleader>p<"] = { api.barf_forwards, "Barf forwards (expel last element)" },
 					["<localleader>pP"] = { api.slurp_backwards, "Slurp backwards (absorb prev sibling)" },
 					["<localleader>pB"] = { api.barf_backwards, "Barf backwards (expel first element)" },
-					["<localleader>pw"] = { api.wrap_element_under_cursor, "Wrap element in ()" },
-					["<localleader>pW"] = { api.wrap_enclosing_form_under_cursor, "Wrap enclosing form in ()" },
+					["<localleader>pw"] = {
+						function() api.wrap_element_under_cursor("(", ")") end,
+						"Wrap element in ()",
+					},
+					["<localleader>pW"] = {
+						function() api.wrap_enclosing_form_under_cursor("(", ")") end,
+						"Wrap enclosing form in ()",
+					},
 					["<localleader>pr"] = {
 						api.raise_element,
 						"Raise element (replace parent with element)",
