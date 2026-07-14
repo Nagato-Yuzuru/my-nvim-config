@@ -6,9 +6,17 @@
 --   - Steel   → Rust 嵌入式 Scheme，最贴近 transpiler 项目（lsp/steel_language_server.lua）
 --
 -- 这里只装"编辑体验三件套"——Lisp 工作流离不开它们：
---   1. conjure       结构化 REPL 交互（,c* 前缀）
---   2. nvim-paredit  括号 slurp/barf/wrap（,p* 前缀）
+--   1. conjure       结构化 REPL 交互（裸 <localleader> 前缀，键位对齐 Conjure 文档）
+--   2. nvim-paredit  括号 slurp/barf/wrap（<localleader>p 前缀 + 结构导航/文本对象）
 --   3. tree-sitter   高亮 / 文本对象 / rainbow（解析器在 plugins/treesitter.lua）
+--
+-- 键位分工（都是 buffer-local，只活在 scheme/racket/lisp）：
+--   * Conjure 走裸 <localleader>：Eval ,e* / Log ,l* / REPL ,c{s,S} / Goto ,gd
+--     ——和 Conjure 教程逐键一致（不再套一层 c）。首键只用 e/l/c/g，不撞 paredit。
+--   * paredit 结构编辑走 <localleader>p*；drag 用 canonical >{e,p,f} / <{e,p,f}
+--     （只遮蔽 scheme buffer 里极冷门的 `>{e,p,f}` 缩进组合，换取查表一致）。
+--   * 结构导航走 vim 的 [ / ] 家族（]e/[e 元素）；父 form 首/尾用 vim 原生 [( / ])，
+--     兄弟/父/子交给 treewalker（<leader>n{h,j,k,l}）——都不遮蔽 W/E/B。
 --
 -- DAP / neotest 不接：Lisp 工作流走 REPL 而不是断点。
 --
@@ -28,9 +36,9 @@ return {
 		"Olical/conjure",
 		ft = CONJURE_FT,
 		init = function()
-			-- 动态读 maplocalleader，避免硬编码 ","——如果将来改 localleader，前缀跟着变。
-			-- 前缀 = <localleader>c，留出 <localleader>p 给 paredit。
-			vim.g["conjure#mapping#prefix"] = vim.g.maplocalleader .. "c"
+			-- 不设 conjure#mapping#prefix：回落到 Conjure 默认 "<localleader>"，键位和官方
+			-- 文档/教程 1:1（学习期查表即用）。它本就随 maplocalleader 动态解析，无需硬编码。
+			-- paredit 独占 <localleader>p，不撞——Conjure 首键只用 e/l/c/g（eval/log/REPL/goto）。
 			-- 仅启用我们关心的客户端，避免无关 ft 被它接管
 			vim.g["conjure#filetypes"] = CONJURE_FT
 			-- REPL 只在显式 <localleader>cs 时启动。Conjure 默认 client_on_load=true
@@ -38,10 +46,15 @@ return {
 			-- 只是浏览代码也白跑一个 racket，多实例/多文件时 ps 里一排来历不明的
 			-- 进程，且用户从未要求过 REPL。
 			vim.g["conjure#client_on_load"] = false
+			-- NOTE(REPL 后端未接)：.scm（scheme ft）当前仍走 Conjure 默认 client——命令是
+			-- mit-scheme（没装、也不是本工具链的 Guile/Steel），故 <localleader>cs 在 .scm
+			-- 里会失败。等真正用 Guile/Steel REPL 时再设 conjure#client#scheme#stdio#command
+			-- ＋匹配的 prompt_pattern（Guile 提示符形如 "scheme@(guile-user)>"）。.rkt（racket
+			-- ft）不受影响：走 racket client，命令就是已安装的 `racket`。
 			-- K 保留给 LSP hover（vim.lsp.buf.hover），不让 conjure 覆盖
 			vim.g["conjure#mapping#doc_word"] = false
 			-- HUD（浮动 popup）保持启用，提供 eval 即时反馈。
-			-- 持久 log split 用 <localleader>cls（下）/ <localleader>clv（右）手动开。
+			-- 持久 log split 用 <localleader>ls（下）/ <localleader>lv（右）手动开。
 			vim.g["conjure#log#botright"] = true
 
 			-- 工具链探测：init 时提前注册 autocmd，第一个 .scm/.rkt 打开时立刻触发。
@@ -82,38 +95,40 @@ return {
 					})
 				end
 				if vim.tbl_contains(CONJURE_FT, ft) then
+					-- Conjure 注册键位时不带 desc，这里补上。键 = Conjure 默认后缀，前缀是
+					-- 裸 <localleader>。分组按动作：Eval / Log / REPL / Goto。
 					vim.list_extend(specs, {
-						{ "<localleader>c", group = "Conjure", buffer = buf },
-						{ "<localleader>ce", group = "Eval", buffer = buf },
-						{ "<localleader>cee", desc = "Eval current form", buffer = buf },
-						{ "<localleader>cer", desc = "Eval root form", buffer = buf },
-						{ "<localleader>cew", desc = "Eval word", buffer = buf },
-						{ "<localleader>cep", desc = "Eval previous", buffer = buf },
-						{ "<localleader>cem", desc = "Eval marked form", buffer = buf },
-						{ "<localleader>cef", desc = "Eval file", buffer = buf },
-						{ "<localleader>ceb", desc = "Eval buffer", buffer = buf },
-						{ "<localleader>ce!", desc = "Eval replace form", buffer = buf },
-						{ "<localleader>cE", desc = "Eval motion (operator)", buffer = buf, mode = "n" },
-						{ "<localleader>cE", desc = "Eval visual", buffer = buf, mode = "v" },
-						{ "<localleader>cec", group = "Eval (comment)", buffer = buf },
-						{ "<localleader>cece", desc = "Eval current form (comment)", buffer = buf },
-						{ "<localleader>cecr", desc = "Eval root form (comment)", buffer = buf },
-						{ "<localleader>cecw", desc = "Eval word (comment)", buffer = buf },
-						{ "<localleader>cc", group = "REPL", buffer = buf },
-						{ "<localleader>ccs", desc = "REPL: start", buffer = buf },
-						{ "<localleader>ccS", desc = "REPL: stop", buffer = buf },
-						{ "<localleader>cg", group = "Navigate", buffer = buf },
-						{ "<localleader>cgd", desc = "Go to definition", buffer = buf },
-						{ "<localleader>cl", group = "Log", buffer = buf },
-						{ "<localleader>cls", desc = "Log: split", buffer = buf },
-						{ "<localleader>clv", desc = "Log: vsplit", buffer = buf },
-						{ "<localleader>clt", desc = "Log: tab", buffer = buf },
-						{ "<localleader>cle", desc = "Log: buffer", buffer = buf },
-						{ "<localleader>clg", desc = "Log: toggle", buffer = buf },
-						{ "<localleader>clq", desc = "Log: close", buffer = buf },
-						{ "<localleader>cll", desc = "Log: jump to latest", buffer = buf },
-						{ "<localleader>clr", desc = "Log: soft reset", buffer = buf },
-						{ "<localleader>clR", desc = "Log: hard reset", buffer = buf },
+						{ "<localleader>e", group = "Eval", buffer = buf },
+						{ "<localleader>ee", desc = "Eval current form", buffer = buf },
+						{ "<localleader>er", desc = "Eval root form", buffer = buf },
+						{ "<localleader>ew", desc = "Eval word", buffer = buf },
+						{ "<localleader>ep", desc = "Eval previous", buffer = buf },
+						{ "<localleader>em", desc = "Eval marked form", buffer = buf },
+						{ "<localleader>ef", desc = "Eval file", buffer = buf },
+						{ "<localleader>eb", desc = "Eval buffer", buffer = buf },
+						{ "<localleader>e!", desc = "Eval replace form", buffer = buf },
+						{ "<localleader>ei", desc = "Interrupt REPL", buffer = buf },
+						{ "<localleader>E", desc = "Eval motion (operator)", buffer = buf, mode = "n" },
+						{ "<localleader>E", desc = "Eval visual", buffer = buf, mode = "v" },
+						{ "<localleader>ec", group = "Eval (comment)", buffer = buf },
+						{ "<localleader>ece", desc = "Eval current form (comment)", buffer = buf },
+						{ "<localleader>ecr", desc = "Eval root form (comment)", buffer = buf },
+						{ "<localleader>ecw", desc = "Eval word (comment)", buffer = buf },
+						{ "<localleader>c", group = "REPL", buffer = buf },
+						{ "<localleader>cs", desc = "REPL: start", buffer = buf },
+						{ "<localleader>cS", desc = "REPL: stop", buffer = buf },
+						{ "<localleader>g", group = "Goto", buffer = buf },
+						{ "<localleader>gd", desc = "Go to definition", buffer = buf },
+						{ "<localleader>l", group = "Log", buffer = buf },
+						{ "<localleader>ls", desc = "Log: split", buffer = buf },
+						{ "<localleader>lv", desc = "Log: vsplit", buffer = buf },
+						{ "<localleader>lt", desc = "Log: tab", buffer = buf },
+						{ "<localleader>le", desc = "Log: buffer", buffer = buf },
+						{ "<localleader>lg", desc = "Log: toggle", buffer = buf },
+						{ "<localleader>lq", desc = "Log: close visible", buffer = buf },
+						{ "<localleader>ll", desc = "Log: jump to latest", buffer = buf },
+						{ "<localleader>lr", desc = "Log: soft reset", buffer = buf },
+						{ "<localleader>lR", desc = "Log: hard reset", buffer = buf },
 					})
 				end
 				wk.add(specs)
@@ -148,7 +163,6 @@ return {
 			local api = require("nvim-paredit.api")
 			local no = { repeatable = false }
 			local no_nxov = vim.tbl_extend("force", no, { mode = { "n", "x", "o", "v" } })
-			local no_nxv = vim.tbl_extend("force", no, { mode = { "n", "x", "v" } })
 			local no_ov = vim.tbl_extend("force", no, { mode = { "o", "v" } })
 
 			require("nvim-paredit").setup({
@@ -168,14 +182,15 @@ return {
 						"Raise element (replace parent with element)",
 					},
 					["<localleader>pR"] = { api.raise_form, "Raise form (replace parent with form)" },
-					["<localleader>pS"] = {
+					["<localleader>ps"] = {
 						api.unwrap_form_under_cursor,
 						"Splice (remove delimiters, keep contents)",
 					},
 					["<localleader>pdf"] = { api.delete_form, "Delete form" },
 					["<localleader>pde"] = { api.delete_element, "Delete element" },
 
-					-- 拖拽：在兄弟列表内移动元素/pair/form（>/<前缀，vim 风格）
+					-- 拖拽：在兄弟列表内移动元素/pair/form。用 canonical >{e,p,f}/<{e,p,f}
+					-- （只遮蔽 scheme buffer 里极冷门的 `>{e,p,f}` 缩进组合，换查表一致）。
 					[">e"] = { api.drag_element_forwards, "Drag element right" },
 					["<e"] = { api.drag_element_backwards, "Drag element left" },
 					[">p"] = { api.drag_pair_forwards, "Drag pair right" },
@@ -183,13 +198,13 @@ return {
 					[">f"] = { api.drag_form_forwards, "Drag form right" },
 					["<f"] = { api.drag_form_backwards, "Drag form left" },
 
-					-- 导航：E/W/B/gE 比 vim 的 w/b 在嵌套结构里精确
-					["E"] = vim.tbl_extend("force", { api.move_to_next_element_tail, "Next element tail" }, no_nxov),
-					["W"] = vim.tbl_extend("force", { api.move_to_next_element_head, "Next element head" }, no_nxov),
-					["B"] = vim.tbl_extend("force", { api.move_to_prev_element_head, "Prev element head" }, no_nxov),
-					["gE"] = vim.tbl_extend("force", { api.move_to_prev_element_tail, "Prev element tail" }, no_nxov),
-					["("] = vim.tbl_extend("force", { api.move_to_parent_form_start, "Parent form start" }, no_nxv),
-					[")"] = vim.tbl_extend("force", { api.move_to_parent_form_end, "Parent form end" }, no_nxv),
+					-- 结构导航搬到 vim 的 [ / ] 家族，不再遮蔽 W/E/B/gE 的 WORD 动作。
+					-- 含 o 模式 → d]e（删到下一个 element）可用。父 form 首/尾用 vim 原生
+					-- [( / ])，兄弟/父/子交给 treewalker——都不在此绑。
+					["]e"] = vim.tbl_extend("force", { api.move_to_next_element_head, "Next element" }, no_nxov),
+					["[e"] = vim.tbl_extend("force", { api.move_to_prev_element_head, "Prev element" }, no_nxov),
+					["]E"] = vim.tbl_extend("force", { api.move_to_next_element_tail, "Next element tail" }, no_nxov),
+					["[E"] = vim.tbl_extend("force", { api.move_to_prev_element_tail, "Prev element tail" }, no_nxov),
 
 					-- 文本对象：af/if form，aF/iF 顶层 form，ae/ie element
 					["af"] = vim.tbl_extend("force", { api.select_around_form, "Around form" }, no_ov),
