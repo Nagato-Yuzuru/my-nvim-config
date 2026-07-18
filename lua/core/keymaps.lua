@@ -45,7 +45,11 @@ map("n", "<C-w><S-R>", "<cmd>wincmd R<CR>", { desc = "Rotate windows up" })
 -- spec 通过 lazy `keys =` 注册——按 ` 时按需载入插件并执行 :Switch。
 -- 不在这里全局 map 避免插件未加载时撞 E492。
 
--- C-x
+-- C-x — workspace 层前缀：只管 buffer / tab / terminal / minimap。
+-- 窗格生命周期一律走 vim 原生 <C-w>（分屏 s/v、关闭 c/q、only o、
+-- <C-w>T 抽去新 tab）——IdeaVim 引擎同样原生实现这组键，是两边唯一
+-- 零配置同步的语法层。emacs 式 <C-x>2/3 分屏键已退役，勿再往
+-- <C-x> 加窗格键（判据：看动词作用的对象是 window 还是 tab/buffer）。
 
 map("n", "<C-x>t", ":enew<CR>", { desc = "New buffer" })
 map("n", "<C-x>T", ":tabnew<CR>", { desc = "New tabpage (workspace)" })
@@ -70,10 +74,6 @@ map("n", "<C-x>R", function()
 		vim.cmd("redrawtabline")
 	end)
 end, { desc = "Rename current tab" })
-
-map("n", "<C-x>3", function() vim.cmd.vsplit() end, { desc = "Split right" })
-
-map("n", "<C-x>2", function() vim.cmd.split() end, { desc = "Split below" })
 
 vim.keymap.set(
 	"c",

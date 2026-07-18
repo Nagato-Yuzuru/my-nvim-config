@@ -44,8 +44,8 @@ return {
 		-- <leader>vM (uppercase M = Minimap)：与 <leader>vm（bookmarks alias）
 		-- 区分。Views 命名空间的 toggle 语义（同 vs/vp/vr/vd 的"toggle 一个面板"）。
 		{ "<leader>vM", "<cmd>Neominimap Toggle<cr>", desc = "Toggle minimap" },
-		-- <C-x>m: focus 切换。在 <C-x>* 命名空间（窗口/buffer 操作族）里——和
-		-- <C-x>2/3 (split)、<C-x>t (new buf)、<C-x>R (rename tab) 同族，意为
+		-- <C-x>m: focus 切换。在 <C-x>* 命名空间（workspace 操作族：buffer/tab/
+		-- terminal）里——和 <C-x>t (new buf)、<C-x>R (rename tab) 同族，意为
 		-- "把光标搬进/搬出 minimap 这个特殊窗口"。Minimap 关闭时这个键 no-op。
 		{ "<C-x>m", "<cmd>Neominimap ToggleFocus<cr>", desc = "Toggle minimap focus" },
 	},

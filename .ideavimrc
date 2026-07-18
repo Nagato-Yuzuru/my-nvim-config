@@ -105,6 +105,53 @@ nnoremap <C-l> <C-w>l
 " VIM-3302, VIM-3152, VIM-1042. Not faking a directional binding here -- there's
 " nothing correct to bind it to.
 
+" -- Window lifecycle: vim-native <C-w> is the single grammar on both sides.
+" vim-engine implements <C-w>{h,j,k,l,s,v,c,q,o,w} natively (verified against
+" vim-engine action/window sources), so split/close/only/cycle need no mapping
+" here or on the nvim side. <C-x> stays a workspace-layer prefix (tab/buffer);
+" the emacs-style C-x 2/3 split chords are retired on BOTH sides — nvim's
+" <C-x>2/3 are deleted (lua/core/keymaps.lua), and the IDE-keymap C-x split
+" chords are stripped from "Emacs Custom" (SplitHorizontally / SplitVertically /
+" UnsplitAll / NextSplitter inherited from stock Emacs, plus the custom
+" C-x C-2 / C-x C-3 / C-x alt-o — Ctrl-digit second keystrokes were untypable
+" in terminals anyway, which is what forced the two sides apart).
+"
+" Gap-filling maps for <C-w> subcommands vim-engine does NOT implement:
+"   <C-w>L / <C-w>J  move split right/down (mirrors nvim wincmd L/J, bound
+"     there as <C-w><S-L>/<S-J> for the kitty keyboard protocol). Semantics
+"     verified in platform SplitAction.java: MoveTabRight/Down ALWAYS split
+"     the current group and carry the tab into the new half (forceSplit) —
+"     split spawners, not grid movers — and are DISABLED while the group has
+"     a single tab (tabCount >= 2 guard). That is also why MoveTabLeft/Up
+"     don't exist upstream: a left/up spawn mirrors the right/down layout, so
+"     only one canonical direction is shipped. <C-w>H/K stay unbound: the one
+"     action that moves into an EXISTING group, MoveEditorToOppositeTabGroup,
+"     is direction-agnostic (2-group layouts only) — hanging it on a
+"     directional key would move the wrong way half the time; it lives on
+"     <C-w>x instead.
+"   <C-w>x  approximate: vim exchanges two windows, the action only MOVES the
+"     editor to the opposite group — closest available semantics.
+nmap <C-w>L <Action>(MoveTabRight)
+nmap <C-w>J <Action>(MoveTabDown)
+nmap <C-w>x <Action>(MoveEditorToOppositeTabGroup)
+" Resize — StretchSplit* IDs are unverified in closed-source GoLand; confirm
+" with IdeaVim "Track Action IDs" before uncommenting (same policy as
+" Vcs.RollbackChangedLines below). Note divider-relative semantics: Stretch
+" moves the split divider, vim's <C-w>>/< grow/shrink the current window —
+" equivalent for a 2-split, diverges in 3+ column layouts.
+" nmap <C-w>> <Action>(StretchSplitToRight)
+" nmap <C-w><lt> <Action>(StretchSplitToLeft)
+" nmap <C-w>+ <Action>(StretchSplitToBottom)
+" nmap <C-w>- <Action>(StretchSplitToTop)
+" nvim-only, intentionally unbound here:
+"   <C-w>=            no "equalize splits" IDE action exists
+"   <C-w>-prefix hydra  hold-to-repeat resize (lua/plugins/ui/hydra.lua);
+"                     IDE side is single-shot by nature
+"   <C-w>T            break window out into a new tabpage — JetBrains has no
+"                     tabpage concept (see Tab management asymmetry above);
+"                     MoveTabToNewWindow detaches a separate IDE window,
+"                     different semantics, not bound.
+
 " -- LSP hover / signature help: both sides use community defaults
 " normal K          → Quick Documentation  (IdeaVim native)
 " insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;
