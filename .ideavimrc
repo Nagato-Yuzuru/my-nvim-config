@@ -86,6 +86,25 @@ nmap K <Action>(QuickJavaDoc)
 "   flatten   终端里 nvim file / git commit 转发宿主防套娃——IDE 终端里
 "             这类操作本来就开在编辑器区，无对应问题
 
+" -- Window / split navigation (mirrors vim-tmux-navigator: lua/plugins/ui/tmux.lua,
+" lua/core/keymaps.lua:33 comment). IdeaVim natively implements vim's <C-w>{h,j,k,l}
+" window commands (verified against vim-engine's own generated command registry,
+" not just docs: WindowLeftAction/WindowDownAction/WindowUpAction/WindowRightAction,
+" mode N). Remapping Ctrl+hjkl onto them covers the "move focus across editor
+" splits" half of what vim-tmux-navigator does on the nvim side. Confirmed working
+" in-editor.
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+" No tool-window half: IdeaVim/IntelliJ has no directional "focus the tool window
+" to the left/below" action, only fixed-target activators (Alt+1..9 /
+" Activate<Name>ToolWindow, already covered by <leader>v* below) and
+" non-directional focus toggles (Esc -> back to editor, F12 -> jump to last tool
+" window). Unresolved upstream, confirmed via three separate open YouTrack issues:
+" VIM-3302, VIM-3152, VIM-1042. Not faking a directional binding here -- there's
+" nothing correct to bind it to.
+
 " -- LSP hover / signature help: both sides use community defaults
 " normal K          → Quick Documentation  (IdeaVim native)
 " insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;
