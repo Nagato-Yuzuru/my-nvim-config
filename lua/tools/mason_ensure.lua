@@ -81,7 +81,11 @@ local LSP_TOOLS = {
 	{ server = "taplo", bin = "taplo", mason = "taplo" },
 	{ server = "marksman", bin = "marksman", mason = "marksman" },
 	{ server = "clangd", bin = "clangd", mason = "clangd" },
-	{ server = "terraformls", bin = "terraform-ls", mason = "terraform-ls" },
+	-- OpenTofu-first：LSP 用 tofu-ls（terraform-ls 的 fork），不用 terraform-ls。
+	-- tofu-ls 认 terraform/terraform-vars language-id 别名，也原生索引 .tofu 文件，
+	-- 且对 OpenTofu 独有语法（encryption 块、provider for_each）不误报。纯 .tf 仓库
+	-- 照常工作（它是超集）。配置见 lsp/tofuls.lua。
+	{ server = "tofuls", bin = "tofu-ls", mason = "tofu-ls" },
 	{ server = "dockerls", bin = "docker-langserver", mason = "dockerfile-language-server" },
 	{ server = "just_ls", bin = "just-lsp", mason = "just-lsp" },
 	{ server = "denols", bin = "deno", mason = "deno" },
@@ -125,6 +129,7 @@ local TOOL_MAP = {
 	yamllint = { bin = "yamllint", mason = "yamllint" },
 	actionlint = { bin = "actionlint", mason = "actionlint" },
 	typstyle = { bin = "typstyle", mason = "typstyle" },
+	tflint = { bin = "tflint", mason = "tflint" },
 }
 
 ---@type table<string, string[]>
@@ -153,9 +158,11 @@ local FORMATTERS_BY_FT = {
 	toml = { "taplo" },
 	-- d2 fmt 由 d2 CLI 自带（brew 装），不经 Mason 管理；conform 的 d2 formatter 从 PATH 找
 	d2 = { "d2" },
-	-- terraform_fmt 调用系统 terraform CLI，不经 Mason 管理
-	terraform = { "terraform_fmt" },
-	["terraform-vars"] = { "terraform_fmt" },
+	-- OpenTofu-first：tofu_fmt 调用系统 `tofu fmt`（conform 从 PATH 找），不经 Mason
+	-- 管理。输出与 `terraform fmt` 的 canonical 格式一致；只有 tofu 二进制在 PATH 时
+	-- 才可用。.tofu/.tofuvars 也归到这两个 ft（见 core/options.lua）。
+	terraform = { "tofu_fmt" },
+	["terraform-vars"] = { "tofu_fmt" },
 	-- rustfmt 跟着 rustup（rustup component add rustfmt），不走 Mason；conform
 	-- 自带的 rustfmt formatter 会从 PATH 找
 	rust = { "rustfmt" },
@@ -178,6 +185,13 @@ local LINTERS_BY_FT = {
 	-- sh/bash: shellcheck 由 bashls 内置处理，不重复跑
 	dockerfile = { "hadolint" },
 	go = { "golangcilint" },
+	-- terraform/opentofu: tflint 补 tofu-ls 的 validateOnSave 之外的 provider 层
+	-- 检查（不存在的实例类型、废弃语法、未用声明、命名规范）。工具链无关——解析
+	-- 同一套 HCL，.tf/.tofu 都覆盖（.tofu 归到 terraform ft，见 core/options.lua）。
+	-- 内置 nvim-lint adapter 跑 `tflint --format=json --recursive`，从 nvim cwd 起、
+	-- 按相对路径过滤到当前 buffer（故 nvim-lint.lua 不给它加 cwd override，会破坏路径
+	-- 匹配）。provider ruleset 需项目里 .tflint.hcl + 手动 `tflint --init`；基础规则免配。
+	terraform = { "tflint" },
 	-- yamllint 跑风格/缩进/重复 key 检查；schema 校验由 yamlls 负责。
 	-- actionlint 只对 .github/workflows/* 有意义（懂 expr / needs / matrix），
 	-- 不放在这里自动跑，由 plugins/lint/nvim-lint.lua 里按路径触发。

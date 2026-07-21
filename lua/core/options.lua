@@ -53,6 +53,10 @@ vim.filetype.add({
 	},
 	extension = {
 		tfvars = "terraform-vars",
+		-- OpenTofu 独有扩展名，归到 terraform 系 ft 以复用同一套
+		-- treesitter parser / tofu-ls / tofu_fmt（.tofu 同名时覆盖 .tf，见 OpenTofu 文档）
+		tofu = "terraform",
+		tofuvars = "terraform-vars",
 		gotmpl = "gotmpl",
 		mdx = "markdown.mdx",
 	},
