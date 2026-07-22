@@ -38,32 +38,27 @@ return {
 			{ "<C-x>n", "<cmd>BufferLineCycleNext<CR>", desc = "Next buffer" },
 			{ "<C-x>p", "<cmd>BufferLineCyclePrev<CR>", desc = "Prev buffer" },
 
-			-- 选择跳转 / 选择关闭
+			-- 选择跳转
 			{ "<C-x>o", "<cmd>BufferLinePick<CR>", desc = "Pick buffer" },
-			{ "<C-x>k", "<cmd>BufferLinePickClose<CR>", desc = "Pick & close buffer" },
+			-- close 家族（镜像 .ideavimrc 的 C-x 节）：k = emacs kill-buffer 正统，
+			-- 大写 K = 同动词加力度（丢弃未保存）；d = 点选删除，与 <C-x>o 点选
+			-- 跳转成对；O = Others/Only。数字键已全族退役：0 的 emacs 助记是
+			-- delete-window（窗格归 <C-w>），<C-0> 依赖 CSI-u 扩展键协议，协议
+			-- 缺失时塌成裸 0，"关其它"会误触发成"关当前"。
+			{
+				"<C-x>k",
+				function() require("mini.bufremove").delete(0, false) end,
+				desc = "Close current buffer",
+			},
 			{
 				"<C-x>K",
 				function() require("mini.bufremove").delete(0, true) end,
 				desc = "Force close current buffer",
 			},
+			{ "<C-x>d", "<cmd>BufferLinePickClose<CR>", desc = "Pick & close buffer" },
+			{ "<C-x>O", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
 			{ "<C-x>,", "<cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },
 			{ "<C-x>.", "<cmd>BufferLineMoveNext<CR>", desc = "Move buffer right" },
-			{
-				"<C-x>0",
-				function()
-					local ok, br = pcall(require, "mini.bufremove")
-					if ok then
-						br.delete(0, false)
-					else
-						vim.cmd("bdelete")
-					end
-				end,
-				desc = "Close current buffer",
-			},
-			-- C-x C-0 = 关掉其它 buffer。Ctrl+<数字> 没有传统控制码,只能靠 kitty/CSI-u
-			-- 传输 —— 依赖 tmux.conf.local 的 extended-keys-format=csi-u(Ghostty 只认
-			-- CSI-u,不认 xterm modifyOtherKeys)。否则会塌成裸 0,被更短的 <C-x>0(关当前)抢走。
-			{ "<C-x><C-0>", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
 			{ "<C-x>[", "<cmd>BufferLineCloseLeft<CR>", desc = "Close buffers to the left" },
 			{ "<C-x>]", "<cmd>BufferLineCloseRight<CR>", desc = "Close buffers to the right" },
 		},

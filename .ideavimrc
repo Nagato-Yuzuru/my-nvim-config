@@ -6,7 +6,12 @@
 let mapleader = " "
 let maplocalleader = ","
 " Mirrors vim.g.maplocalleader = "," in ~/.config/nvim/init.lua — keeps
-" <localleader>* bindings (git, typst, …) typeable as `,*` on both sides.
+" localleader bindings (git, typst, …) typeable as `,*` on both sides.
+" ⚠️ IdeaVim 不展开 <localleader>：vim-engine VimStringParserBase 的
+" 特殊名解析只有 "leader" 分支（读 g:mapleader），没有 localleader——
+" 写 <localleader> 的映射是死键。因此本文件所有 localleader 位键一律
+" 硬编码字面 `,`（如 nmap ,gd）。上面这行 let 仅作意图文档 + 未来
+" IdeaVim 支持后的无缝衔接，当前无实际效果。
 "" -- Suggested options --
 " Show a few lines of context around the cursor. Note that this makes the
 " text scroll if you mouse-click near the start or end of the window.
@@ -57,10 +62,54 @@ let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
 set quickscope                    " IdeaVim-Quickscope (19417) — f/F/t/T 前高亮独特字符
 set keep-english-in-normal        " IdeaVimExtension (9615) — normal 模式自动切英文输入法
 
-" -- Emacs C-x chord prefix: 让 <C-x> 给 chord 用（见下方 Tab management asymmetry
-" 注释块）；原生 decrement 落到 <C-S-A>。
+" -- C-x chord 层（workspace 动词：buffer / tab / file）。原生 decrement 落到
+" <C-S-A>；<C-x> 自身 Nop 化作前缀（按下后等待第二键，timeoutlen 5000）。
+"
+" 2026-07 起 C-x chord 整体从 IDE keymap（"Emacs Custom"）迁入此处，IDE 侧
+" C-x 面清零。动机：IDE keymap 里只要存在任一 C-x chord，C-x 首击就进入
+" IDE 的 chord-pending，Terminal 工具窗里的 shell 永远拿不到 C-x——终端内
+" emacs 的 C-x C-c 会误触发 CloseAllEditors（破坏性），zsh 的 C-x C-e
+" (edit-command-line) 也被吞。迁入 IdeaVim 后 C-x 只在编辑器内生效，终端
+" 完整归 shell。代价（有意接受）：工具窗内 C-x 层失效——Esc / Ctrl+Esc
+" 回编辑器一步即达；insert mode 无 chord，与 nvim 同构（nvim 的 <C-x>
+" 映射同样只绑 normal mode）。
+" 注意：IntelliJ IDEA 的 "Emacs Custom.xml" 是正本；其它 JetBrains 产品
+" 的同名 keymap 是它的逐字节拷贝（2026-07 起，改完 IDEA 后 cp 分发），
+" 所以 C-x 清零对全产品成立。改 keymap 只改 IDEA，再复制。
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
+" close 家族——镜像 lua/plugins/ui/bufferline.lua：k = emacs kill-buffer 正统，
+" O = Others/Only。数字键全族已退役（0/C-0/1/2/3：窗格归 <C-w>，C-数字在
+" 终端还依赖 CSI-u 协议）。
+nmap <C-x>k <Action>(CloseContent)
+nmap <C-x>O <Action>(CloseAllEditorsButActive)
+nmap <C-x>[ <Action>(CloseAllToTheLeft)
+nmap <C-x>] <Action>(CloseAllToTheRight)
+" buffer / file 导航——n/p 镜像 nvim 的 BufferLineCycle；o 镜像 <C-x>o
+" pick buffer（Switcher 是 JetBrains 里最接近"点选跳转"的面），b 是同一
+" action 的 emacs 助记别名（switch-to-buffer）。
+nmap <C-x>n <Action>(NextTab)
+nmap <C-x>p <Action>(PreviousTab)
+nmap <C-x>o <Action>(Switcher)
+nmap <C-x>b <Action>(Switcher)
+nmap <C-x><C-f> <Action>(GotoFile)
+" Tab 本键保持 IDE 智能缩进（EmacsStyleIndent，绑在 IDE keymap）。插入
+" 字面 \t 的逃生舱不自造 chord：vim 原生 quoted-insert i_CTRL-V/i_CTRL-Q
+" （vim-engine InsertCompletedLiteralAction；<C-q> 在冲突仲裁里已判给
+" vim）——insert mode 按 <C-q><Tab>，若 raw Tab 仍被 IDE 抢走则用
+" <C-q>009（键码数字走 typed-char 通道，最稳）。恰好 emacs 的
+" quoted-insert 也是 C-q，两套肌肉记忆同键；nvim 侧 <C-v><Tab> 原生
+" 同义，跨编辑器零配置对齐。
+" NOTE 不可行方案存档：imap <C-x><Tab> <Action>(EditorTab)——chord 第二
+" 击 Tab 在 IDE 动作系统层先被 EmacsStyleIndent 消费，IdeaVim 的 pending
+" mapping 收不到 Tab，映射永远无法完成。以 Tab/Enter/Esc 这类 IDE 重度
+" 争用键结尾的 insert-mode chord 都有同类风险，勿再尝试。
+" nvim-only（不镜像）：<C-x>K 强关（IDE 自动保存无 dirty 概念）、<C-x>d
+" 点选关闭（无 picker）、<C-x>t/T/<Tab>/X/R tabpage 层（JetBrains 无
+" tabpage）、<C-x>,/. 移动 buffer、<C-x>` 终端、<C-x>m minimap。
+" 随迁移主动废弃的 stock emacs chord（vim 原生已覆盖）：C-x h (ggVG /
+" ⌘A)、C-x x (visual o)、C-x ` (]d，F2 保留)、C-x C-s (:w / autosave)、
+" C-x Tab 缩进 (> operator)、C-x C-c (危险，见上)、C-x C-o (低频，走菜单)。
 nmap K <Action>(QuickJavaDoc)
 
 
@@ -317,7 +366,7 @@ nmap <leader>vp <Action>(ActivateProjectToolWindow)
 " the IDE's own keymap (Right/Left, NumPad +/-, Ctrl+NumPad+ for expand-all),
 " which IdeaVim cannot intercept — leave it to the IDE keymap.
 nmap <leader>vs <Action>(ActivateStructureToolWindow)
-nmap <localleader>gd <Action>(Compare.SameVersion)
+nmap ,gd <Action>(Compare.SameVersion)
 nmap <leader>vc <Action>(ActivateCommitToolWindow)
 nmap <leader>vr <Action>(ActivateRunToolWindow)
 nmap <leader>vd <Action>(ActivateDebugToolWindow)
@@ -455,9 +504,9 @@ augroup END
 "     gutter stage 按钮 / commit 工具窗，不强造别扭映射。
 "   <localleader>gr restore hunk —— 下面镜像 Vcs.RollbackChangedLines，但该 action
 "     ID 在闭源 GoLand 未实测；启用前请用 IdeaVim "Track Action IDs" 确认后再解注释。
-" nmap <localleader>gr <Action>(Vcs.RollbackChangedLines)
-nmap <localleader>G <Action>(Vcs.QuickListPopupAction)
-nmap <localleader>gl <Action>(Vcs.ShowTabbedFileHistory)
+" nmap ,gr <Action>(Vcs.RollbackChangedLines)
+nmap ,G <Action>(Vcs.QuickListPopupAction)
+nmap ,gl <Action>(Vcs.ShowTabbedFileHistory)
 
 " 6)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
 "

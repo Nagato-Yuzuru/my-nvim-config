@@ -109,12 +109,17 @@ These constrain code that *isn't there*; comments have nowhere to live.
 - **`<leader>nt` (GotoTest) is IdeaVim-only.** Neotest is a runner, not
   a navigator — don't invent a heuristic. Use `<leader>tt` or language
   tooling (`:GoAlt`).
-- **`<C-x>` is asymmetric on purpose.** Both sides remap Vim's default
-  decrement to `<C-S-A>`. Past that, nvim repurposes `<C-x>` as an
-  Emacs-style chord prefix (`lua/core/keymaps.lua`); JetBrains routes
-  `<C-x>` through its own keymap so chords work outside the editor
-  component (tool windows, popups). Don't mirror new `<C-x>*` bindings
-  into `.ideavimrc`.
+- **`<C-x>` is a vim-layer chord prefix on both sides.** Both sides
+  remap Vim's default decrement to `<C-S-A>`. nvim hosts its chords in
+  `lua/core/keymaps.lua` + bufferline; the IDEA side hosts them as
+  `.ideavimrc` nmap/imap. The IntelliJ IDE keymap ("Emacs Custom") must
+  keep **zero** `C-x` shortcuts: any IDE-keymap `C-x` chord captures the
+  first keystroke IDE-wide and steals the whole `C-x` prefix from the
+  Terminal tool window's shell (emacs `C-x C-c`, zsh `C-x C-e`). New
+  `<C-x>*` bindings go into `.ideavimrc`, never into the IDE keymap.
+  (IntelliJ IDEA's "Emacs Custom.xml" is the canonical copy; the other
+  JetBrains products carry verbatim copies of it — edit IDEA's, then
+  `cp` to the rest.)
 - **DAP keymaps split into static `<leader>d*` and session-only
   `<localleader>*`** (= `,`). Static binds at startup; session binds
   attach/detach via `dap.listeners.on_session` (see
