@@ -27,33 +27,86 @@ set timeoutlen=5000
 
 " --- Built-in（IdeaVim 内嵌仿真，set 即生效，无需安装 Marketplace 插件）---
 set surround
+" ⚠️ let 必须在 set 之前（init() 时读，同 anyobject/quickscope）。
+" 2.43.0 起插件默认键对齐原版（breaking change）：<C-n> 会在 N/V/O 被吃掉，
+" 抢走 IDE keymap 的 C-n。我们的 <A-n>/<A-x>/<A-p> 在下方显式绑定，默认键
+" 只剩副作用，关闭。<Plug>* 注册在此开关之外，不受影响。
+let g:multi_cursor_use_default_mapping = 0
 set multiple-cursors
+
 set commentary
 set exchange
 set highlightedyank
 set matchit
-set mini-ai                       " 新增 aq/iq（任意引号）+ ab/ib（任意括号）
 set vim-paragraph-motion          " { / } 跳过纯空白行
+
+" --- 结构文本对象 / 结构导航：能用 IdeaVim 内置就用内置 ---
+" 内置实现走 IntelliJ PSI（functextobj / classtextobj / [m ]m）或纯文本算法
+" （mini-ai / argtextobj / indentwise / CamelCaseMotion），都不"自己猜文件
+" 是什么语言"——那正是 AnyObject 的病根（见下方 "AnyObject 收缩"）。
+"
+" ⚠️ 定序事实：扩展的 init() 不在 `set` 行执行，而是整个 rc 跑完后按 set
+" 顺序统一执行。推论：
+"   1. rc 里的 map 拦不住"之后才 init 的扩展"的 putKeyMapping 强制覆盖，
+"      书写顺序保护不了任何键；
+"   2. 已启用扩展在 init 里读的 g:* 改动后 :source 不生效（option 没翻转
+"      → init 不重跑），要 `:set no<name>` + `:source`，或重启 IDE。
+" 铁律：只启用 IfMissing 语义的扩展，键位归属靠"无人相争"，不靠加载顺序。
+"
+" ⛔ targets.vim 禁用：它给每个对象注册 n/l seek 变体，占满 an*/in*/al*/il*
+" 整片前缀，与 al/il=@loop、an/in=缩进块相撞——完整映射同时是 targets 的
+" 前缀，`set notimeout` 下 `dal` 会无限挂起等第二键。要 targets 就得把 loop
+" 挪离 l，等于放弃 parity。代价（接受）：无 I/A 修饰与 n/l seek；分隔符
+" 对象由 anyitem 顶。解禁条件：IdeaVim 移植支持 g:targets_nl（把 n/l 换键）
+" ——2.44 尚不支持（doc 明写 settings not supported），升级后可复查。
+"
+" ⛔ textobj-indent 禁用：init 里 putKeyMapping（非 IfMissing）无条件强绑
+" ai/aI/ii 且无开关——按定序事实必然盖掉 conditional，归属随 init 顺序
+" 漂移。缩进块用 anyobject 的 anyindentblock：纯行缩进算法、不经语言识别，
+" 同等可靠。代价：无 aI 变体，an 不含块上方 header 行。解禁条件：上游改成
+" IfMissing 或加默认键开关（2.44 均无），届时缩进块可迁回、换掉 anyobject 版。
+set mini-ai                       " aq/iq（任意引号）+ ab/ib（任意括号）
+set argtextobj                    " aa/ia 参数对象（<Plug>{Inner,Outer}Argument）
+set functextobj                   " 函数对象 am/aM/im（下方 remap 到 af/if）
+set classtextobj                  " 类对象 ac（outer；inner 走 anyobject 的 iC）
+set textobj-entire                " 整文件 ae/ie
+set indentwise                    " [- ]- [+ ]+ [= ]= [% ]% 按缩进层级导航
+set CamelCaseMotion               " 故意不设 g:camelcasemotion_key：不生成
+                                  " <leader>w/b/e/ge 默认键，只在下方把
+                                  " 它的 inner-subword <Plug> 挂到 iu
 
 " --- Marketplace（须先在 Settings → Plugins 装对应插件，否则 set 静默失效）---
 set easymotion                    " AceJump + IdeaVim-EasyMotion
 set which-key                     " Which-Key
-" Vim AnyObject (28333) — keys: a=arg f=func c=class l=loop
-"   i=conditional y=item n=indentBlock q=quote o=bracket u=subword
-"   d=document k=comment v=variable g=string m=lambda x=arg|item
-"   全部支持 a/i 前缀（around/inner）及 ]/[ 跳转。
-" 默认 i=item / y=conditional 与 nvim treesitter-textobjects 的约定（textobjects.lua:
-" ai/ii=@conditional）不一致——互换两键以对齐 muscle memory：
-" ⚠️ let g:* 必须放在 `set anyobject` 之前，否则插件激活时读不到。
+" === AnyObject 收缩 (28333) ===
+" 只保留内置没有对等实现的七个对象，其余全部迁到上方内置扩展（键位归属见
+" "Syntax-aware" 段末的一览表）。
+" 根因（v3.1.4 源码 TSLanguageUtils 实测）：它自己猜语言——后缀白名单优先
+" （不问 IDE file type）、PSI displayName 精确比对（不沿 baseLanguage 回溯，
+" .pyi/.bzl/.pyx 等方言全落空）、最后按 IDE 名兜底且必命中。兜底必返回 ⇒
+" 认错语言时不是"干净地不动"，而是拿错误文法硬啃出 ERROR 树，选择与 ]/[
+" 跳转全部乱落点。以上是 v3.1.4 的现状；插件在活跃迭代，升级后若语言识别
+" 修好（PSI 优先 + baseLanguage 回溯），本节的收缩范围可以重新放宽。
+"
+" 保留：l=loop  i=conditional  k=comment  v=variable
+"       y=列表项（targets 被 ⛔，无分隔符对象可替）
+"       n=缩进块（textobj-indent 被 ⛔；纯文本实现，唯一不受认错语言影响）
+"       C=class——只为 inner：outer 用原生 ac（PSI 可靠），iC 是 class-inner
+"       目前唯一的来源；小写 ic 暂无绑定（classtextobj 尚无 inner，上游
+"       补上后 ic 让给它）。
+" 接受丢失的三个语义：anystring（mini-ai 引号近似）、lambda 独立键
+" （functextobj 启发式会吃到）、arg|item 合并键（aa 与 ay 分别覆盖）。
+"
+" ⚠️ let 必须在 set 之前；改动后按"定序事实"第 2 条重新 init 才生效。
+" i/y 互换对齐 nvim（textobjects.lua: ai/ii=@conditional）；anyindentblock
+" 默认键就是 n，无需变量。
+let g:anyobject_included = "anyloop,anyconditional,anycomment,anyvariable,anyitem,anyclass,anyindentblock"
 let g:anyobject_map_anyconditional = "i"
 let g:anyobject_map_anyitem = "y"
 let g:anyobject_map_anyclass = "C"
 set anyobject
-" 已知未对齐项（无法消除）：
-"   class jump：nvim 用 ]C/[C 大写避让 gitsigns；anyobject 的 jump key 与
-"   selection key 绑同一字符（c），改成大写会让 vac→vaC，破坏 selection 对齐。
-"   故 ideavim 侧 class jump 留在 ]c/[c——但已被 VcsShowNextChangeMarker 覆盖，
-"   class 跳转事实上不可用。要跳类用 Cmd-Up / Structure tool window 替代。
+" ]C/[C（buffer 内类跳转）随 anyclass 附带恢复，恰与 nvim ]C/[C=@class.outer
+" 对齐；认错语言的文件里会失灵，届时用 Cmd-Up / Structure 面板。
 set peekaboo                      " Vim Peekaboo (25776) — " / @ / <C-r> 弹 register 预览
 " lazy 模式：平时不亮，只在按下 f/F/t/T 那一刻才高亮当前行的最佳跳转字符。
 " 镜像 nvim 侧 eyeliner.nvim 的 highlight_on_key = true（lua/plugins/edit/eyeliner.lua）。
@@ -110,7 +163,6 @@ nmap <C-x><C-f> <Action>(GotoFile)
 " 随迁移主动废弃的 stock emacs chord（vim 原生已覆盖）：C-x h (ggVG /
 " ⌘A)、C-x x (visual o)、C-x ` (]d，F2 保留)、C-x C-s (:w / autosave)、
 " C-x Tab 缩进 (> operator)、C-x C-c (危险，见上)、C-x C-o (低频，走菜单)。
-nmap K <Action>(QuickJavaDoc)
 
 
 " -- Tab management asymmetry
@@ -183,19 +235,29 @@ nnoremap <C-l> <C-w>l
 nmap <C-w>L <Action>(MoveTabRight)
 nmap <C-w>J <Action>(MoveTabDown)
 nmap <C-w>x <Action>(MoveEditorToOppositeTabGroup)
-" Resize — StretchSplit* IDs are unverified in closed-source GoLand; confirm
-" with IdeaVim "Track Action IDs" before uncommenting (same policy as
-" Vcs.RollbackChangedLines below). Note divider-relative semantics: Stretch
-" moves the split divider, vim's <C-w>>/< grow/shrink the current window —
-" equivalent for a 2-split, diverges in 3+ column layouts.
-" nmap <C-w>> <Action>(StretchSplitToRight)
-" nmap <C-w><lt> <Action>(StretchSplitToLeft)
-" nmap <C-w>+ <Action>(StretchSplitToBottom)
-" nmap <C-w>- <Action>(StretchSplitToTop)
+" Resize——原生已全（2.39+，实测于 frontend_commands.json）：<C-w>+/- 高、
+" <C-w>>/< 宽、<C-w>= 等分、<C-w>_/| 最大化、:resize / :vertical resize [±n]。
+" 下方子模式遮蔽 > < + - 四键（语义等价 + 连调）；= _ | 与 ex 仍原生直达。
+"
+" Hydra 式连调（镜像 nvim lua/plugins/ui/hydra.lua）：pending-<Plug> 子模式
+" （vim-submode 手法）。每步后追加伪键 <Plug>(wres)，`notimeout` 让它挂起等
+" 下一键：> < + - = 匹配则再调一步并重新挂起；其他键匹配失败、伪键被丢弃、
+" 照常执行（自然退出）。子模式里裸键可长按（OS auto-repeat 的每次 keydown
+" 都命中 pending 映射）。
+" 入口 RHS 用 ex 命令而非原生 <C-w>>：nmap 递归，RHS 含自身 LHS 会 E223。
+" 代价（接受）：count 前缀 5<C-w>> 失效（5 被吃进 : 的 range）。
+" 进入（首击即完成第一步调整）：
+nmap <C-w>> :vertical resize +1<CR><Plug>(wres)
+nmap <C-w><lt> :vertical resize -1<CR><Plug>(wres)
+nmap <C-w>+ :resize +1<CR><Plug>(wres)
+nmap <C-w>- :resize -1<CR><Plug>(wres)
+" 子模式内（裸键，可长按；= 用原生等分后继续留在子模式）：
+nmap <Plug>(wres)> :vertical resize +1<CR><Plug>(wres)
+nmap <Plug>(wres)<lt> :vertical resize -1<CR><Plug>(wres)
+nmap <Plug>(wres)+ :resize +1<CR><Plug>(wres)
+nmap <Plug>(wres)- :resize -1<CR><Plug>(wres)
+nmap <Plug>(wres)= <C-w>=<Plug>(wres)
 " nvim-only, intentionally unbound here:
-"   <C-w>=            no "equalize splits" IDE action exists
-"   <C-w>-prefix hydra  hold-to-repeat resize (lua/plugins/ui/hydra.lua);
-"                     IDE side is single-shot by nature
 "   <C-w>T            break window out into a new tabpage — JetBrains has no
 "                     tabpage concept (see Tab management asymmetry above);
 "                     MoveTabToNewWindow detaches a separate IDE window,
@@ -679,10 +741,39 @@ nmap [d <Action>(GotoPreviousError)
 " section so both sides share one source of truth).
 
 " Bracket-prefix motions
-nmap ]f <Action>(MethodDown)
-nmap [f <Action>(MethodUp)
+" 函数跳转走原生 ]m/[m ]M/[M 而非 <Action>(MethodDown/Up)：原生是真 motion
+" （d]f 可组合）、进 jumplist（<C-o> 能回）、走 StructureView 所以语言无关
+" （Python 方言也覆盖）。代价：structure view 的所有节点都算落点（含 class
+" / field），不严格"只有 method"。
+map ]f ]m
+map [f [m
+map ]F ]M
+map [F [M
 nmap ]c <Action>(VcsShowNextChangeMarker)
 nmap [c <Action>(VcsShowPrevChangeMarker)
+
+" 文本对象 remap 只有两处（af/if/aF、iu）；其余键全部由扩展 init 自绑默认
+" 键——有意为之：全是 IfMissing 语义、无人争键，收敛与加载顺序无关；在 rc
+" 手写这些 map 反而踩"定序事实"第 1 条。omap+xmap 而非 map：文本对象只在
+" operator-pending / visual 有意义。<Plug> 名对照安装包实测，非照抄文档。
+"
+" af/if ← functextobj（nvim: af/if = @function.outer/inner）。副作用（有意）：
+" 它的 IfMissing 判定是 hasMapTo(<Plug>)，因此不再绑默认 am/aM/im。
+" 已知不一致（2026-07 实测，当前接受）：if 的 inner = "函数体大括号之间"，
+" Python 下与 nvim @function.inner 选区不同；选函数体用 vin 更贴。IdeaVim
+" 内置扩展迭代快，升级后可复测——上游改成按语言取 body 就能对齐。
+omap af <Plug>(textobj-function-am)
+xmap af <Plug>(textobj-function-am)
+omap if <Plug>(textobj-function-im)
+xmap if <Plug>(textobj-function-im)
+" aF = 含 JavaDoc/注解的整块，nvim 无对应物，放大写位不占 parity 键。
+omap aF <Plug>(textobj-function-aM)
+xmap aF <Plug>(textobj-function-aM)
+" iu ← CamelCaseMotion inner sub-word（沿用 anyobject 旧 u 键）。无 au：它
+" 只有 inner。⚠️ <Plug> 名两套体系：w/b/e/ge 动作是 <Plug>CamelCaseMotion_w，
+" 文本对象走新 textObjects API = <Plug>(CamelCaseMotion-iw)，勿混写。
+omap iu <Plug>(CamelCaseMotion-iw)
+xmap iu <Plug>(CamelCaseMotion-iw)
 
 " Sibling swap (statement / argument).
 " MoveStatementDown/Up is the same action IDE binds to Cmd+Shift+Down/Up.
@@ -704,12 +795,24 @@ nmap gsA <Action>(MoveElementLeft)
 sethandler <A-w> a:ide
 sethandler <A-W> a:ide
 
-" nvim-only (no IDE action with the same granularity — intentionally unbound
-" here):
-"   ]l/[l ]L/[L    → @loop.outer start/end
-"   ]i/[i          → @conditional.outer (if / match / switch)
-"   ]C/[C          → @class.outer (GotoNextClass is project-wide, not buffer-local)
-"   ]F/[F          → @function.outer end (MethodUp/Down has no end variant)
-"   ]a/[a          → @parameter.outer
-"   af/if ac/ic ai/ii al/il → treesitter-textobjects selections
-"                    (argtextobj plugin already covers aa/ia on this side)
+" 键位归属一览（本节 SSOT）：
+"   af/if aF       functextobj（PSI）
+"   ac             classtextobj（PSI，outer；inner 在 iC，小写 ic 无绑定）
+"   aC/iC ]C/[C    anyobject anyclass
+"   ai/ii ]i/[i    anyobject anyconditional
+"   al/il ]l/[l    anyobject anyloop
+"   ak/ik ]k/[k    anyobject anycomment（nvim 侧无对应，IdeaVim-only）
+"   av/iv ]v/[v    anyobject anyvariable（同上）
+"   ay/iy ]y/[y    anyobject anyitem（列表项）
+"   an/in          anyobject anyindentblock（无 ]n/[n——跳转只有 TS 系有）
+"   aa/ia          argtextobj（参数）
+"   aq/iq ab/ib    mini-ai（引号 / 括号）
+"   ae/ie          textobj-entire
+"   iu             CamelCaseMotion inner sub-word
+"   ]f/[f ]F/[F    原生 ]m/[m ]M/[M
+"   [- ]- [+ ]+    indentwise（按缩进层级；nvim 侧无对应，IdeaVim-only）
+"   [= ]= [% ]%    同上
+"
+" nvim-only（IdeaVim 无对等实现，故意不绑）：
+"   ]a/[a          → @parameter.outer。argtextobj 给了 aa/ia 选择但没有跳转
+"   ]L/[L          → @loop.outer end。anyobject 的跳转只有 start
