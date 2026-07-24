@@ -428,13 +428,18 @@ nmap <leader>vp <Action>(ActivateProjectToolWindow)
 " the IDE's own keymap (Right/Left, NumPad +/-, Ctrl+NumPad+ for expand-all),
 " which IdeaVim cannot intercept — leave it to the IDE keymap.
 nmap <leader>vs <Action>(ActivateStructureToolWindow)
-nmap ,gd <Action>(Compare.SameVersion)
 nmap <leader>vc <Action>(ActivateCommitToolWindow)
 nmap <leader>vr <Action>(ActivateRunToolWindow)
 nmap <leader>vd <Action>(ActivateDebugToolWindow)
 nmap <leader>vt <Action>(ActivateTODOToolWindow)
 nmap <leader>vP <Action>(ActivateProblemsViewToolWindow)
-nmap <leader>vD <Action>(ToggleDistractionFreeMode)
+" vD/vH 镜像 diffview（lua/plugins/git/diffview.lua）。范围差异（接受）：
+" nvim vD = 全仓库树 diff（DiffviewOpen <base>...HEAD），IDEA 的
+" CompareWithBranch 是当前文件 vs 所选 ref；全仓库对比走 Git.Branches
+" popup → Compare。两边都是"选个 base 看 diff"。
+nmap <leader>vD <Action>(Git.CompareWithBranch)
+nmap <leader>vH <Action>(Vcs.ShowTabbedFileHistory)
+nmap <leader>vz <Action>(ToggleDistractionFreeMode)
 nmap <leader>vF <Action>(ToggleFullScreen)
 nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 " Views panel toggles that mirror Neovim:
@@ -457,7 +462,7 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 "        due to LintaoAmons hard dep).
 " Asymmetries (intentional, not bound on the nvim side):
 "   vc  → Commit Tool Window  (nvim uses lazygit via <localleader>G instead)
-"   vD  → Distraction Free    (no zen-mode plugin installed)
+"   vz  → Distraction Free    (no zen-mode plugin installed)
 "   vF  → FullScreen          (terminal-multiplexer level — out of nvim scope)
 " nvim-only extras with no IdeaVim equivalent:
 "   vn  → Snacks.notifier.show_history  (lua/plugins/ui/snacks.lua)
@@ -556,19 +561,31 @@ augroup GenerateConceptDispatch
   autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gA <Action>(Generate.GetSetAccessor.JavaScript)
 augroup END
 
-" 5)  Git — <localleader>g* (low-frequency VCS ops; <localleader>gd 在 Views 节)
+" 5)  Git — <localleader>g*，镜像 gitsigns/git-conflict（lua/plugins/git/）。
+"     action ID 全部实测于开源 VcsActions.xml / intellij.vcs.git.backend.xml
+"     （all-in-IDEA 后可直接查源码，旧的"闭源 GoLand 无法验证"顾虑作废）。
 "
-" Parity with gitsigns (lua/plugins/git/gitsigns.lua):
-"   ]c / [c 自动预览 —— IDE 原生即有：VcsShowNextChangeMarker（见 Bracket-prefix
-"     节）落到 change marker 上就弹 gutter 工具条（diff + rollback + stage）。
-"     nvim 侧用 gs.nav_hunk(..., {preview=true}) 追平，无需在此加键。
-"   <localleader>gs stage/unstage toggle —— nvim-only（gitsigns toggle）；IDE 侧用
-"     gutter stage 按钮 / commit 工具窗，不强造别扭映射。
-"   <localleader>gr restore hunk —— 下面镜像 Vcs.RollbackChangedLines，但该 action
-"     ID 在闭源 GoLand 未实测；启用前请用 IdeaVim "Track Action IDs" 确认后再解注释。
-" nmap ,gr <Action>(Vcs.RollbackChangedLines)
+" ]c/[c 已在 Bracket-prefix 节：VcsShowNext/PrevChangeMarker 落到 marker 就弹
+" gutter 工具条，与 nvim 侧 gs.nav_hunk({preview=true}) 对齐，无需加键。
+nmap ,gp <Action>(VcsShowCurrentChangeMarker)
+" ,gb 语义差异（接受）：nvim blame_line 是单行弹窗，Annotate 是 gutter 栏
+" 开关（再按一次关）。IDE 无单行 blame 弹窗 action。
+nmap ,gb <Action>(Annotate)
+nmap ,gr <Action>(Vcs.RollbackChangedLines)
+nmap ,gd <Action>(Compare.SameVersion)
+" ,gx：nvim 是冲突塞 quickfix；IDE 是 Resolve Conflicts 对话框列冲突文件，
+" 双击进 merge 工具。冲突的逐块处理（nvim 侧 co/ct/cb/c0、]x/[x 在 buffer
+" 内解决）IDE 归 merge 对话框，编辑器内不设镜像。
+nmap ,gx <Action>(Git.ResolveConflicts)
 nmap ,G <Action>(Vcs.QuickListPopupAction)
-nmap ,gl <Action>(Vcs.ShowTabbedFileHistory)
+" nvim-only（无对等 action，有意不绑）：
+"   ,gs  stage/unstage hunk toggle —— IDE 无 hunk 级 stage 的 action ID
+"        （Git.Stage.Add 是整文件、非 toggle）；用 gutter 工具条的 stage
+"        按钮或 Commit 工具窗（<leader>vc）。
+"   ,gB  切换 gutter diff base —— IDEA 的 gutter 恒 vs HEAD/index，不可换
+"        base；一次性的"vs 任意 ref"走 <leader>vD（Views 节）。
+"   ,do  mini-diff overlay —— IDE 的 gutter 弹窗已覆盖预览需求。
+" 文件历史在 <leader>vH（Views 节，镜像 diffview）。
 
 " 6)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
 "

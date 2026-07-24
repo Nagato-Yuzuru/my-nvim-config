@@ -42,6 +42,7 @@ what's bound where.
 | Navigation extras `<leader>n*` (no `g*` equivalent), plus `<leader>n{h,j,k,l}` walker hydra (nvim-only) | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (bindings; treewalker plugin spec is `lua/plugins/edit/treewalker.lua`) |
 | Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua` (bulk), plus `<leader>sr` `edit/rip-substitute.lua`, `<leader>sR` `edit/grug-far.lua`, `<leader>sm` `edit/marks.lua` |
 | Views `<leader>v*`                                          | Spread across `lua/plugins/{ui,git,runtime,edit}/` — `grep '<leader>v'` |
+| Git `<localleader>g*` + `]c/[c` hunk nav, `<leader>v{D,H}` diff/history | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`. IdeaVim side mirrors per-key (`,gp/,gb/,gr/,gd/,gx`); nvim-only: `,gs` hunk-stage toggle, `,gB` gutter-base switch, in-buffer conflict ops (`co/ct/cb/c0`, `]x/[x`) — IDE handles those in gutter toolbar / merge dialog. Asymmetry notes live in the `.ideavimrc` Git section |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
 | Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped) | `lua/plugins/runtime/dap.lua`                                      |
