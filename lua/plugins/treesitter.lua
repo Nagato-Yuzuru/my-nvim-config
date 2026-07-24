@@ -35,6 +35,11 @@ return {
 					"scheme",
 					"racket",
 					"d2",
+					-- promql：yaml 规则文件的 expr: 注入高亮（queries/yaml/injections.scm）
+					-- + 独立 .promql 文件。tier=unstable 且 grammar 停更于 2023
+					-- （MichaHoffmann/tree-sitter-promql）——随 nvim-treesitter 升级复查，
+					-- 同 go-deep / claudecode 的 unpinned 复查纪律。
+					"promql",
 				},
 				auto_install = true,
 			})

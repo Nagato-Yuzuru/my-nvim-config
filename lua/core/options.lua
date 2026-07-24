@@ -59,6 +59,10 @@ vim.filetype.add({
 		tofuvars = "terraform-vars",
 		gotmpl = "gotmpl",
 		mdx = "markdown.mdx",
+		-- 独立 .promql 文件（少见——多数 PromQL 内嵌 yaml 规则的 expr:）：给
+		-- promql LSP（lsp/promql_ls.lua）+ treesitter promql parser 一个可挂载的
+		-- ft。yaml 里的 PromQL 走 expr: 注入（queries/yaml/injections.scm），不靠它。
+		promql = "promql",
 	},
 	filename = {
 		["go.work"] = "gowork",

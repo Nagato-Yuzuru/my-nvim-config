@@ -140,12 +140,103 @@ return {
 				return true, "dispatched"
 			end
 
+			-- pint（cloudflare/pint）：Prometheus 规则文件 linter。同 actionlint——只对
+			-- "看起来是规则文件"的 yaml 有意义（groups: + expr:），对普通 yaml 会误报，
+			-- 故内容嗅探门控而非 LINTERS_BY_FT，首次命中时按需 Mason 安装。Mason 包名
+			-- prometheus-pint（裸 `pint` 是 PHP 的 Laravel Pint），二进制也叫
+			-- prometheus-pint，天然避开撞名。--json /dev/stdout 让 JSON 报告走 stdout、
+			-- console 日志留 stderr，故 stream=stdout 收到纯 JSON 数组（schema：
+			-- path/reporter/problem/details/severity/lines[]）。--offline 禁掉向
+			-- Prometheus 发实时查询（编辑器无后端，免挂起/误报）。
+			local pint_severity = {
+				Fatal = vim.diagnostic.severity.ERROR,
+				Bug = vim.diagnostic.severity.ERROR,
+				Warning = vim.diagnostic.severity.WARN,
+				Information = vim.diagnostic.severity.INFO,
+			}
+			lint.linters.prometheus_pint = {
+				cmd = "prometheus-pint",
+				-- 全局 flag（--offline/--no-color）必须在子命令 lint 之前（urfave/cli）。
+				args = { "--offline", "--no-color", "lint", "--json", "/dev/stdout" },
+				append_fname = true,
+				stream = "stdout",
+				ignore_exitcode = true, -- 有问题时 pint 非零退出属预期，不当 lint 崩溃
+				parser = function(output, _bufnr)
+					local diags = {}
+					if not output or output == "" then
+						return diags
+					end
+					local ok, reports = pcall(vim.json.decode, output)
+					if not ok or type(reports) ~= "table" then
+						return diags
+					end
+					for _, r in ipairs(reports) do
+						local ls = r.lines or {}
+						local first = ls[1] or 1
+						local last = ls[#ls] or first
+						local msg = r.problem or "pint problem"
+						if r.details and r.details ~= "" then
+							msg = msg .. "\n" .. r.details
+						end
+						table.insert(diags, {
+							lnum = first - 1,
+							end_lnum = last - 1,
+							col = 0,
+							severity = pint_severity[r.severity] or vim.diagnostic.severity.WARN,
+							source = "pint",
+							code = r.reporter,
+							message = msg,
+						})
+					end
+					return diags
+				end,
+			}
+
+			-- 内容嗅探：Prometheus/Loki 规则文件的签名是顶层 `groups:` + 某处 `expr:`，
+			-- 只扫前 200 行（都在靠前）。注意：Loki ruler 规则同 schema，会被一并 lint
+			-- ——pint 按 PromQL 解析 LogQL 的 expr 可能误报，属已知取舍（本轮范围是
+			-- PromQL；真要区分得靠 .pint.hcl 或路径约定）。
+			local function is_prometheus_rule_file(bufnr)
+				local has_groups, has_expr = false, false
+				for _, l in ipairs(vim.api.nvim_buf_get_lines(bufnr or 0, 0, 200, false)) do
+					if l:match("^groups:") then
+						has_groups = true
+					elseif l:match("^%s+expr:") then
+						has_expr = true
+					end
+					if has_groups and has_expr then
+						return true
+					end
+				end
+				return false
+			end
+
+			local pint_install_triggered = false
+			local function run_pint_if_applicable(bufnr)
+				if not is_yaml_ft(vim.bo[bufnr].filetype) then
+					return false, "not a yaml buffer"
+				end
+				if not is_prometheus_rule_file(bufnr) then
+					return false, "not a prometheus rule file (no groups:/expr:)"
+				end
+				if vim.fn.executable("prometheus-pint") ~= 1 then
+					if not pint_install_triggered then
+						mason_ensure.ensure_tool("prometheus_pint")
+						pint_install_triggered = true
+					end
+					return false, "prometheus-pint not on PATH (install triggered)"
+				end
+				lint.try_lint("prometheus_pint")
+				return true, "dispatched"
+			end
+
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
 				callback = function(ev)
 					local marker = root_markers[vim.bo.filetype]
 					local cwd = marker and find_root(marker) or nil
 					lint.try_lint(nil, { cwd = cwd })
 					run_actionlint_if_applicable(ev.buf)
+					run_pint_if_applicable(ev.buf)
 				end,
 			})
 
@@ -157,6 +248,15 @@ return {
 					ok and vim.log.levels.INFO or vim.log.levels.WARN
 				)
 			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
+
+			-- :PintRun — 对当前 buffer 强制跑一次 pint（若它是 Prometheus 规则文件）
+			vim.api.nvim_create_user_command("PintRun", function()
+				local ok, reason = run_pint_if_applicable(0)
+				vim.notify(
+					("pint: %s — %s"):format(ok and "dispatched" or "skipped", reason),
+					ok and vim.log.levels.INFO or vim.log.levels.WARN
+				)
+			end, { desc = "Run pint on current buffer (if it's a Prometheus rule file)" })
 		end,
 	},
 }
