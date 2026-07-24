@@ -140,12 +140,112 @@ return {
 				return true, "dispatched"
 			end
 
+			-- pint（cloudflare/pint）：Prometheus 规则文件 linter。同 actionlint——只对
+			-- "看起来是规则文件"的 yaml 有意义（groups: + expr:），对普通 yaml 会误报，
+			-- 故内容嗅探门控而非 LINTERS_BY_FT，首次命中时按需 Mason 安装（包名/二进制
+			-- 皆 prometheus-pint 的撞名规避见 tools/mason_ensure.lua 的 TOOL_MAP）。
+			-- --json /dev/stdout 让 JSON 报告走 stdout、console 日志留 stderr，故
+			-- stream=stdout 收到纯 JSON 数组，逐条 JSONReport（cloudflare/pint
+			-- internal/reporter/json.go）：{ reporter, problem, details?, severity, lines }，
+			-- lines 为展开的行号数组（[]int）。--offline 禁掉向 Prometheus 发实时查询。
+			--
+			-- parser 故意不设兜底：空 stdout = pint 跑干净（无问题），其余任何解不出
+			-- 的东西都让它炸、不吞——上游 JSONReport schema 变了就该响，而不是静默零
+			-- 诊断（errors fail loudly；这也是不给它写单测的理由——测不了上游契约）。
+			local pint_severity = {
+				Fatal = vim.diagnostic.severity.ERROR,
+				Bug = vim.diagnostic.severity.ERROR,
+				Warning = vim.diagnostic.severity.WARN,
+				Information = vim.diagnostic.severity.INFO,
+			}
+			lint.linters.prometheus_pint = {
+				cmd = "prometheus-pint",
+				-- 全局 flag（--offline/--no-color）必须在子命令 lint 之前（urfave/cli）。
+				args = { "--offline", "--no-color", "lint", "--json", "/dev/stdout" },
+				append_fname = true,
+				stream = "stdout",
+				ignore_exitcode = true, -- 有问题时 pint 非零退出属预期，不当 lint 崩溃
+				parser = function(output, _bufnr)
+					local diags = {}
+					if not output or output == "" then
+						return diags
+					end
+					for _, r in ipairs(vim.json.decode(output)) do
+						local ls = r.lines
+						local msg = r.problem
+						if r.details and r.details ~= "" then
+							msg = msg .. "\n" .. r.details
+						end
+						table.insert(diags, {
+							lnum = ls[1] - 1,
+							end_lnum = ls[#ls] - 1,
+							col = 0,
+							severity = assert(
+								pint_severity[r.severity],
+								"unhandled pint severity: " .. tostring(r.severity)
+							),
+							source = "pint",
+							code = r.reporter,
+							message = msg,
+						})
+					end
+					return diags
+				end,
+			}
+
+			-- 内容嗅探：Prometheus/Loki 规则文件的签名是顶层 `groups:` + 某处 `expr:`，
+			-- 只扫前 200 行（都在靠前）。`^groups:` 锚定顶层与 pint 默认 strict 模式的
+			-- schema 一致——PrometheusRule CRD（groups: 缩进在 spec: 下）pint 本来就
+			-- 解析不了（须 .pint.hcl 配 relaxed），故嗅探不认缩进 groups:。Loki ruler
+			-- 规则同 schema、会被一并 lint，pint 按 PromQL 解析 LogQL 可能误报——已知
+			-- 取舍，要区分得靠 .pint.hcl 或路径约定。
+			local function is_prometheus_rule_file(bufnr)
+				local has_groups, has_expr = false, false
+				for _, l in ipairs(vim.api.nvim_buf_get_lines(bufnr or 0, 0, 200, false)) do
+					if l:match("^groups:") then
+						has_groups = true
+					elseif l:match("^%s+expr:") then
+						has_expr = true
+					end
+					if has_groups and has_expr then
+						return true
+					end
+				end
+				return false
+			end
+
+			local pint_install_triggered = false
+			local function run_pint_if_applicable(bufnr)
+				if not is_yaml_ft(vim.bo[bufnr].filetype) then
+					return false, "not a yaml buffer"
+				end
+				if not is_prometheus_rule_file(bufnr) then
+					return false, "not a prometheus rule file (no groups:/expr:)"
+				end
+				-- pint 无 stdin 模式，lint 的是磁盘文件（append_fname）：modified buffer
+				-- 跳过，否则 InsertLeave 会按陈旧磁盘内容报漂移诊断。效果：pint 实际只
+				-- 在 BufReadPost / BufWritePost 生效。
+				if vim.bo[bufnr].modified then
+					return false, "buffer has unsaved changes (pint lints the file on disk)"
+				end
+				if vim.fn.executable("prometheus-pint") ~= 1 then
+					if not pint_install_triggered then
+						mason_ensure.ensure_tool("prometheus_pint")
+						pint_install_triggered = true
+					end
+					return false, "prometheus-pint not on PATH (install triggered)"
+				end
+				lint.try_lint("prometheus_pint")
+				return true, "dispatched"
+			end
+
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
 				callback = function(ev)
 					local marker = root_markers[vim.bo.filetype]
 					local cwd = marker and find_root(marker) or nil
 					lint.try_lint(nil, { cwd = cwd })
 					run_actionlint_if_applicable(ev.buf)
+					run_pint_if_applicable(ev.buf)
 				end,
 			})
 
@@ -157,6 +257,15 @@ return {
 					ok and vim.log.levels.INFO or vim.log.levels.WARN
 				)
 			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
+
+			-- :PintRun — 对当前 buffer 强制跑一次 pint（若它是 Prometheus 规则文件）
+			vim.api.nvim_create_user_command("PintRun", function()
+				local ok, reason = run_pint_if_applicable(0)
+				vim.notify(
+					("pint: %s — %s"):format(ok and "dispatched" or "skipped", reason),
+					ok and vim.log.levels.INFO or vim.log.levels.WARN
+				)
+			end, { desc = "Run pint on current buffer (if it's a Prometheus rule file)" })
 		end,
 	},
 }

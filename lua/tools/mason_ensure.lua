@@ -130,6 +130,11 @@ local TOOL_MAP = {
 	actionlint = { bin = "actionlint", mason = "actionlint" },
 	typstyle = { bin = "typstyle", mason = "typstyle" },
 	tflint = { bin = "tflint", mason = "tflint" },
+	-- pint（cloudflare/pint）Prometheus 规则 linter：Mason 包名 prometheus-pint
+	-- （裸 `pint` 是 PHP 的 Laravel Pint），装出来的二进制也叫 prometheus-pint，天然
+	-- 避开撞名。不进 LINTERS_BY_FT：只对规则文件有意义，内容门控在 plugins/lint/
+	-- nvim-lint.lua（同 actionlint），首次命中时经 ensure_tool 兜底安装。
+	prometheus_pint = { bin = "prometheus-pint", mason = "prometheus-pint" },
 }
 
 ---@type table<string, string[]>
