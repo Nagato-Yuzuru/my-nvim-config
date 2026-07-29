@@ -21,6 +21,17 @@ end
 map("v", "g<C-x>", "<Nop>", o("Disable g<C-x>"))
 map("v", "g<C-S-A>", "g<C-x>", o("Decrement sequentially"))
 
+-- f/t/F/T 的反向重复从 `,` 搬到 `\`。`,` 是 maplocalleader，是一大票
+-- <localleader>* 映射的前缀：裸按等满 timeoutlen(1s) 才回落到原生反向重复，
+-- 这个回落只会在犹豫时打断前缀、把光标甩走，故直接 <Nop> 掉——`,` 从此
+-- 纯前缀，同 <C-x> chord 层的处理。（IdeaVim 侧 `set notimeout`，回落还要
+-- 多敲一个不构成映射的键才触发，更该关。）
+-- `\` 没有原生 normal 模式命令（vim 留给用户）、两侧也无人占用，由它接手；
+-- 因为是 noremap，rhs 的 `,` 走原生语义，不受下面那条 <Nop> 影响。
+-- `;` 正向重复保持原生不动。
+map({ "n", "x", "o" }, "\\", ",", o("Repeat f/t/F/T backwards"))
+map({ "n", "x", "o" }, ",", "<Nop>", o("Disable , (localleader prefix)"))
+
 -- Visual mode J/K for moving code blocks
 -- 向下移动选中文本
 map("v", "J", ":move '>+1<CR>gv=gv", o("Move selection down"))

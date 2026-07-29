@@ -115,6 +115,22 @@ let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
 set quickscope                    " IdeaVim-Quickscope (19417) — f/F/t/T 前高亮独特字符
 set keep-english-in-normal        " IdeaVimExtension (9615) — normal 模式自动切英文输入法
 
+" f/t/F/T 反向重复搬到 `\`（镜像 lua/core/keymaps.lua）。原生的 `,` 被
+" maplocalleader 占成了 `,g*` / `,d*` / `,m*` 一整片的前缀，且本文件 `set
+" notimeout`——裸按 `,` 不会自行回落，要再敲一个不构成映射的键才执行原生
+" 反向重复，那时光标已经跑了。故 `,` 直接 <Nop> 化作纯前缀（同 <C-x> 的
+" 处理），反向重复交给 `\`：无原生 normal 命令、两侧也无人占用。
+" `\` 用 noremap，rhs 的 `,` 是原生语义，不受下面 <Nop> 影响。
+" `;` 正向重复保持原生。
+" 不用 `noremap`/`map` 的全模式形式：那会连 select 模式一起吃掉，`\` 和 `,`
+" 在选区里应当照常替换选中文本。
+nnoremap \ ,
+xnoremap \ ,
+onoremap \ ,
+nnoremap , <Nop>
+xnoremap , <Nop>
+onoremap , <Nop>
+
 " -- C-x chord 层（workspace 动词：buffer / tab / file）。原生 decrement 落到
 " <C-S-A>；<C-x> 自身 Nop 化作前缀（按下后等待第二键，timeoutlen 5000）。
 "
