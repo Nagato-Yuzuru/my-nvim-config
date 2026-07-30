@@ -51,6 +51,15 @@ return {
 		end
 
 		-- Select textobjects
+		--
+		-- av/iv 对外叫「值」而不是 assignment：capture 名是实现细节，而 aa/ia 在
+		-- 代码里已经是「参数」(@parameter)，再多一个 a 打头的概念只会互相干扰。
+		-- iv = 值本身，在 yaml/json 里就是那个 key 底下的整棵子树（由树定边界，
+		-- 不是「所有缩进 ≥ N 的行」）；av = 值连它的键。代码里两者同样成立：
+		-- `civ` 改 `msg = "hi " .. name` 的右边，`cav` 改整条。
+		--
+		-- @assignment.lhs（只要键）故意不绑：改键名多数时候是 ciw，等真出现第二
+		-- 个具体用例再补 ak/ik。json 的 query 里 lhs 已经备好了。
 		local selections = {
 			["af"] = "@function.outer",
 			["if"] = "@function.inner",
@@ -62,6 +71,8 @@ return {
 			["ii"] = "@conditional.inner",
 			["al"] = "@loop.outer",
 			["il"] = "@loop.inner",
+			["av"] = "@assignment.outer",
+			["iv"] = "@assignment.rhs",
 		}
 		for key, query in pairs(selections) do
 			map({ "x", "o" }, key, select_or_abort(query), "TS: " .. query)

@@ -34,7 +34,7 @@ what's bound where.
 | `set peekaboo` (`"` / `@` / `<C-r>` register preview)       | `lua/plugins/edit/registers.lua` (junegunn/vim-peekaboo)           |
 | `set quickscope` + `g:qs_highlight_on_keys` (lazy f/F/t/T hints) | `lua/plugins/edit/eyeliner.lua` (jinh0/eyeliner.nvim, `highlight_on_key=true`) — owns f/F/t/T; flash `modes.char` disabled to avoid shadowing |
 | multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
-| Syntax text objects + bracket motions (`af/if`, `ai/ii`, `al/il`, `an/in`, `]f/[f`, …) — "Syntax-aware navigation & editing" section | `lua/plugins/edit/textobjects.lua` (nvim-treesitter-textobjects). IdeaVim side = built-ins + a shrunken AnyObject; **`set targets` and `set textobj-indent` are forbidden as of IdeaVim 2.44** (key-space / forced-mapping conflicts; the `.ideavimrc` ⛔ notes state the unblock conditions — recheck on upgrade, don't treat as permanent). Key-ownership table, forbidding rationale, and the extension-init ordering facts live in the `.ideavimrc` sections — read them, don't re-derive |
+| Syntax text objects + bracket motions (`af/if`, `ai/ii`, `al/il`, `an/in`, `av/iv`, `]f/[f`, …) — "Syntax-aware navigation & editing" section | `lua/plugins/edit/textobjects.lua` (nvim-treesitter-textobjects). IdeaVim side = built-ins + a shrunken AnyObject; **`set targets` and `set textobj-indent` are forbidden as of IdeaVim 2.44** (key-space / forced-mapping conflicts; the `.ideavimrc` ⛔ notes state the unblock conditions — recheck on upgrade, don't treat as permanent). Key-ownership table, forbidding rationale, and the extension-init ordering facts live in the `.ideavimrc` sections — read them, don't re-derive |
 | Refactor `<leader>r*`                                       | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` (treesitter extract) + inc-rename for `<leader>rn` |
 | Core navigation `g*` (`gd`/`gD`/`gi`/`gr`)                  | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/trouble.lua` (`gr`) |
 | Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua` (goto-preview)                       |
@@ -99,6 +99,12 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   not in the lazy spec at all — `init.lua` requires
   `plugins.schemas.picker` directly at the end, which lazily requires
   `cloud_native_schema` on `:SchemaSelect`.
+- **`after/queries/<lang>/textobjects.scm` extends the upstream text-object
+  queries** (`; extends` header — union, not replace). It exists because the
+  three structured-data formats ship disjoint capture sets: yaml has
+  `@assignment`, toml has `@parameter`, json has neither. Keys are bound in
+  `lua/plugins/edit/textobjects.lua`; a new language file there means the
+  same keys keep the same meaning, so add captures rather than keys.
 
 ## Forbidding rules / retired designs
 

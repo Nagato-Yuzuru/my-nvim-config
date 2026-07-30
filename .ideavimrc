@@ -835,7 +835,13 @@ sethandler <A-W> a:ide
 "   ai/ii ]i/[i    anyobject anyconditional
 "   al/il ]l/[l    anyobject anyloop
 "   ak/ik ]k/[k    anyobject anycomment（nvim 侧无对应，IdeaVim-only）
-"   av/iv ]v/[v    anyobject anyvariable（同上）
+"   av/iv ]v/[v    anyobject anyvariable。av/iv 有 parity：nvim 侧是
+"                  @assignment.outer / .rhs（2026-07 实测对齐，
+"                  `let rc: Rc<String> = Rc::new("hello".into());` 上两侧
+"                  av 都选整句、iv 都选 `Rc::new("hello".into())`）。
+"                  ]v/[v 仍是 IdeaVim-only——TS 系没给 assignment 跳转。
+"                  nvim 侧多覆盖 json/yaml/toml（treesitter 在数据文件里
+"                  一样有 @assignment；AnyObject 只认代码）。
 "   ay/iy ]y/[y    anyobject anyitem（列表项）
 "   an/in          anyobject anyindentblock（无 ]n/[n——跳转只有 TS 系有）
 "   aa/ia          argtextobj（参数）
