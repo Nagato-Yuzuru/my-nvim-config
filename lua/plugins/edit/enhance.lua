@@ -1,5 +1,7 @@
 return {
-	{ "michaeljsmith/vim-indent-object", event = "VeryLazy" },
+	-- 缩进 text object（aI/iI）的 spec 在 lua/plugins/edit/textobjects.lua：
+	-- 它和 treesitter 的 ai/ii 撞键，必须靠 dependencies 定序，声明点和定序
+	-- 约束不能分家。
 
 	-- matchup.vim (增强 % 匹配)
 	{

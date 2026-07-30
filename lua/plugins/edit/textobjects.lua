@@ -1,6 +1,21 @@
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
-	dependencies = { "nvim-treesitter/nvim-treesitter" },
+	dependencies = {
+		"nvim-treesitter/nvim-treesitter",
+		-- 键位归属，不是普通依赖：vim-indent-object 在 plugin/indent-object.vim
+		-- 里硬编码 onoremap/vnoremap ai/ii/aI/iI（无开关变量），和下面 selections
+		-- 的 @conditional 撞 ai/ii。两边原本都是 VeryLazy，谁后 set 谁赢——同一个
+		-- 文件冷启动两次实测结果不同。声明成依赖让 lazy 保证它先加载，本文件的
+		-- ai/ii 必然覆盖在后。
+		--
+		-- 归属结论：ai/ii = 条件语句；缩进对象只剩 aI/iI（上游 README：iI ≡ ii，
+		-- 主力键无损失；aI = 块 + 上下各一行，比原 ai 多吃一行）。
+		--
+		-- 不能删它换成内建 an/in（0.12 的 treesitter 节点对象）：Helm 模板 ft=yaml，
+		-- 但 {{ }} 不是合法 YAML，parser 会把整棵树塌成一个 ERROR 节点，treesitter
+		-- 系在那里全废；只有纯空白语义的缩进对象还能用。
+		"michaeljsmith/vim-indent-object",
+	},
 	event = "VeryLazy",
 	config = function()
 		require("nvim-treesitter-textobjects").setup({
