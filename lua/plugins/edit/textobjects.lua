@@ -16,6 +16,25 @@ return {
 			vim.keymap.set(mode, lhs, rhs, { noremap = true, silent = true, desc = desc })
 		end
 
+		-- 无匹配时 select.select_textobject() 静默返回（上游行为，见 select.lua
+		-- 的 `if range6 then`）。visual 里无害，但 operator-pending 里算子会落在
+		-- 光标处的零宽区间：`dal` 只是空操作，`ysal(` 却会就地插入一对空 `()`
+		-- 污染 buffer，`cal` 会莫名进插入模式。内建文本对象（`i(`）无匹配时由
+		-- Vim 直接中止算子——这里补齐同样的语义：无匹配 ⇒ 仍停在 operator-pending
+		-- （mode 前缀 "no"），据此喂 <Esc> 撤掉算子。
+		--
+		-- feedkeys 必须带 "i"（插到 typeahead 队首）：默认的追加语义会让 <Esc>
+		-- 排在算子结算之后才被读到，`ys` 的 operatorfunc 早已跑完（实测 `ysal(`
+		-- 仍插入空 `()`）。"x"（立即执行）则会把人卡在 operator-pending。
+		local function select_or_abort(query)
+			return function()
+				select.select_textobject(query)
+				if vim.api.nvim_get_mode().mode:sub(1, 2) == "no" then
+					vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "ni", false)
+				end
+			end
+		end
+
 		-- Select textobjects
 		local selections = {
 			["af"] = "@function.outer",
@@ -30,7 +49,7 @@ return {
 			["il"] = "@loop.inner",
 		}
 		for key, query in pairs(selections) do
-			map({ "x", "o" }, key, function() select.select_textobject(query) end, "TS: " .. query)
+			map({ "x", "o" }, key, select_or_abort(query), "TS: " .. query)
 		end
 
 		-- Move to next/prev node by kind.
