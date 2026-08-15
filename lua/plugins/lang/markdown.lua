@@ -1,3 +1,8 @@
+-- .mdx 归 markdown.mdx 复合 ft（marksman 的 filetypes 带它，见 lsp/marksman.lua）。
+require("tools.lang_registry").register("markdown", {
+	ft = { extension = { mdx = "markdown.mdx" } },
+})
+
 local markdown_cfg = function()
 	require("render-markdown").setup({
 		callout = {
