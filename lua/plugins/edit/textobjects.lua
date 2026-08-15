@@ -26,28 +26,12 @@ return {
 		local select = require("nvim-treesitter-textobjects.select")
 		local move = require("nvim-treesitter-textobjects.move")
 		local swap = require("nvim-treesitter-textobjects.swap")
+		-- 自写逻辑（无命中中止 operator + 增量选区）在 tools/ts_select.lua
+		-- （tested seam，spec: tests/test_ts_select.lua）；本文件只接线。
+		local ts_select = require("tools.ts_select")
 
 		local map = function(mode, lhs, rhs, desc)
 			vim.keymap.set(mode, lhs, rhs, { noremap = true, silent = true, desc = desc })
-		end
-
-		-- 无匹配时 select.select_textobject() 静默返回（上游行为，见 select.lua
-		-- 的 `if range6 then`）。visual 里无害，但 operator-pending 里算子会落在
-		-- 光标处的零宽区间：`dal` 只是空操作，`ysal(` 却会就地插入一对空 `()`
-		-- 污染 buffer，`cal` 会莫名进插入模式。内建文本对象（`i(`）无匹配时由
-		-- Vim 直接中止算子——这里补齐同样的语义：无匹配 ⇒ 仍停在 operator-pending
-		-- （mode 前缀 "no"），据此喂 <Esc> 撤掉算子。
-		--
-		-- feedkeys 必须带 "i"（插到 typeahead 队首）：默认的追加语义会让 <Esc>
-		-- 排在算子结算之后才被读到，`ys` 的 operatorfunc 早已跑完（实测 `ysal(`
-		-- 仍插入空 `()`）。"x"（立即执行）则会把人卡在 operator-pending。
-		local function select_or_abort(query)
-			return function()
-				select.select_textobject(query)
-				if vim.api.nvim_get_mode().mode:sub(1, 2) == "no" then
-					vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "ni", false)
-				end
-			end
 		end
 
 		-- Select textobjects
@@ -75,7 +59,7 @@ return {
 			["iv"] = "@assignment.rhs",
 		}
 		for key, query in pairs(selections) do
-			map({ "x", "o" }, key, select_or_abort(query), "TS: " .. query)
+			map({ "x", "o" }, key, ts_select.select_or_abort(select.select_textobject, query), "TS: " .. query)
 		end
 
 		-- Move to next/prev node by kind.
@@ -115,93 +99,12 @@ return {
 		map("n", "gss", function() swap.swap_next("@statement.outer") end, "Swap with next statement")
 		map("n", "gsS", function() swap.swap_previous("@statement.outer") end, "Swap with prev statement")
 
-		-- ===== Incremental selection =====
-		-- `<A-w>` grows the visual selection to the enclosing syntax node;
-		-- `<A-W>` shrinks back one level. Mnemonic: w = widen. Mirrors IDEA's
-		-- Ctrl+W / Ctrl+Shift+W (EditorSelectWord / EditorUnSelectWord) on the
-		-- Windows/Linux keymap — those live in the IDE keymap, not .ideavimrc.
-		--
-		-- The stack resets the next time `<A-w>` is pressed from normal mode,
-		-- so moving the cursor and re-expanding always starts fresh.
-		local sel_stack = {}
-
-		-- Walk up until we find a parent whose range is strictly larger than
-		-- `node`. Grammar wrappers (expression, assignment_expression, etc.)
-		-- often share their child's range and would make `<A-w>` look like it
-		-- did nothing.
-		local function next_larger(node)
-			local srow, scol, erow, ecol = node:range()
-			local p = node:parent()
-			while p do
-				local psr, psc, per, pec = p:range()
-				if psr ~= srow or psc ~= scol or per ~= erow or pec ~= ecol then
-					return p
-				end
-				p = p:parent()
-			end
-			return nil
-		end
-
-		local function select_node(node)
-			local srow, scol, erow, ecol = node:range()
-			local s_line, s_col = srow + 1, scol + 1
-			local e_line, e_col
-			if ecol == 0 then
-				-- Node ends at column 0 of the next line; snap to end of previous line.
-				e_line = erow
-				local line = vim.api.nvim_buf_get_lines(0, erow - 1, erow, false)[1] or ""
-				e_col = math.max(#line, 1)
-			else
-				e_line, e_col = erow + 1, ecol
-			end
-
-			local mode = vim.api.nvim_get_mode().mode
-			if mode == "v" then
-				-- Already in charwise visual: reposition BOTH ends without leaving
-				-- visual. Without this, the anchor stays at the original `v` spot
-				-- and expansion grows only on one side.
-				vim.fn.setpos(".", { 0, e_line, e_col, 0 }) -- cursor → new end
-				vim.cmd("normal! o") -- flip: anchor ↔ cursor
-				vim.fn.setpos(".", { 0, s_line, s_col, 0 }) -- cursor → new start
-			else
-				-- Drop any non-charwise visual, then enter charwise fresh.
-				if mode == "V" or mode == "\22" then
-					vim.cmd("normal! \27")
-				end
-				vim.fn.setpos(".", { 0, s_line, s_col, 0 })
-				vim.cmd("normal! v")
-				vim.fn.setpos(".", { 0, e_line, e_col, 0 })
-			end
-		end
-
-		local function ts_expand()
-			local buf = vim.api.nvim_get_current_buf()
-			-- Starting from normal mode always restarts the stack.
-			if vim.api.nvim_get_mode().mode == "n" then
-				sel_stack[buf] = nil
-			end
-			local stack = sel_stack[buf] or {}
-			local top = stack[#stack]
-			local node = top and next_larger(top) or vim.treesitter.get_node()
-			if not node then
-				return
-			end
-			stack[#stack + 1] = node
-			sel_stack[buf] = stack
-			select_node(node)
-		end
-
-		local function ts_shrink()
-			local buf = vim.api.nvim_get_current_buf()
-			local stack = sel_stack[buf]
-			if not stack or #stack <= 1 then
-				return
-			end
-			stack[#stack] = nil
-			select_node(stack[#stack])
-		end
-
-		map({ "n", "x" }, "<A-w>", ts_expand, "TS: expand selection")
-		map("x", "<A-W>", ts_shrink, "TS: shrink selection")
+		-- Incremental selection：`<A-w>` 扩到外层语法节点，`<A-W>` 缩回一级。
+		-- Mnemonic: w = widen. Mirrors IDEA's Ctrl+W / Ctrl+Shift+W
+		-- (EditorSelectWord / EditorUnSelectWord) on the Windows/Linux keymap —
+		-- those live in the IDE keymap, not .ideavimrc.
+		-- 栈语义（normal 起手重置、per-buffer）见 tools/ts_select.lua。
+		map({ "n", "x" }, "<A-w>", ts_select.expand, "TS: expand selection")
+		map("x", "<A-W>", ts_select.shrink, "TS: shrink selection")
 	end,
 }
