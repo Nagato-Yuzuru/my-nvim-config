@@ -23,6 +23,24 @@
 -- conform 自定义 formatter（raco_fmt / schemat）的定义在 plugins/format/conform.lua
 -- 里——和 mdformat 同一个地方，避免 scheme 这边再去 patch conform.formatters。
 
+-- LSP enablement：三个 Scheme 系 server 不在 mason（装法见 tools/scheme_toolchain
+-- 的提示），按工具链探测决定是否 enable——后端不在时不挂，避免刷 "Client X quit
+-- with exit code 1"。装好后重启一次 nvim 生效（探测结果已缓存，session 内不做热
+-- 重载——探测已缓存且这个场景不值得）。工具链**清单**仍归 scheme_toolchain 所有。
+require("tools.lang_registry").register("scheme", {
+	lsp = {
+		racket_langserver = {
+			probe = function() return require("tools.scheme_toolchain").is_installed("racket-langserver (raco pkg)") end,
+		},
+		guile_lsp_server = {
+			probe = function() return require("tools.scheme_toolchain").is_installed("guile-lsp-server") end,
+		},
+		steel_language_server = {
+			probe = function() return require("tools.scheme_toolchain").is_installed("steel-language-server") end,
+		},
+	},
+})
+
 -- conjure 只接管 scheme/racket（Steel/Guile 也走 scheme ft）；paredit 多管
 -- 一个 lisp 是值的（Common Lisp 缩括号/slurp/barf 同样有用），但让 conjure
 -- 在 .lisp 上 require 进来纯属浪费——它会立刻看 conjure#filetypes 然后什么都

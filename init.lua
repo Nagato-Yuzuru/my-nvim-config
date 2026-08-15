@@ -67,6 +67,10 @@ require("lazy").setup({
 	},
 })
 
+-- 语言域（plugins/lang/*）在上面 lazy.setup() 的 spec import 期完成 lang_registry
+-- 注册；这里统一应用 ft detection（单点 vim.filetype.add，早于首个 buffer 加载），
+-- 随后 core/lsp 消费 LSP enablement 清单。
+require("tools.lang_registry").apply_ft()
 require("core.lsp").setup()
 require("core.diagnostic")
 require("plugins.schemas.picker").setup()

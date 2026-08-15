@@ -45,28 +45,9 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
--- filetype detection（复合/非标准 filetype，供 lsp/*.lua 中声明的 filetypes 使用）
-vim.filetype.add({
-	pattern = {
-		["docker%-compose%.ya?ml"] = "yaml.docker-compose",
-		["%.?[Dd]ockerfile%..+"] = "dockerfile",
-	},
-	extension = {
-		tfvars = "terraform-vars",
-		-- OpenTofu 独有扩展名，归到 terraform 系 ft 以复用同一套
-		-- treesitter parser / tofu-ls / tofu_fmt（.tofu 同名时覆盖 .tf，见 OpenTofu 文档）
-		tofu = "terraform",
-		tofuvars = "terraform-vars",
-		gotmpl = "gotmpl",
-		mdx = "markdown.mdx",
-		-- 独立 .promql 文件（少见——yaml 规则里的 PromQL 走注入，见 lsp/promql_ls.lua
-		-- 头注释的分工说明）：给 promql LSP + treesitter parser 一个可挂载的 ft。
-		promql = "promql",
-	},
-	filename = {
-		["go.work"] = "gowork",
-	},
-})
+-- filetype detection 归语言域：plugins/lang/<x>.lua 经 tools/lang_registry 注册，
+-- init.lua 在 lazy.setup() 之后统一 apply（单点 vim.filetype.add，见 lang_registry
+-- 头注释）。本文件不再持有任何 ft 条目。
 
 -- diff
 vim.opt.diffopt = {

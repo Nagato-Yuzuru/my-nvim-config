@@ -142,85 +142,28 @@ local function patch_workspace_edit()
 	end
 end
 
--- 启用 LSP servers：清单从 tools/mason_ensure.lua 的 LSP_TOOLS 派生（单一真相——
--- rust_analyzer 因 external_owner = "rustaceanvim" 被自动剔除）。
--- ty 和 tsp_server 也在 LSP_TOOLS 内，按常规 PATH-first / mason-fallback 处理。
+-- 启用 LSP servers：两份声明式清单，不再有手写探测分支——
+--   1. install plane：tools/mason_ensure.lua 的 LSP_TOOLS（mason 系；rust_analyzer
+--      因 external_owner = "rustaceanvim" 被自动剔除）
+--   2. language plane：tools/lang_registry.lua（plugins/lang/<x>.lua 顶层注册的
+--      PATH / 工具链探测系 server + 进程内 server）
+-- 探测不过的不 enable——缺后端时不挂、不刷 client-quit；装好后重启一次 nvim 生效
+-- （探测结果由各工具链模块缓存，session 内不做热重载，场景不值得）。
 local function enable_servers()
 	local native_servers = require("tools.mason_ensure").lsp_servers_for_native_enable()
-	local scheme_servers = {} -- 按工具链探测结果追加
-	local toolchain = require("tools.scheme_toolchain")
-	if toolchain.is_installed("racket-langserver (raco pkg)") then
-		table.insert(scheme_servers, "racket_langserver")
-	end
-	if toolchain.is_installed("guile-lsp-server") then
-		table.insert(scheme_servers, "guile_lsp_server")
-	end
-	if toolchain.is_installed("steel-language-server") then
-		table.insert(scheme_servers, "steel_language_server")
-	end
+	local lang_servers = require("tools.lang_registry").enabled_lsp_servers()
 
-	-- 统一为所有"未自定义 root_dir"的 server 注入散文件/$HOME-safe 行为：
+	-- 统一为所有"未自定义 root_dir"的外部进程 server 注入散文件/$HOME-safe 行为：
 	-- 没 marker 命中时走 single-file（on_dir(nil)）+ cmd cwd 钉到 cache 空目录，
 	-- 防 ruff/ty/lua_ls 这类服务器把 $HOME 当 fallback workspace。
 	-- 自定义了 root_dir 的（denols / oxlint / tsc 的互斥逻辑）会被跳过。
-	-- sourcekit-lsp 随 Swift 工具链来（Xcode CLT / swiftly），不是 Mason 包，故不进
-	-- LSP_TOOLS；同 Scheme 系按存在探测决定是否 enable，无 Swift 环境时不挂、不刷
-	-- client-quit。此机 /usr/bin/sourcekit-lsp 直接在 PATH；executable("xcrun") 兜住
-	-- 仅 full-Xcode 工具链内可达的机器（lsp/sourcekit.lua 的 cmd 会相应回落到
-	-- `xcrun sourcekit-lsp`）。
-	local swift_servers = {}
-	if vim.fn.executable("sourcekit-lsp") == 1 or vim.fn.executable("xcrun") == 1 then
-		table.insert(swift_servers, "sourcekit")
-	end
+	local external = vim.list_extend(vim.list_extend({}, native_servers), lang_servers.external)
+	require("tools.lsp_root").apply_safe_defaults(external)
+	vim.lsp.enable(external)
 
-	-- 原生 TS LSP（lsp/tsc.lua）：稳定通道二进制 `tsc`（typescript@7，本机由 mise 装），
-	-- 预览通道 `tsgo`。都不在 Mason 稳定通道（mason 只有 tsgo 每夜版，且撞 min-release-age），
-	-- 故同 Swift/Scheme 走 PATH 探测决定是否 enable，不进 LSP_TOOLS。cmd 在 tsc/tsgo 间解析。
-	local ts_servers = {}
-	if vim.fn.executable("tsc") == 1 or vim.fn.executable("tsgo") == 1 then
-		table.insert(ts_servers, "tsc")
-	end
-
-	-- promql-langserver（filetype/注入分工见 lsp/promql_ls.lua 头注释）：不在
-	-- mason（Go 二进制），按 tools/promql_toolchain 探测决定是否 enable——缺失时
-	-- 不挂、不刷 client-quit（同 scheme/swift/tsc）；装好后重启一次 nvim 生效。
-	local promql_servers = {}
-	if require("tools.promql_toolchain").is_installed() then
-		table.insert(promql_servers, "promql_ls")
-	end
-
-	local all_servers = {}
-	vim.list_extend(all_servers, native_servers)
-	vim.list_extend(all_servers, ts_servers)
-	vim.list_extend(all_servers, scheme_servers)
-	vim.list_extend(all_servers, swift_servers)
-	vim.list_extend(all_servers, promql_servers)
-	require("tools.lsp_root").apply_safe_defaults(all_servers)
-
-	vim.lsp.enable(native_servers)
-	for _, s in ipairs(scheme_servers) do
-		vim.lsp.enable(s)
-	end
-	for _, s in ipairs(swift_servers) do
-		vim.lsp.enable(s)
-	end
-	for _, s in ipairs(ts_servers) do
-		vim.lsp.enable(s)
-	end
-	for _, s in ipairs(promql_servers) do
-		vim.lsp.enable(s)
-	end
-
-	-- golangci_fix：进程内 codeAction server（lsp/golangci_fix.lua），把 nvim-lint
-	-- 存进 diagnostic user_data 的 golangci SuggestedFixes 变成 <leader>ca /
-	-- <A-CR> 可用的 quickfix。无外部二进制、无需探测；不进 apply_safe_defaults
-	-- （那套 root/cwd 防御只对外部进程 server 有意义）。
-	vim.lsp.enable("golangci_fix")
-
-	-- Scheme 系 LSP enable 已在上面统一处理（按 scheme_toolchain.is_installed 探测）；
-	-- 后端不在时不挂，避免刷 "Client X quit with exit code 1"。FileType 触发的安装
-	-- 提示走 lua/tools/scheme_toolchain.lua。装好工具后重启一次 nvim 就会启用对应
-	-- LSP（同一 session 内不动态启用，因为探测结果已缓存且这个场景不值得做热重载）。
+	-- 进程内 server（lang_registry 的 in_process 条目，如 golangci_fix）：无外部
+	-- 二进制，不进 apply_safe_defaults——那套 root/cwd 防御只对外部进程有意义。
+	vim.lsp.enable(lang_servers.in_process)
 end
 
 -- LspAttach: 快捷键 + inlay hints
@@ -373,79 +316,7 @@ local function fix_semantic_string_tokens()
 	})
 end
 
--- 打开 promql buffer 时,若 promql-langserver 缺失则 notify 安装命令(同 scheme 的
--- scheme_toolchain 提示)。注册在 core/lsp 而非某 plugin init——promql 无 plugin 层
--- (parser 集中在 treesitter.lua,LSP 在 core),FileType 通知自然归这里。
-local function register_promql_toolchain_notify()
-	vim.api.nvim_create_autocmd("FileType", {
-		group = vim.api.nvim_create_augroup("UserPromqlToolchain", { clear = true }),
-		pattern = "promql",
-		callback = function() require("tools.promql_toolchain").check_for_ft("promql") end,
-	})
-end
-
--- promql-langserver 运行时改后端 URL（LSP didChangeConfiguration 热配置，无需重启）。
--- server 端 langserver/config.go 期望 params.settings = { promql = { url = ... } }
--- （json key promql.url）。这是 env `LANGSERVER_PROMETHEUSURL`（声明式/持久，见
--- lsp/promql_ls.lua 头注释）的命令式补充：session 内即时生效，且记住 URL——之后新
--- attach 的 promql_ls client 自动补推（设一次，全 session 的 .promql 都连上）。
-local promql_runtime_url = nil
-
----@param client vim.lsp.Client
----@param url string
-local function promql_push_url(client, url)
-	client:notify("workspace/didChangeConfiguration", { settings = { promql = { url = url } } })
-end
-
-local function register_promql_commands()
-	vim.api.nvim_create_user_command("PromqlUrl", function(opts)
-		local url = vim.trim(opts.args)
-		if url == "" then
-			-- 无参：回显当前已设的 URL（server 不暴露"读"，只能回显我们记住的）。
-			vim.notify(
-				promql_runtime_url and ("[promql] current backend: " .. promql_runtime_url)
-					or "[promql] usage: :PromqlUrl http://host:9090   (no backend set — offline)",
-				vim.log.levels.INFO
-			)
-			return
-		end
-		promql_runtime_url = url
-		local clients = vim.lsp.get_clients({ name = "promql_ls" })
-		if #clients == 0 then
-			vim.notify(
-				"[promql] URL saved but no promql-langserver client attached yet — open a .promql "
-					.. "buffer (and install the server); it will be applied on attach.",
-				vim.log.levels.WARN
-			)
-			return
-		end
-		for _, c in ipairs(clients) do
-			promql_push_url(c, url)
-		end
-		vim.notify(
-			("[promql] backend set to %s (%d client%s) — watch for the server's connect result."):format(
-				url,
-				#clients,
-				#clients == 1 and "" or "s"
-			),
-			vim.log.levels.INFO
-		)
-	end, { nargs = "?", desc = "Set promql-langserver Prometheus backend URL (runtime, hot-reload)" })
-
-	-- 新 attach 的 promql_ls 补推已记住的 URL（session-sticky，不必每文件重跑）。
-	vim.api.nvim_create_autocmd("LspAttach", {
-		group = vim.api.nvim_create_augroup("UserPromqlUrlReapply", { clear = true }),
-		callback = function(args)
-			if not promql_runtime_url then
-				return
-			end
-			local c = vim.lsp.get_client_by_id(args.data.client_id)
-			if c and c.name == "promql_ls" then
-				promql_push_url(c, promql_runtime_url)
-			end
-		end,
-	})
-end
+-- promql 的运行时后端配置 / 工具链提示已随语言域迁往 plugins/lang/promql.lua。
 
 function M.setup()
 	register_lsp_verylazy_hooks()
@@ -454,8 +325,6 @@ function M.setup()
 	enable_servers()
 	setup_lsp_attach_keymaps()
 	fix_semantic_string_tokens()
-	register_promql_toolchain_notify()
-	register_promql_commands()
 end
 
 return M

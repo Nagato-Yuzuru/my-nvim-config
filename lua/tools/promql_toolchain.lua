@@ -11,11 +11,10 @@
 -- 它是个 Go 二进制，唯一安装路径是 `go install`——这种写全局 GOBIN 的动作不该在
 -- nvim 启动时偷偷跑，所以本模块**只**探测 + 提示，不安装。
 --
--- 触发：
---   * core/lsp.lua enable_servers()：enable "promql_ls" 前调 is_installed()，二进制
---     不在就不挂，避免 client 起来又 "quit with exit code 1"。
---   * 打开 promql buffer 时 check_for_ft("promql") notify 一次安装命令（autocmd 注册
---     在 core/lsp.lua，见 register_promql_toolchain_notify）。
+-- 触发（都在语言域 plugins/lang/promql.lua）：
+--   * lang_registry 的 probe 调 is_installed()——二进制不在就不 enable promql_ls，
+--     避免 client 起来又 "quit with exit code 1"。
+--   * 打开 promql buffer 时 check_for_ft("promql") notify 一次安装命令。
 -- CI / NO_AUTO_INSTALL 时短路。
 
 local M = {}

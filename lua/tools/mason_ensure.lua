@@ -1,4 +1,6 @@
--- Mason 自动安装编排（LSP + formatter + linter 的 SSOT）；安装原语在 tools/mason_install.lua
+-- Mason 自动安装编排——install plane 的 SSOT："哪些 LSP / formatter / linter 二进制
+-- 归 Mason 管、缺失时装什么"集中在本文件一眼可查。安装原语在 tools/mason_install.lua；
+-- 语言行为事实（ft / 探测式 enable）归 language plane（tools/lang_registry.lua）。
 
 ---@class LspTool
 ---@field server string vim.lsp.enable identifier (matches lsp/<server>.lua)
@@ -63,8 +65,9 @@ end
 --                   过滤这些条目，避免 mason 装好却仍被 vim 原生 enable 误启
 --                   ——以及反过来"以为它没装"的两源真相风险。
 --
--- 注意：三个 Scheme 系 LSP（racket / guile / steel）不在本表——它们走
--- scheme_toolchain.lua 的 presence-check + 手动安装提示。
+-- 注意：非 mason 的 LSP（scheme 三件套 / sourcekit / tsc / promql_ls / 进程内
+-- golangci_fix）不在本表——它们由语言域经 tools/lang_registry 声明探测式 enable
+--（见 plugins/lang/<x>.lua），安装提示归各自工具链模块。
 ---@type LspTool[]
 local LSP_TOOLS = {
 	{ server = "lua_ls", bin = "lua-language-server", mason = "lua-language-server" },
@@ -90,7 +93,7 @@ local LSP_TOOLS = {
 	{ server = "just_ls", bin = "just-lsp", mason = "just-lsp" },
 	{ server = "denols", bin = "deno", mason = "deno" },
 	-- 注意：原生 TS LSP（tsc，见 lsp/tsc.lua）**不在此表**——它由 mise 管的 tsc /
-	-- 项目本地二进制提供，无 Mason 稳定包，改由 core/lsp.lua 按 executable 探测 enable。
+	-- 项目本地二进制提供，无 Mason 稳定包，由语言域 plugins/lang/typescript.lua 探测 enable。
 	-- oxlint --lsp：oxc linter，取代 eslint-lsp（见 lsp/oxlint.lua）。诊断 + oxc.fixAll。
 	{ server = "oxlint", bin = "oxlint", mason = "oxlint" },
 	{ server = "helm_ls", bin = "helm_ls", mason = "helm-ls" },
@@ -137,14 +140,16 @@ local TOOL_MAP = {
 	prometheus_pint = { bin = "prometheus-pint", mason = "prometheus-pint" },
 }
 
+-- Formatter 的**安装意图**（纯 install plane 事实）：打开某 ft 时 Mason 要兜底装上
+-- 哪些 formatter 二进制。**不是** runtime formatter 映射——"这个 buffer 跑什么"由
+-- plugins/format/conform.lua 自持（含 go/ts/markdown 的运行时 picker）。迁移前两个
+-- 事实共一张表、六个 ft 被 conform 覆写导致表值说谎；拆分后本表只留 TOOL_MAP 可装
+-- 的条目（d2/tofu/rustup/mise/scheme 系 formatter 不经 Mason，来路注释在 conform.lua）。
 ---@type table<string, string[]>
-local FORMATTERS_BY_FT = {
+local FORMATTER_INSTALLS_BY_FT = {
 	lua = { "stylua" },
 	python = { "ruff_format" },
-	-- 实际 formatter 由 plugins/format/conform.lua 的 pick_go_formatter 运行时决定：
-	-- 仓库有 .golangci.{yml,yaml,toml} → golangci-lint fmt（按仓库 formatters 块跑
-	-- gofumpt / gci / golines / 自定义 import 分组），否则 fallback 到 goimports。
-	-- 这里登记 goimports 只是为了让 Mason 把 fallback 的二进制装上；golangci-lint
+	-- goimports 是 conform 的 go picker 的 fallback 分支用的二进制；golangci-lint
 	-- 已在 LINTERS_BY_FT 里登记，复用同一个二进制。
 	go = { "goimports" },
 	sh = { "shfmt" },
@@ -154,35 +159,13 @@ local FORMATTERS_BY_FT = {
 	jsonc = { "oxfmt" },
 	yaml = { "oxfmt" },
 	markdown = { "oxfmt" },
-	-- ts/js: conform.lua 会按 buffer root 运行时切换 deno_fmt / oxfmt
-	-- 这里列 oxfmt 是为了 Mason 自动安装；deno_fmt 随 deno 二进制而来
+	-- ts/js 的 deno_fmt 分支随 deno 二进制而来（LSP_TOOLS 的 denols 条目管装）
 	typescript = { "oxfmt" },
 	typescriptreact = { "oxfmt" },
 	javascript = { "oxfmt" },
 	javascriptreact = { "oxfmt" },
 	toml = { "taplo" },
-	-- d2 fmt 由 d2 CLI 自带（brew 装），不经 Mason 管理；conform 的 d2 formatter 从 PATH 找
-	d2 = { "d2" },
-	-- OpenTofu-first：tofu_fmt 调用系统 `tofu fmt`（conform 从 PATH 找），不经 Mason
-	-- 管理。输出与 `terraform fmt` 的 canonical 格式一致；只有 tofu 二进制在 PATH 时
-	-- 才可用。.tofu/.tofuvars 也归到这两个 ft（见 core/options.lua）。
-	terraform = { "tofu_fmt" },
-	["terraform-vars"] = { "tofu_fmt" },
-	-- rustfmt 跟着 rustup（rustup component add rustfmt），不走 Mason；conform
-	-- 自带的 rustfmt formatter 会从 PATH 找
-	rust = { "rustfmt" },
-	zig = { "zigfmt" },
-	-- swiftformat（nicklockwood）+ swiftlint（见 LINTERS_BY_FT）都由 mise 提供
-	-- （aqua/ubi backend，钉进 mise.toml），不进 TOOL_MAP → ensure_tools 跳过、不走
-	-- Mason（Swift 系工具需工具链现场编译、无可靠预编译包）。conform 内置 swiftformat
-	-- 从 PATH 找，缺失时静默跳过。装：mise use aqua:nicklockwood/SwiftFormat
-	swift = { "swiftformat" },
 	typst = { "typstyle" },
-	-- Scheme 系：raco_fmt / schemat 都不在 mason，TOOL_MAP 也没登记，
-	-- 所以 ensure_tools 会跳过它们；formatter 命令本体在 plugins/format/conform.lua
-	-- 里定义，缺失时由 plugins/lang/scheme.lua 触发的 scheme_toolchain 提示安装。
-	racket = { "raco_fmt" },
-	scheme = { "schemat" },
 }
 
 ---@type table<string, string[]>
@@ -235,7 +218,7 @@ end
 ---@param ft string
 function M.ensure_for_ft(ft)
 	local seen = {}
-	for _, name in ipairs(FORMATTERS_BY_FT[ft] or {}) do
+	for _, name in ipairs(FORMATTER_INSTALLS_BY_FT[ft] or {}) do
 		seen[name] = true
 	end
 	for _, name in ipairs(LINTERS_BY_FT[ft] or {}) do
@@ -247,11 +230,6 @@ function M.ensure_for_ft(ft)
 	end
 end
 
--- 返回类型用 union 兼容 conform 的 `formatters_by_ft`（允许 fun(bufnr):string[]
--- 取代静态 string[]）；存储侧只放 string[]，但 caller 拿到后会插入 picker 函数
--- （见 plugins/format/conform.lua 的 ts/js / markdown 分流），union 让那种赋值不报型。
----@return table<string, string[] | fun(bufnr: integer): string[]>
-function M.get_formatters_by_ft() return vim.deepcopy(FORMATTERS_BY_FT) end
 ---@return table<string, string[]>
 function M.get_linters_by_ft() return vim.deepcopy(LINTERS_BY_FT) end
 
