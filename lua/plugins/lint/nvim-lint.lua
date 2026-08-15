@@ -118,28 +118,6 @@ return {
 			-- 复合 ft；反正 is_gh_workflow() 已经收敛到正确路径，ft 只需要
 			-- 是 yaml 开头即可。
 			local function is_yaml_ft(ft) return ft == "yaml" or vim.startswith(ft or "", "yaml.") end
-			-- Mason 安装是异步的；try_lint 必须等二进制真的在 PATH 上才跑，
-			-- 否则首次打开 workflow 文件会报 ENOENT。
-			--   install_triggered：防止首次窗口内重复 kick 安装
-			--   每次进入命令体重新 executable() 检查，装好后下一次 save/
-			--   InsertLeave 自动拉起 lint。
-			local actionlint_install_triggered = false
-
-			local function run_actionlint_if_applicable(bufnr)
-				if not (is_yaml_ft(vim.bo[bufnr].filetype) and is_gh_workflow(bufnr)) then
-					return false, "not a gh-workflow yaml buffer"
-				end
-				if vim.fn.executable("actionlint") ~= 1 then
-					if not actionlint_install_triggered then
-						mason_ensure.ensure_tool("actionlint")
-						actionlint_install_triggered = true
-					end
-					return false, "actionlint not on PATH (install triggered)"
-				end
-				lint.try_lint("actionlint")
-				return true, "dispatched"
-			end
-
 			-- pint（cloudflare/pint）：Prometheus 规则文件 linter。同 actionlint——只对
 			-- "看起来是规则文件"的 yaml 有意义（groups: + expr:），对普通 yaml 会误报，
 			-- 故内容嗅探门控而非 LINTERS_BY_FT，首次命中时按需 Mason 安装（包名/二进制
@@ -214,28 +192,72 @@ return {
 				return false
 			end
 
-			local pint_install_triggered = false
-			local function run_pint_if_applicable(bufnr)
-				if not is_yaml_ft(vim.bo[bufnr].filetype) then
-					return false, "not a yaml buffer"
+			-- 条件 linter 描述符（同一策略曾手写两份：actionlint / pint）：
+			--   gate   per-buffer 适用性判定，返回 (ok, reason)
+			--   bin    PATH 探测的二进制名；tool  Mason 兜底安装用的 TOOL_MAP 键
+			--   linter try_lint 用的 linter 名；command/label/desc 生成 :XxxRun
+			-- Mason 安装是异步的；try_lint 必须等二进制真的在 PATH 上才跑，否则首次
+			-- 命中会报 ENOENT——install_triggered 闩防重复 kick，装好后下一次 save/
+			-- InsertLeave 自动拉起 lint。
+			-- swiftlint 故意不进此表：它是 setup 期一次性的"缺二进制就摘表键"（见上），
+			-- 与 per-buffer 谓词门控不是同一形状，硬塞进来是伪对称。
+			local conditional_linters = {
+				{
+					command = "ActionlintRun",
+					label = "actionlint",
+					linter = "actionlint",
+					tool = "actionlint",
+					bin = "actionlint",
+					desc = "Run actionlint on current buffer (if it's a GH workflow)",
+					gate = function(bufnr)
+						if not (is_yaml_ft(vim.bo[bufnr].filetype) and is_gh_workflow(bufnr)) then
+							return false, "not a gh-workflow yaml buffer"
+						end
+						return true, "gate passed"
+					end,
+				},
+				{
+					command = "PintRun",
+					label = "pint",
+					linter = "prometheus_pint",
+					tool = "prometheus_pint",
+					bin = "prometheus-pint",
+					desc = "Run pint on current buffer (if it's a Prometheus rule file)",
+					gate = function(bufnr)
+						if not is_yaml_ft(vim.bo[bufnr].filetype) then
+							return false, "not a yaml buffer"
+						end
+						if not is_prometheus_rule_file(bufnr) then
+							return false, "not a prometheus rule file (no groups:/expr:)"
+						end
+						-- pint 无 stdin 模式，lint 的是磁盘文件（append_fname）：modified buffer
+						-- 跳过，否则 InsertLeave 会按陈旧磁盘内容报漂移诊断。效果：pint 实际只
+						-- 在 BufReadPost / BufWritePost 生效。
+						if vim.bo[bufnr].modified then
+							return false, "buffer has unsaved changes (pint lints the file on disk)"
+						end
+						return true, "gate passed"
+					end,
+				},
+			}
+
+			---@param entry table conditional_linters 条目
+			---@param bufnr integer
+			---@return boolean ok
+			---@return string reason
+			local function run_conditional(entry, bufnr)
+				local ok, reason = entry.gate(bufnr)
+				if not ok then
+					return false, reason
 				end
-				if not is_prometheus_rule_file(bufnr) then
-					return false, "not a prometheus rule file (no groups:/expr:)"
-				end
-				-- pint 无 stdin 模式，lint 的是磁盘文件（append_fname）：modified buffer
-				-- 跳过，否则 InsertLeave 会按陈旧磁盘内容报漂移诊断。效果：pint 实际只
-				-- 在 BufReadPost / BufWritePost 生效。
-				if vim.bo[bufnr].modified then
-					return false, "buffer has unsaved changes (pint lints the file on disk)"
-				end
-				if vim.fn.executable("prometheus-pint") ~= 1 then
-					if not pint_install_triggered then
-						mason_ensure.ensure_tool("prometheus_pint")
-						pint_install_triggered = true
+				if vim.fn.executable(entry.bin) ~= 1 then
+					if not entry.install_triggered then
+						mason_ensure.ensure_tool(entry.tool)
+						entry.install_triggered = true
 					end
-					return false, "prometheus-pint not on PATH (install triggered)"
+					return false, entry.bin .. " not on PATH (install triggered)"
 				end
-				lint.try_lint("prometheus_pint")
+				lint.try_lint(entry.linter)
 				return true, "dispatched"
 			end
 
@@ -244,28 +266,22 @@ return {
 					local marker = root_markers[vim.bo.filetype]
 					local cwd = marker and find_root(marker) or nil
 					lint.try_lint(nil, { cwd = cwd })
-					run_actionlint_if_applicable(ev.buf)
-					run_pint_if_applicable(ev.buf)
+					for _, entry in ipairs(conditional_linters) do
+						run_conditional(entry, ev.buf)
+					end
 				end,
 			})
 
-			-- 手动触发命令（调试/强制跑一次用）：:ActionlintRun
-			vim.api.nvim_create_user_command("ActionlintRun", function()
-				local ok, reason = run_actionlint_if_applicable(0)
-				vim.notify(
-					("actionlint: %s — %s"):format(ok and "dispatched" or "skipped", reason),
-					ok and vim.log.levels.INFO or vim.log.levels.WARN
-				)
-			end, { desc = "Run actionlint on current buffer (if it's a GH workflow)" })
-
-			-- :PintRun — 对当前 buffer 强制跑一次 pint（若它是 Prometheus 规则文件）
-			vim.api.nvim_create_user_command("PintRun", function()
-				local ok, reason = run_pint_if_applicable(0)
-				vim.notify(
-					("pint: %s — %s"):format(ok and "dispatched" or "skipped", reason),
-					ok and vim.log.levels.INFO or vim.log.levels.WARN
-				)
-			end, { desc = "Run pint on current buffer (if it's a Prometheus rule file)" })
+			-- 手动触发命令（调试/强制跑一次用），由描述符生成：:ActionlintRun / :PintRun
+			for _, entry in ipairs(conditional_linters) do
+				vim.api.nvim_create_user_command(entry.command, function()
+					local ok, reason = run_conditional(entry, 0)
+					vim.notify(
+						("%s: %s — %s"):format(entry.label, ok and "dispatched" or "skipped", reason),
+						ok and vim.log.levels.INFO or vim.log.levels.WARN
+					)
+				end, { desc = entry.desc })
+			end
 		end,
 	},
 }
