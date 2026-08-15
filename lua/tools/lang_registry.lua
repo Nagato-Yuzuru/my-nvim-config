@@ -11,8 +11,11 @@
 --   * 本表只承载语言行为事实：ft detection、非 mason server 的 enablement 探测、
 --     进程内 server。treesitter parser 清单同属安装清单，集中在 plugins/treesitter.lua。
 --
--- 校验一律 fail loud：重复语言 / 重复 server / 重复 ft 键 / 未知字段都在
--- register() 当场 error——写错字段名要立刻炸，不要静默吞掉半个语言。
+-- 校验一律 fail loud：跨语言的重复 server / 重复 ft 键、未知字段都在 register()
+-- 当场 error——写错字段名要立刻炸，不要静默吞掉半个语言。**同名语言重复 register
+-- 是替换语义而非报错**：lazy.nvim 的 change-detection 重载会重新 import 全部 spec
+-- 模块（plugin.lua 只清 spec 模块自身的 package.loaded，本注册表缓存仍在），语言域
+-- 文件的顶层 register 因此必须幂等收敛，否则每次改配置保存都炸一排通知。
 
 ---@class LangLspSpec
 ---@field probe? string|string[]|fun():boolean 省略 = 无条件 enable。string = 单二进制
@@ -43,9 +46,6 @@ function M.register(name, spec)
 	if type(name) ~= "string" or name == "" then
 		error("lang_registry: language name must be a non-empty string")
 	end
-	if langs[name] then
-		error(("lang_registry: duplicate language %q"):format(name))
-	end
 	if type(spec) ~= "table" then
 		error(("lang_registry: spec for %q must be a table"):format(name))
 	end
@@ -54,6 +54,8 @@ function M.register(name, spec)
 			error(("lang_registry: unknown spec key %q in language %q"):format(tostring(k), name))
 		end
 	end
+	-- 先全量校验、后提交：校验途中 error 不能留下半个语言的状态——重载替换时尤其
+	-- 重要，不能先拆旧注册再发现新 spec 有错。owner == name 的"冲突"属重载替换，放行。
 	if spec.ft ~= nil then
 		if type(spec.ft) ~= "table" then
 			error(("lang_registry: ft of %q must be a table"):format(name))
@@ -63,9 +65,8 @@ function M.register(name, spec)
 				error(("lang_registry: unknown ft kind %q in language %q"):format(tostring(kind), name))
 			end
 			for key in pairs(entries) do
-				local owner_key = kind .. ":" .. key
-				local owner = ft_owner[owner_key]
-				if owner then
+				local owner = ft_owner[kind .. ":" .. key]
+				if owner and owner ~= name then
 					error(
 						("lang_registry: ft %s %q already registered by %q (conflict from %q)"):format(
 							kind,
@@ -75,7 +76,6 @@ function M.register(name, spec)
 						)
 					)
 				end
-				ft_owner[owner_key] = name
 			end
 		end
 	end
@@ -88,7 +88,7 @@ function M.register(name, spec)
 				error(("lang_registry: lsp server names in %q must be strings"):format(name))
 			end
 			local owner = server_owner[server]
-			if owner then
+			if owner and owner ~= name then
 				error(
 					("lang_registry: server %q already registered by %q (conflict from %q)"):format(server, owner, name)
 				)
@@ -105,8 +105,26 @@ function M.register(name, spec)
 			if not (pt == "nil" or pt == "string" or pt == "table" or pt == "function") then
 				error(("lang_registry: probe of server %q in %q must be string|string[]|function"):format(server, name))
 			end
-			server_owner[server] = name
 		end
+	end
+	-- 提交。先清本语言旧所有权（重载时未续用的 server/ft 键不残留），再写新注册。
+	for server, owner in pairs(server_owner) do
+		if owner == name then
+			server_owner[server] = nil
+		end
+	end
+	for key, owner in pairs(ft_owner) do
+		if owner == name then
+			ft_owner[key] = nil
+		end
+	end
+	for kind, entries in pairs(spec.ft or {}) do
+		for key in pairs(entries) do
+			ft_owner[kind .. ":" .. key] = name
+		end
+	end
+	for server in pairs(spec.lsp or {}) do
+		server_owner[server] = name
 	end
 	langs[name] = spec
 end

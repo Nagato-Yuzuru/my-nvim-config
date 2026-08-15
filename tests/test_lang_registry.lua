@@ -30,10 +30,44 @@ T["register + declared roundtrip keeps the spec verbatim"] = function()
 	eq(d.promqlx.lsp.promqlx_ls.in_process, false)
 end
 
-T["duplicate language fails loud"] = function()
+T["re-register same language replaces (lazy reload idempotence)"] = function()
+	-- lazy 的 change-detection 重载会重新 import spec 模块而注册表缓存仍在:
+	-- 同名 register 必须收敛,不得报 duplicate。
 	local R = fresh()
-	R.register("go", {})
-	expect_error(function() R.register("go", {}) end, 'duplicate language "go"')
+	R.register("go", { lsp = { old_ls = {} } })
+	R.register("go", { lsp = { new_ls = {} } })
+	local d = R.declared()
+	eq(d.go.lsp.new_ls ~= nil, true)
+	eq(d.go.lsp.old_ls, nil)
+	eq(R.enabled_lsp_servers().external, { "new_ls" })
+end
+
+T["re-register with identical spec converges to identical state"] = function()
+	local R = fresh()
+	local spec = { ft = { extension = { zzreload = "zzreloadft" } }, lsp = { reload_ls = {} } }
+	R.register("x", spec)
+	local before = R.declared()
+	R.register("x", spec)
+	eq(R.declared(), before)
+	eq(R.enabled_lsp_servers().external, { "reload_ls" })
+end
+
+T["replacement frees old server/ft ownership for other languages"] = function()
+	local R = fresh()
+	R.register("a", { ft = { extension = { zzfree = "aft" } }, lsp = { freed_ls = {} } })
+	R.register("a", {}) -- 替换为空:旧所有权应全部释放
+	R.register("b", { ft = { extension = { zzfree = "bft" } }, lsp = { freed_ls = {} } })
+	eq(R.declared().b.lsp.freed_ls ~= nil, true)
+end
+
+T["failed re-register leaves the previous registration intact"] = function()
+	-- 先校验后提交:新 spec 撞了别家语言时,本语言旧注册必须原样保留。
+	local R = fresh()
+	R.register("other", { lsp = { taken_ls = {} } })
+	R.register("go", { lsp = { good_ls = {} } })
+	expect_error(function() R.register("go", { lsp = { taken_ls = {} } }) end, 'already registered by "other"')
+	eq(R.declared().go.lsp.good_ls ~= nil, true)
+	eq(R.enabled_lsp_servers().external, { "good_ls", "taken_ls" })
 end
 
 T["unknown spec key fails loud (typo guard)"] = function()
