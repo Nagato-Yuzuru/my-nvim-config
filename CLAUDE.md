@@ -57,7 +57,18 @@ what's bound where.
 The layout is self-describing — see `ls`. The non-obvious bits:
 
 - **Native LSP only** — never `lspconfig[server].setup()`. Per-server
-  configs go in `lsp/<server>.lua`, enabled from `lua/core/lsp.lua`.
+  configs go in `lsp/<server>.lua`; enablement in `lua/core/lsp.lua` is
+  a merge of two declarative inventories — mason-backed servers from
+  `LSP_TOOLS`, probed/in-process servers from the language plane (next
+  bullet). No hand-written probe branches anywhere.
+- **Language plane vs install plane**: `lua/tools/mason_ensure.lua` is
+  the hand-written install SSOT ("what does Mason manage", one place);
+  language *behavior* facts — ft detection, PATH/toolchain-probed LSP
+  enablement, in-process servers — are registered top-level by
+  `plugins/lang/<x>.lua` via `lua/tools/lang_registry.lua` (re-register
+  = replacement, so lazy spec reloads converge). **Add a language**: ≤3
+  lines in the central install tables + one `plugins/treesitter.lua`
+  line + one `plugins/lang/<x>.lua` (+ `lsp/<server>.lua` if needed).
 - **DAP per-adapter** (mirrors `lsp/`): **add a debugger by dropping a
   file in `dap/<adapter>.lua`** (wired by `lua/core/dap.lua`) — never
   grow `lua/plugins/runtime/dap.lua`.
@@ -84,9 +95,9 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   adapter drops `SuggestedFixes` — it is **never required**; the linter
   is self-owned in `lua/plugins/lint/nvim-lint.lua`). Cross-file flow:
   parser in `lua/tools/golangci_fix.lua` stashes fixes in diagnostic
-  `user_data`; in-process LSP `lsp/golangci_fix.lua` (enabled in
-  `lua/core/lsp.lua`) serves them as code actions on the normal
-  `<leader>ca` / `<A-CR>` flow.
+  `user_data`; in-process LSP `lsp/golangci_fix.lua` (enabled via the
+  language plane — `plugins/lang/go.lua`) serves them as code actions on
+  the normal `<leader>ca` / `<A-CR>` flow.
 - **Claude Code integration is coder/claudecode.nvim in `none` mode**
   (`lua/plugins/ai/claudecode.lua`): nvim hosts only the WebSocket IDE
   server; the `claude` CLI runs in a tmux pane and attaches via `/ide`.
@@ -136,6 +147,15 @@ These constrain code that *isn't there*; comments have nowhere to live.
   don't duplicate-bind those actions under `<leader>d*`. F-keys
   intentionally unused (leader/localleader stays in Vim grammar, works
   across keyboard layouts).
+- **Mechanized parity checking is retired (2026-08-15).** A CI-enforced
+  keymap presence diff was built (`feat/parity-check`, never merged) and
+  rejected: asymmetry is the *norm* here — the exception allowlist
+  (~139 entries) outgrew the aligned surface (~110 keys), and every
+  deliberate nvim-only key would pay an allowlist tax. The real rule
+  ("mirror only when an IDE Action equivalent exists") is judgment, not
+  an invariant; `.ideavimrc` is a single file, so manual alignment at
+  review time is cheap. Keep the prose parity map + review discipline;
+  don't re-propose presence diffs or intent-pairing ledgers.
 
 ## Conventions
 
