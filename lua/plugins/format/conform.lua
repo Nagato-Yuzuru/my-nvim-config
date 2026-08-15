@@ -37,12 +37,11 @@ return {
 				desc = "Format file",
 			},
 		},
-		-- 不能用纯 `opts`：formatters_by_ft 表是从 tools.mason_ensure 运行时取
-		-- 的，而 ts/js/markdown/go 的 picker 还要看 buffer 路径动态决定 formatter。
-		-- 接 opts 参数走形式，方便其它 spec 用 `optional = true` 增量扩展。
+		-- 不能用纯 `opts`：ts/js/markdown/go 的 picker 是本 config 里的局部闭包，
+		-- 要看 buffer 路径运行时决定 formatter。接 opts 参数走形式，方便其它 spec
+		-- 用 `optional = true` 增量扩展。
 		config = function(_, opts)
 			local conform = require("conform")
-			local formatters_by_ft = require("tools.mason_ensure").get_formatters_by_ft()
 
 			-- ts/js: Deno 项目用 deno fmt，其余用 oxfmt（Prettier 100% 一致的 Rust formatter）
 			local function pick_js_formatter(bufnr)
@@ -51,9 +50,6 @@ return {
 					return { "deno_fmt" }
 				end
 				return { "oxfmt" }
-			end
-			for _, ft in ipairs({ "typescript", "typescriptreact", "javascript", "javascriptreact" }) do
-				formatters_by_ft[ft] = pick_js_formatter
 			end
 
 			-- markdown: 项目显式声明 .mdformat.toml 时走 mdformat（opt-in，由项目自行决定
@@ -70,7 +66,6 @@ return {
 				end
 				return { "oxfmt" }
 			end
-			formatters_by_ft.markdown = pick_md_formatter
 
 			-- go: 仓库声明 `.golangci.{yml,yaml,toml}` 时走 `golangci-lint fmt`，按仓库
 			-- formatters 块（gofumpt / gci / golines / 自定义 import 分组）跑——保证
@@ -85,7 +80,43 @@ return {
 				end
 				return { "goimports" }
 			end
-			formatters_by_ft.go = pick_go_formatter
+
+			-- Runtime formatter 策略（本表自持）："这个 buffer 跑什么"归 conform，与
+			-- install plane（tools/mason_ensure.lua 只登记"要装什么"）解耦——迁移前两个
+			-- 事实共一张表，六个 ft 被上面的 picker 覆写、表值说谎；现在各说各的事实。
+			-- Mason 系条目由 ensure_for_ft 按 ft 兜底安装；其余 formatter 的来路：
+			--   d2 随 d2 CLI（brew）；tofu_fmt 调系统 `tofu fmt`（与 terraform fmt
+			--   canonical 一致，.tofu/.tofuvars 的 ft 归并见 plugins/lang/opentofu.lua）；
+			--   rustfmt 跟 rustup component；zigfmt 随 zig；swiftformat 由 mise 提供
+			--  （aqua backend，钉进 mise.toml——Swift 系无可靠预编译包，不走 Mason）；
+			--   raco_fmt / schemat 装法见下方 formatters 声明与 scheme_toolchain 提示。
+			-- conform 一律从 PATH 找，缺失时静默跳过。
+			local formatters_by_ft = {
+				lua = { "stylua" },
+				python = { "ruff_format" },
+				go = pick_go_formatter,
+				sh = { "shfmt" },
+				bash = { "shfmt" },
+				zsh = { "shfmt" },
+				json = { "oxfmt" },
+				jsonc = { "oxfmt" },
+				yaml = { "oxfmt" },
+				markdown = pick_md_formatter,
+				typescript = pick_js_formatter,
+				typescriptreact = pick_js_formatter,
+				javascript = pick_js_formatter,
+				javascriptreact = pick_js_formatter,
+				toml = { "taplo" },
+				d2 = { "d2" },
+				terraform = { "tofu_fmt" },
+				["terraform-vars"] = { "tofu_fmt" },
+				rust = { "rustfmt" },
+				zig = { "zigfmt" },
+				swift = { "swiftformat" },
+				typst = { "typstyle" },
+				racket = { "raco_fmt" },
+				scheme = { "schemat" },
+			}
 
 			conform.setup(vim.tbl_deep_extend("force", {
 				formatters_by_ft = formatters_by_ft,
