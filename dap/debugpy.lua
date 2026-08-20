@@ -1,7 +1,8 @@
 -- Python 调试器 (debugpy)
 -- mason 包 `debugpy` 提供 `debugpy-adapter` 二进制（adapter 端）。
--- 注意：被调试进程也需要 debugpy 包，必须装在项目环境里：
---   uv add --dev debugpy
+-- launch 不要求项目环境装 debugpy：adapter 把自带的 launcher 注入被调试
+-- 解释器。只有 attach（`python -m debugpy --listen` 起服务端）需要
+-- `uv add --dev debugpy`。
 --
 -- Post-mortem debug：debugpy 不原生支持 core dump / post-mortem。
 -- 想在崩溃后复盘栈状态，走 pdb 外部流程：

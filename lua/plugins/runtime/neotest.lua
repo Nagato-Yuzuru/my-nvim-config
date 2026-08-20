@@ -216,6 +216,20 @@ return {
 					require("neotest-golang")({
 						-- table tests 在 neotest-golang 默认就支持,不需要 experimental flag
 						go_test_args = { "-count=1", "-race" },
+						-- <leader>td 的 DAP 接线。默认的 "dap-go" 模式硬依赖
+						-- nvim-dap-go 插件;manual 模式复用 dap/delve.lua 的 adapter。
+						dap_mode = "manual",
+						-- 函数而非 table:上游 dap_manual.lua 原地 mutate 配置表,
+						-- table 形式会跨 run 累积 "-test.run" 参数。cwd 不在这里给,
+						-- neotest 的 dap strategy 从 runspec 合并(= 测试所在包目录)。
+						dap_manual_config = function()
+							return {
+								type = "delve", -- dap/delve.lua 的 adapter key(不是 dap-go 的 "go")
+								name = "Debug test (neotest)",
+								request = "launch",
+								mode = "test",
+							}
+						end,
 					}),
 					require("neotest-python")({
 						-- runner 优先级:pytest > unittest;用 .venv 里的解释器

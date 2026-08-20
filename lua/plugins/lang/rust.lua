@@ -9,8 +9,8 @@
 --   * 接管 rust-analyzer：`core/lsp.lua` 已从 vim.lsp.enable 列表移除
 --     "rust_analyzer"，顶层 `lsp/rust_analyzer.lua` 已删
 --   * Test  → require("rustaceanvim.neotest") 在 plugins/runtime/neotest.lua 注册
---   * DAP   → 我们的 `dap/codelldb.lua` 仍是 codelldb adapter 的唯一真相源；
---             给 rustaceanvim 设 `dap.adapter = false` 让它别覆写
+--   * DAP   → `dap/codelldb.lua` 是 codelldb adapter 的唯一真相源；rustaceanvim
+--             注册前有 `dap.adapters[key] == nil` 守卫，不覆写已存在的
 
 return {
 	{
@@ -145,12 +145,6 @@ return {
 							},
 						},
 					},
-				},
-				-- DAP: dap/codelldb.lua 已注册 dap.adapters.codelldb；让出，
-				-- 别让 rustaceanvim 覆写。`:RustLsp debuggables` 仍然能用——
-				-- 它只是 dap.run({ adapter = "codelldb", ... })，会找到我们的。
-				dap = {
-					adapter = false,
 				},
 			}
 		end,
