@@ -106,7 +106,6 @@ function M.setup()
 			--   debugpy  => "uncaught"
 			--   codelldb => "rust_panic" / "cpp_throw"
 			--   delve    => "unrecovered-panic"
-			--   js-debug => "uncaught"
 			if spec.type and spec.exception_breakpoints then
 				dap.defaults[spec.type] = dap.defaults[spec.type] or {}
 				dap.defaults[spec.type].exception_breakpoints = spec.exception_breakpoints

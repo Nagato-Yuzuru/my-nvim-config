@@ -147,6 +147,12 @@ These constrain code that *isn't there*; comments have nowhere to live.
   don't duplicate-bind those actions under `<leader>d*`. F-keys
   intentionally unused (leader/localleader stays in Vim grammar, works
   across keyboard layouts).
+- **JS/TS testing & debugging are retired (2026-08-20).** No neotest
+  adapter, no `dap/js-debug.lua`: JS test frameworks are fragmented
+  (jest/vitest/node:test/bun), so any single adapter guesses wrong for most
+  projects, and the domain is handled in JetBrains. Don't re-add per-framework
+  adapters; if node debugging is ever needed, restore `dap/js-debug.lua` from
+  git history (self-contained file).
 - **Mechanized parity checking is retired (2026-08-15).** A CI-enforced
   keymap presence diff was built (`feat/parity-check`, never merged) and
   rejected: asymmetry is the *norm* here — the exception allowlist

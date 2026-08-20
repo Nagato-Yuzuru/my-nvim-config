@@ -50,15 +50,7 @@ local presets_by_ft = {
 		{ label = "Fail-fast (--fail-fast)", args = { "--fail-fast" } },
 		{ label = "No fail-fast (--no-fail-fast)", args = { "--no-fail-fast" } },
 	},
-	javascript = {
-		{ label = "Verbose", args = { "--verbose" } },
-		{ label = "Bail (--bail)", args = { "--bail" } },
-		{ label = "Only failures", args = { "--onlyFailures" } },
-	},
 }
-presets_by_ft.typescript = presets_by_ft.javascript
-presets_by_ft.javascriptreact = presets_by_ft.javascript
-presets_by_ft.typescriptreact = presets_by_ft.javascript
 
 local function run_with_args_picker()
 	local ft = vim.bo.filetype
@@ -99,13 +91,13 @@ return {
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"nvim-neotest/nvim-nio",
-			-- 语言 adapter(Go / Python / TS-Jest / Rust)
+			-- 语言 adapter(Go / Python / Rust / Swift)。JS/TS 刻意不接,
+			-- 理由见 CLAUDE.md retired 段。
 			-- Go 用 fredrikaverpil/neotest-golang 而非 nvim-neotest/neotest-go:
 			-- 后者 2024-05 起停滞,table tests / nearest / dap-go 集成都有
 			-- 已知 bug;neotest-golang 是 2025 活跃维护版(LazyVim 也已切换)。
 			"fredrikaverpil/neotest-golang",
 			"nvim-neotest/neotest-python",
-			"nvim-neotest/neotest-jest",
 			-- Rust adapter 来自 rustaceanvim(rouge8/neotest-rust 已 archived)。
 			-- spec 主体在 plugins/lang/rust.lua(带 init/version/ft);这里列名
 			-- 只是把 rustaceanvim 加成 neotest 的 dep,确保 neotest 加载时
@@ -240,19 +232,6 @@ return {
 								return venv
 							end
 							return vim.fn.exepath("python3") or "python3"
-						end,
-					}),
-					require("neotest-jest")({
-						jestCommand = "pnpm test --",
-						jestConfigFile = function()
-							local cwd = vim.fn.getcwd()
-							for _, name in ipairs({ "jest.config.ts", "jest.config.js" }) do
-								local p = cwd .. "/" .. name
-								if vim.fn.filereadable(p) == 1 then
-									return p
-								end
-							end
-							return nil
 						end,
 					}),
 					-- Rust:rustaceanvim 内置 adapter,发现走 rust-analyzer
