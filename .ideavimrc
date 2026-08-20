@@ -613,11 +613,11 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " Asymmetry — step / inspect / frame controls intentionally NOT bound here.
 "
 " Neovim binds these under <localleader> (= `,`) and attaches them ONLY for
-" the duration of a DAP session (dap.listeners.after.event_initialized →
-" attach, before.event_terminated/exited → detach; see actions table in
-" lua/plugins/runtime/dap.lua). That gives <localleader>{c,n,s,f,r,e,h,j,k,R,q}
-" their CLI-debugger meaning (continue / next / step / finish / repl /
-" eval / hover / frame ↓↑ / restart / quit) only while debugging.
+" the duration of a DAP session (attach/detach via dap.listeners.on_session;
+" see actions table in lua/plugins/runtime/dap.lua). That gives
+" <localleader>{c,n,s,f,r,e,h,j,k,R,q,Q} their CLI-debugger meaning
+" (continue / next / step / finish / repl / eval / hover / frame ↓↑ /
+" restart / quit / detach) only while debugging.
 "
 " IdeaVim has no debugger lifecycle hook — no Action or Plug fires on session
 " start/end, so the same "attach-while-debugging" trick is not reproducible.
@@ -625,6 +625,12 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " would permanently consume <localleader>{c,n,…} for an editor where the
 " canonical debug surface is F-keys + Debug Tool Window. Leaving those keys
 " free on the IDE side is the deliberate trade-off.
+"
+" nvim additionally auto-enters a sticky "step hydra" whenever the debugger
+" stops (tools/debug_hydra.lua): bare n/s/f/c/u step, J/K frames, `.` back
+" to exec point — single-key repeats with an on-screen hint, <Esc> leaves,
+" `,d` re-enters. nvim-only by design: JetBrains' step surface is already
+" single-key (F7/F8/…), so there is nothing to mirror here.
 "
 " On JetBrains: F8 (StepOver) / F7 (StepInto) / Shift-F8 (StepOut) /
 " F9 (Resume) / Alt-F8 (EvaluateExpression) / Alt-F9 (RunToCursor), plus the

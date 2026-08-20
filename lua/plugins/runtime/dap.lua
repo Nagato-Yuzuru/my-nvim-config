@@ -6,14 +6,28 @@
 --
 -- ► 安装走 mason-registry 直连（core.dap.ensure_mason），不依赖 mason-nvim-dap。
 --
--- 键位按"需要的时机"双层分布（完整表见下方 keys = {} 列表与文件后段的
+-- 键位按"需要的时机"分布（完整表见下方 keys = {} 列表与文件后段的
 -- `actions` 表）：
 --   * 静态 <leader>d*  编辑态 / 生命周期 / 面板焦点（永远在）
 --   * 动态 ,*          运行态控制与观察（dap.listeners 在 session 内动态绑）
+--   * hydra 裸键       断点停住自动进入的 sticky 步进层（tools/debug_hydra.lua；
+--                      n/s/f/c/u/J/K/. 连按，Esc 退出，`,d` 重入）——
+--                      `,*` 中步进子集的裸键别名，改动作时两处同步
 -- 严格单归属：`dc/dn/ds/df/dr/de/dh/dj/dk/dR` 不在静态层，只在 session 内
 -- 通过 ,c/,n/,s/,f/,r/,e/,h/,j/,k/,R 生效。
 
 local function inspect_expr() require("dapui")["eval"](nil, { enter = true }) end
+
+-- dap-ui 的 Breakpoints 面板只随 DAP 请求流量重渲染：无 session 的编辑态改
+-- 断点不产生请求，面板不会自刷（upstream 无断点变更事件可订阅）。改动断点
+-- 的键位（db/dB/dt/dC）动作后手动 render 补上；dapui 未加载或面板未开时是
+-- 安全 no-op（render 只写元素自己的 buffer）。
+local function refresh_breakpoints_panel()
+	local ok, dapui = pcall(require, "dapui")
+	if ok then
+		pcall(function() dapui.elements.breakpoints.render() end)
+	end
+end
 
 -- <leader>dt：设置 logpoint（DAP 里叫 "breakpoint with logMessage"）。
 -- 不暂停、只在命中时把消息打到 REPL/console。消息里可用 `{expr}` 语法插值。
@@ -21,6 +35,7 @@ local function set_logpoint()
 	vim.ui.input({ prompt = "Log message (use {expr} to interpolate): " }, function(msg)
 		if msg and msg ~= "" then
 			require("dap").set_breakpoint(nil, nil, msg)
+			refresh_breakpoints_panel()
 		end
 	end)
 end
@@ -142,13 +157,21 @@ return {
 			{ "<leader>dq", function() require("dap").terminate() end, desc = "Terminate session (escape hatch)" },
 
 			-- === 断点类型（编辑态设置） ===
-			{ "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "Toggle breakpoint" },
+			{
+				"<leader>db",
+				function()
+					require("dap").toggle_breakpoint()
+					refresh_breakpoints_panel()
+				end,
+				desc = "Toggle breakpoint",
+			},
 			{
 				"<leader>dB",
 				function()
 					vim.ui.input({ prompt = "Breakpoint condition: " }, function(cond)
 						if cond and cond ~= "" then
 							require("dap").set_breakpoint(cond)
+							refresh_breakpoints_panel()
 						end
 					end)
 				end,
@@ -160,6 +183,15 @@ return {
 				"<leader>dX",
 				function() require("dap").set_exception_breakpoints() end,
 				desc = "Exception filter picker",
+			},
+			{
+				"<leader>dC",
+				function()
+					require("dap").clear_breakpoints()
+					refresh_breakpoints_panel()
+					vim.notify("Cleared all breakpoints", vim.log.levels.INFO)
+				end,
+				desc = "Clear all breakpoints",
 			},
 
 			-- === UI / 面板焦点 ===
@@ -217,6 +249,10 @@ return {
 				core_dap.apply_function_breakpoints()
 			end
 
+			-- 断点停住 → 自动进入步进 hydra。每次 step 落地也发 event_stopped，
+			-- 重复激活 / 非 normal 态由模块内 guard 挡掉（hint 不闪）。
+			dap.listeners.after.event_stopped["debug_hydra"] = function() require("tools.debug_hydra").activate() end
+
 			-- dap-virtual-text：行内显示当前 frame 的局部变量值
 			require("nvim-dap-virtual-text").setup({
 				enabled = true,
@@ -264,6 +300,10 @@ return {
 			-- 变量、`,w` add watch、`,j`/`,k` frame down/up、`,R` restart、
 			-- `,q` terminate。F-keys (JetBrains 风格) 故意不绑：leader/localleader
 			-- 用 Vim 语法、跨键盘布局可达。
+			-- 追加的非 CLI 助记：`,.` 回执行点（focus_frame，探索代码跳走后
+			-- 归位）、`,d` 手动进 sticky 步进 hydra（tools/debug_hydra.lua；
+			-- 正常情况断点停住会自动进，`,d` 是 Esc 退出后的重入口）、
+			-- `,Q` disconnect（与 `,q` 成对：小写杀进程，大写放手 detach）。
 			local actions = {
 				c = { fn = function() dap.continue() end, desc = "Debug: Continue" },
 				n = { fn = function() dap.step_over() end, desc = "Debug: Step over (next)" },
@@ -272,6 +312,12 @@ return {
 				p = { fn = function() dap.pause() end, desc = "Debug: Pause" },
 				u = { fn = function() dap.run_to_cursor() end, desc = "Debug: Run to cursor (until)" },
 				q = { fn = function() dap.terminate() end, desc = "Debug: Terminate session" },
+				Q = {
+					-- detach：脱开调试器、进程继续跑——attach 到真实服务时
+					-- terminate 是危险默认，这条才是安全退出。
+					fn = function() dap.disconnect({ terminateDebuggee = false }) end,
+					desc = "Debug: Disconnect (detach, keep process alive)",
+				},
 				r = { fn = function() dap.repl.toggle() end, desc = "Debug: Toggle REPL" },
 				e = {
 					fn = inspect_expr,
@@ -287,6 +333,11 @@ return {
 				j = { fn = function() dap.down() end, desc = "Debug: Frame down" },
 				k = { fn = function() dap.up() end, desc = "Debug: Frame up" },
 				R = { fn = function() dap.restart() end, desc = "Debug: Restart session" },
+				["."] = { fn = function() dap.focus_frame() end, desc = "Debug: Focus stopped frame" },
+				d = {
+					fn = function() require("tools.debug_hydra").activate() end,
+					desc = "Debug: Step mode (hydra)",
+				},
 			}
 
 			local function attach_localleader()
@@ -319,6 +370,14 @@ return {
 					attach_localleader()
 				else
 					detach_localleader()
+				end
+			end
+
+			-- session 终结（同上，on_session → nil 覆盖全部终止路径）时强制退出
+			-- 步进 hydra，防 pink layer / hint 泄漏到无 session 状态。
+			dap.listeners.on_session["debug_hydra"] = function(_, new_session)
+				if not new_session then
+					require("tools.debug_hydra").exit()
 				end
 			end
 		end,

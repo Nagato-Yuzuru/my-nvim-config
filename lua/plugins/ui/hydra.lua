@@ -54,6 +54,10 @@
 -- ── 后续要加新 hydra 的位置 ─────────────────────────────────────────────
 -- 直接在下面 config 里多 New 一个 Hydra({...})。本文件是项目的 hydra
 -- 总册——sticky chord 都集中在这里，不要散到各插件 spec 里。
+--
+-- 总册例外（唯一）：Debug 步进 hydra 在 lua/tools/debug_hydra.lua——
+-- 事件驱动、惰性构造、需测试的逻辑，非本文件这种静态 body 注册。理由见
+-- 该文件头注释；接线在 plugins/runtime/dap.lua 的 listeners。
 
 return {
 	"nvimtools/hydra.nvim",

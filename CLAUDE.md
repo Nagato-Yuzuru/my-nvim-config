@@ -45,7 +45,7 @@ what's bound where.
 | Git `<localleader>g*` + `]c/[c` hunk nav, `<leader>v{D,H}` diff/history | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`. IdeaVim side mirrors per-key (`,gp/,gb/,gr/,gd/,gx`); nvim-only: `,gs` hunk-stage toggle, `,gB` gutter-base switch, in-buffer conflict ops (`co/ct/cb/c0`, `]x/[x`) — IDE handles those in gutter toolbar / merge dialog. Asymmetry notes live in the `.ideavimrc` Git section |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
-| Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped) | `lua/plugins/runtime/dap.lua`                                      |
+| Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped), 停点 sticky 步进 hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua`        |
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
 | Markdown `<localleader>m*` (nvim-only — IDE has built-in editor+preview split) | `lua/plugins/lang/markdown.lua` (render-markdown toggles + live-preview `,mb` browser preview) |
@@ -146,7 +146,11 @@ These constrain code that *isn't there*; comments have nowhere to live.
   `lua/plugins/runtime/dap.lua`). The `actions` local there is SSOT —
   don't duplicate-bind those actions under `<leader>d*`. F-keys
   intentionally unused (leader/localleader stays in Vim grammar, works
-  across keyboard layouts).
+  across keyboard layouts). One sanctioned alias surface: the stop-time
+  step hydra (`lua/tools/debug_hydra.lua`, auto-enter on
+  `event_stopped`) exposes the repeat-heavy stepping subset as bare
+  keys — session-scoped like `,*`, still nothing new in the static
+  layer; keep its heads in sync with `actions`.
 - **JS/TS testing & debugging are retired (2026-08-20).** No neotest
   adapter, no `dap/js-debug.lua`: JS test frameworks are fragmented
   (jest/vitest/node:test/bun), so any single adapter guesses wrong for most
