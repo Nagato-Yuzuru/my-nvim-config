@@ -46,6 +46,11 @@ local function find_python()
 	return sys ~= "" and sys or "python3"
 end
 
+-- 程序参数：launch 配置的 args 走 core.dap.prompt_args（语义见该函数注释）。
+-- "Launch pytest (current file)" 例外——固定 args 就是配置本体，带参跑测试
+-- 走 neotest 的 <leader>tA。
+local prompt_args = require("core.dap").prompt_args
+
 ---@type DapSpec
 return {
 	type = "python",
@@ -65,6 +70,7 @@ return {
 			request = "launch",
 			name = "Launch file",
 			program = "${file}",
+			args = prompt_args("python:Launch file"),
 			pythonPath = find_python,
 			justMyCode = false,
 		},
@@ -73,6 +79,7 @@ return {
 			request = "launch",
 			name = "Launch module",
 			module = function() return vim.fn.input("Module name: ") end,
+			args = prompt_args("python:Launch module"),
 			pythonPath = find_python,
 			justMyCode = false,
 		},

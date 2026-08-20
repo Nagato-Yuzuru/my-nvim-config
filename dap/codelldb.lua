@@ -13,6 +13,9 @@
 -- 的会用同一份 adapter spec 覆盖（无害），各文件下的 configurations 仍按
 -- 各自 filetypes 注册到 `dap.configurations`。
 
+-- Launch 的 args 走 core.dap.prompt_args（语义见该函数注释）。
+local prompt_args = require("core.dap").prompt_args
+
 ---@type DapSpec
 return {
 	type = "codelldb",
@@ -38,7 +41,7 @@ return {
 			program = function() return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file") end,
 			cwd = "${workspaceFolder}",
 			stopOnEntry = false,
-			args = {},
+			args = prompt_args("codelldb:Launch executable"),
 		},
 		{
 			type = "codelldb",

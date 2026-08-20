@@ -1,5 +1,19 @@
 -- Go 调试器 (delve)
 -- mason 包 `delve` 提供 `dlv` 二进制；mason 启动时已把 mason/bin 加入 PATH。
+--
+-- 输出管道：delve 默认**不**把被调试程序的 stdout/stderr 转成 DAP output
+-- events（落在 dlv 进程自己的 stdout 上，编辑器里看不见——log.Fatalln 的
+-- 遗言会无声消失）。因此所有 launch 型配置显式 `outputMode = "remote"`，
+-- 程序输出经 output events 进 REPL 面板（<leader>dvr / ,r；Console 面板是
+-- terminal 元素，delve 不走 runInTerminal，恒空）。attach/core/remote 不
+-- 适用——进程 stdout 不归 delve 管。neotest 的 debug-nearest 同配
+--（plugins/runtime/neotest.lua 的 dap_manual_config）。
+--
+-- 程序参数：launch 型配置的 args 走 core.dap.prompt_args（语义见该函数注
+-- 释）。delve 特有：test 模式下 args 直接传给测试二进制，go test 风格的
+-- flag 要写 `-test.` 前缀（-test.run / -test.v）。
+
+local prompt_args = require("core.dap").prompt_args
 
 ---@type DapSpec
 return {
@@ -26,12 +40,16 @@ return {
 			name = "Debug package",
 			request = "launch",
 			program = "${fileDirname}",
+			outputMode = "remote",
+			args = prompt_args("delve:Debug package"),
 		},
 		{
 			type = "delve",
 			name = "Debug file",
 			request = "launch",
 			program = "${file}",
+			outputMode = "remote",
+			args = prompt_args("delve:Debug file"),
 		},
 		{
 			type = "delve",
@@ -39,6 +57,8 @@ return {
 			request = "launch",
 			mode = "test",
 			program = "${file}",
+			outputMode = "remote",
+			args = prompt_args("delve:Debug test (file)"),
 		},
 		{
 			type = "delve",
@@ -46,6 +66,8 @@ return {
 			request = "launch",
 			mode = "test",
 			program = "./${relativeFileDirname}",
+			outputMode = "remote",
+			args = prompt_args("delve:Debug test (package)"),
 		},
 		{
 			type = "delve",

@@ -214,12 +214,16 @@ return {
 						-- 函数而非 table:上游 dap_manual.lua 原地 mutate 配置表,
 						-- table 形式会跨 run 累积 "-test.run" 参数。cwd 不在这里给,
 						-- neotest 的 dap strategy 从 runspec 合并(= 测试所在包目录)。
+						-- outputMode = "remote":delve 默认不转发被调试程序的
+						-- stdout(t.Log / fmt.Println 全部不可见),理由与配置详见
+						-- dap/delve.lua 头注释——两处需保持一致。
 						dap_manual_config = function()
 							return {
 								type = "delve", -- dap/delve.lua 的 adapter key(不是 dap-go 的 "go")
 								name = "Debug test (neotest)",
 								request = "launch",
 								mode = "test",
+								outputMode = "remote",
 							}
 						end,
 					}),

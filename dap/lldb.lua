@@ -56,7 +56,7 @@ return {
 			end,
 			cwd = "${workspaceFolder}",
 			stopOnEntry = false,
-			args = {},
+			args = require("core.dap").prompt_args("lldb:Swift Launch"),
 		},
 		{
 			type = "lldb",

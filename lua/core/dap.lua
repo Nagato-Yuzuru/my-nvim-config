@@ -69,6 +69,26 @@ function M.list_function_breakpoints()
 	return list
 end
 
+-- 交互式程序参数——launch 型 configuration 的 `args` 字段写
+-- `M.prompt_args("<adapter>:<config name>")`，key 全局唯一，防跨 adapter
+-- 同名配置串记忆。语义（各 dap/*.lua 引用此处，不另行复述）：
+--   * nvim-dap 对 function 字段每次 run 重新求值，run_last (<leader>dl)
+--     会再弹——上次输入已预填，回车即复用；空输入 = 无参数
+--   * 记忆仅本次 nvim 会话（与断点不持久同策）
+--   * 只做空白切分，不处理引号——第二个真实需求出现前不上 shell 语法
+--   * attach / core / remote 不适用：进程不是调试器拉起的，没有 argv 可传
+local last_args = {}
+
+---@param key string
+---@return fun(): string[]
+function M.prompt_args(key)
+	return function()
+		local raw = vim.fn.input("Program args: ", last_args[key] or "")
+		last_args[key] = raw
+		return vim.split(raw, "%s+", { trimempty = true })
+	end
+end
+
 ---@return DapMasonPkg[] mason packages collected from all dap/*.lua specs
 function M.setup()
 	local ok_dap, dap = pcall(require, "dap")
