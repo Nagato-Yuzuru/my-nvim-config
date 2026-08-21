@@ -555,17 +555,17 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 " Two tiers:
 "   <leader>G + the static maps below = language-AGNOSTIC actions. These are
 "     platform CodeInsightActions (one ID, the IDE routes to the current file's
-"     language handler) — no per-language wiring needed. Confirmed via gh in
+"     language handler). No per-language wiring needed. Confirmed via gh in
 "     JetBrains/intellij-community: OverrideMethods/ImplementMethods register in
 "     platform/.../idea/LangActions.xml, not in any language-specific plugin.
-"   <leader>g{c,G,S,A} = CONCEPT keys: the same key generates the right thing per
+"   <leader>g{c,G,S,A,m,J,j} = CONCEPT keys: the same key generates the right thing per
 "     language. Dispatched by filetype (see the augroup) because (a) IdeaVim's
 "     vimscript can't read &filetype/% and (b) <buffer>-local maps are unsupported
-"     — so we re-assert GLOBAL maps on BufEnter. Needs IdeaVim >= 2.33.0 (autocmd,
+"     Instead we re-assert GLOBAL maps on BufEnter. Needs IdeaVim >= 2.33.0 (autocmd,
 "     2026-04 / VIM-1693).
 "
 " Cross-editor asymmetry (IdeaVim-only on purpose): Neovim has no <leader>g* MENU,
-" but it does generate code — just through other surfaces, chiefly <leader>ca =
+" but it does generate code, just through other surfaces, chiefly <leader>ca =
 " vim.lsp.buf.code_action (lua/core/lsp.lua), plus friendly-snippets (blink) and
 " refactoring.nvim's extract (<leader>r*). Coverage is LSP-dependent: rust-analyzer
 " is rich (getter/setter/new/derive all as code actions), gopls is leaner (Fill-
@@ -573,18 +573,22 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 " single structured Generate menu (Alt+Insert = <leader>G/<leader>g*) has no 1:1
 " Neovim mirror: Neovim folds generation into the code-action surface (Alt+Enter
 " intentions = <leader>ca) and what's offered varies by language server. That's why
-" the generate tier (<leader>G/go/gi/gd + concept keys below) lives only here —
-" not a missing feature, a different surface model.
+" the generate tier (<leader>G/go/gi/gd + concept keys below) lives only here.
+" Nothing is missing on the nvim side; the two use different surface models.
+" The two surfaces overlap more than that split suggests: GoLand also serves
+" getter/setter as an Alt+Enter intention, which is the surface that fires on a
+" single field. So <leader>ca reaches the same generator on BOTH sides, and it is
+" the escape hatch whenever a concept key goes silent (see fact 3 below).
 "
 " gt/gT/gu have Neovim counterparts, all wired in
 " lua/plugins/edit/wrap.lua (engine/templates in lua/tools/wrap.lua):
 "   gt/gT → template picker over the selection. One menu serves both keys: the
-"     SurroundWith vs SurroundWithLiveTemplate split collapses — templates live
+"     SurroundWith vs SurroundWithLiveTemplate split collapses. Templates live
 "     in one table. Works in visual AND normal mode (normal = wrap current
 "     line, same as the IDE with no selection).
 "   gu → tools/wrap.lua M.unwrap(): caret anywhere inside the block, same as
 "     the IDE (treesitter walks up to the enclosing construct; the innermost
-"     one at the caret is unwrapped — depth replaces the IDE's level popup).
+"     one at the caret is unwrapped, so depth replaces the IDE's level popup).
 "     Brace/keyword languages delegate to deleft.vim; python unwraps in Lua
 "     (deleft's python path is synID-based and silently no-ops under
 "     treesitter highlighting). Multi-branch: python keeps the branch under
@@ -599,19 +603,51 @@ map <leader>gT <Action>(SurroundWithLiveTemplate)
 map <leader>gu <Action>(Unwrap)
 
 " Concept-key dispatch. Per-filetype generators for the same keys:
-"   gc constructor · gG getter · gS setter · gA getter+setter
-"   gJ/gj type/struct-from-JSON — Go-only concepts, no cross-language meaning.
+"   gc constructor · gG getter · gS setter · gA getter+setter · gm method
+"   gJ/gj type/struct-from-JSON. Go-only concepts, no cross-language meaning.
 " Only Go + JS/TS expose standalone generator action IDs; everywhere else the
 " concept key falls back to the generic Generate popup (set in the `BufEnter *`
-" reset).
+" reset). IDs re-verified 2026-08-21: Go against the plugin's own
+" GoBundle.properties (`action.GoGenerate*Action.text`), JS against
+" intellij-community's actionsUsagesV3.csv. Harvest current IDs with
+" `:actionlist <pattern>`. The Go plugin is closed source, so the running IDE
+" is the only authority.
 "
-" ⚠ Validate when first sourced (this whole tier depends on it):
-"   1) that IdeaVim runs `nmap` inside autocmd and matches comma-separated
-"      `BufEnter *.ext` globs (braces {} avoided — comma form is safer);
-"   2) that BufEnter re-fires when switching back to an already-open tab. If it
-"      does NOT, a concept key can stay on the previous file's generator (a no-op
-"      in the wrong language — harmless). If that bites, switch the event to
-"      FileType (fires on ft-set; accepts the same rare stale-map trade-off).
+" The `BufEnter *` reset is load-bearing, not decoration: `set commentary` owns
+" `gc`, so an UNMAPPED <leader>gc would fall through to `l` plus a pending
+" comment operator that swallows the next keystroke. Never delete a concept key
+" without deleting its reset line too.
+"
+" Sourcing facts. These were open questions when the tier was written, and all
+" three are now settled against IdeaVim 2.46 sources, don't re-derive them:
+"   1) A pattern is ONE glob, never a comma list. AutoCmdPattern.toRegex emits a
+"      literal `,` outside `{}`, so `*.js,*.ts` compiles to a regex demanding a
+"      comma in the filename and matches nothing. The JS/TS branch below was
+"      dead from the day it was written. Brace alternation is the documented
+"      multi-extension form.
+"   2) BufEnter fires on every buffer switch, including returning to an
+"      already-open tab, so a concept key cannot stay on the previous file's
+"      generator. FileType is not needed.
+"   3) A disabled or renamed action is SILENT. `<Action>()` routes to
+"      IjActionExecutor.executeAction(editor, name, ctx), which returns false
+"      without a message; only the `:action` Ex command raises "Action not
+"      found". So a key that does nothing means either the caret sits somewhere
+"      the generator rejects, or the ID died. `:action <id>` tells them apart.
+
+" Seed the concept keys statically. The augroup only specializes them once
+" BufEnter has fired, so a freshly sourced rc leaves them UNMAPPED until the next
+" tab switch. That reads as "the key does nothing" and, for <leader>gc, drops
+" through to commentary's operator. Seeding costs 7 lines and removes that window.
+" nmap (not map) so the augroup's nmap always overrides the same mode.
+nmap <leader>gc <Action>(Generate)
+nmap <leader>gG <Action>(Generate)
+nmap <leader>gS <Action>(Generate)
+nmap <leader>gA <Action>(Generate)
+nmap <leader>gm <Action>(Generate)
+nmap <leader>gJ <Action>(Generate)
+nmap <leader>gj <Action>(Generate)
+
+" `autocmd!` first → re-sourcing the rc replaces handlers instead of stacking them.
 augroup GenerateConceptDispatch
   autocmd!
   " every buffer → reset concept keys to the generic, language-aware Generate popup
@@ -619,21 +655,47 @@ augroup GenerateConceptDispatch
   autocmd BufEnter * nmap <leader>gG <Action>(Generate)
   autocmd BufEnter * nmap <leader>gS <Action>(Generate)
   autocmd BufEnter * nmap <leader>gA <Action>(Generate)
+  autocmd BufEnter * nmap <leader>gm <Action>(Generate)
   autocmd BufEnter * nmap <leader>gJ <Action>(Generate)
   autocmd BufEnter * nmap <leader>gj <Action>(Generate)
-  " Go (GoLand) — full set incl. the Go-only JSON generators
+  " Go (GoLand). Full set including the Go-only JSON generators.
+  " gG/gS/gA act on ONE field: the caret must be on a struct field name, not on
+  " the type name (GoBundle: "...getter and setter methods for a field").
   autocmd BufEnter *.go nmap <leader>gc <Action>(GoGenerateConstructorAction)
   autocmd BufEnter *.go nmap <leader>gG <Action>(GoGenerateGetterAction)
   autocmd BufEnter *.go nmap <leader>gS <Action>(GoGenerateSetterAction)
   autocmd BufEnter *.go nmap <leader>gA <Action>(GoGenerateGetterSetterAction)
+  autocmd BufEnter *.go nmap <leader>gm <Action>(GoGenerateMethodAction)
   autocmd BufEnter *.go nmap <leader>gJ <Action>(GoGenerateTypeFromJsonAction)
   autocmd BufEnter *.go nmap <leader>gj <Action>(GoGenerateStructFieldsFromJsonAction)
-  " JS / TS — standalone Generate.*.JavaScript IDs (cover .ts too)
-  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gc <Action>(Generate.Constructor.JavaScript)
-  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gG <Action>(Generate.GetAccessor.JavaScript)
-  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gS <Action>(Generate.SetAccessor.JavaScript)
-  autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gA <Action>(Generate.GetSetAccessor.JavaScript)
+  " JS / TS. Standalone Generate.*.JavaScript IDs, which cover .ts too. Brace
+  " alternation, not a comma list. See fact 1 above.
+  autocmd BufEnter *.{js,jsx,mjs,cjs,ts,tsx,mts,cts} nmap <leader>gc <Action>(Generate.Constructor.JavaScript)
+  autocmd BufEnter *.{js,jsx,mjs,cjs,ts,tsx,mts,cts} nmap <leader>gG <Action>(Generate.GetAccessor.JavaScript)
+  autocmd BufEnter *.{js,jsx,mjs,cjs,ts,tsx,mts,cts} nmap <leader>gS <Action>(Generate.SetAccessor.JavaScript)
+  autocmd BufEnter *.{js,jsx,mjs,cjs,ts,tsx,mts,cts} nmap <leader>gA <Action>(Generate.GetSetAccessor.JavaScript)
 augroup END
+
+" which-key labels. `set which-key` (top of file) falls back to showing the raw
+" <Action>(...) rhs when a key has no g:WhichKeyDesc_* variable. That is what
+" made this tier unreadable in the popup. Format is "<key sequence> <label>";
+" the variable suffix only needs to be unique. Labels are user-facing, so
+" English, the same rule as vim.notify text on the Neovim side.
+let g:WhichKeyDesc_generate             = "<leader>g Generate / surround"
+let g:WhichKeyDesc_generate_menu        = "<leader>G Generate... (Alt+Insert)"
+let g:WhichKeyDesc_generate_override    = "<leader>go Override methods"
+let g:WhichKeyDesc_generate_implement   = "<leader>gi Implement methods"
+let g:WhichKeyDesc_generate_delegate    = "<leader>gd Delegate methods"
+let g:WhichKeyDesc_generate_constructor = "<leader>gc Constructor"
+let g:WhichKeyDesc_generate_getter      = "<leader>gG Getter (caret on a field)"
+let g:WhichKeyDesc_generate_setter      = "<leader>gS Setter (caret on a field)"
+let g:WhichKeyDesc_generate_getset      = "<leader>gA Getter + setter (caret on a field)"
+let g:WhichKeyDesc_generate_method      = "<leader>gm Method"
+let g:WhichKeyDesc_generate_type_json   = "<leader>gJ Type from JSON (Go)"
+let g:WhichKeyDesc_generate_fields_json = "<leader>gj Struct fields from JSON (Go)"
+let g:WhichKeyDesc_generate_surround    = "<leader>gt Surround with..."
+let g:WhichKeyDesc_generate_surround_t  = "<leader>gT Surround with template..."
+let g:WhichKeyDesc_generate_unwrap      = "<leader>gu Unwrap"
 
 " 5)  Git. <localleader>g*, mirroring gitsigns and git-conflict
 "     (lua/plugins/git/). Every action ID here was read out of the open-source
