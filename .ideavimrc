@@ -1,36 +1,34 @@
-" .ideavimrc is a configuration file for IdeaVim plugin. It uses
-"   the same commands as the original .vimrc configuration.
-" You can find a list of commands here: https://jb.gg/h38q75
-" Find more examples here: https://jb.gg/share-ideavimrc
+" Command reference: https://jb.gg/h38q75
 
 let mapleader = " "
 let maplocalleader = ","
-" Mirrors vim.g.maplocalleader = "," in ~/.config/nvim/init.lua — keeps
-" localleader bindings (git, typst, …) typeable as `,*` on both sides.
-" ⚠️ IdeaVim 不展开 <localleader>：vim-engine VimStringParserBase 的
-" 特殊名解析只有 "leader" 分支（读 g:mapleader），没有 localleader——
-" 写 <localleader> 的映射是死键。因此本文件所有 localleader 位键一律
-" 硬编码字面 `,`（如 nmap ,gd）。上面这行 let 仅作意图文档 + 未来
-" IdeaVim 支持后的无缝衔接，当前无实际效果。
-"" -- Suggested options --
-" Show a few lines of context around the cursor. Note that this makes the
-" text scroll if you mouse-click near the start or end of the window.
-
-" Do incremental searching.
+" Mirrors vim.g.maplocalleader = "," in ~/.config/nvim/init.lua, so localleader
+" keys (git, typst, ...) type as `,*` on both sides.
+" DEAD KEY: IdeaVim never expands <localleader>. vim-engine's
+" VimStringParserBase resolves one special name, "leader", by reading
+" g:mapleader. There is no localleader branch, so any mapping written with
+" <localleader> does nothing at all. Every localleader key in this file
+" therefore hardcodes a literal `,`, e.g. `nmap ,gd`. The `let` above only
+" records intent and costs nothing if IdeaVim ever adds support.
 set incsearch
 set notimeout
 set timeoutlen=5000
 
 " === Plugins ===
-" 按是否需要装 Marketplace 插件分两组。名字以官方 emulated-plugins doc 为准：
+" Two groups, split by whether the plugin needs a Marketplace install. Names
+" follow the official emulated-plugins doc:
 " https://github.com/JetBrains/ideavim/blob/master/doc/IdeaVim%20Plugins.md
 
-" --- Built-in（IdeaVim 内嵌仿真，set 即生效，无需安装 Marketplace 插件）---
+" --- Built-in (IdeaVim emulates these; `set` is enough, nothing to install) ---
 set surround
-" ⚠️ let 必须在 set 之前（init() 时读，同 anyobject/quickscope）。
-" 2.43.0 起插件默认键对齐原版（breaking change）：<C-n> 会在 N/V/O 被吃掉，
-" 抢走 IDE keymap 的 C-n。我们的 <A-n>/<A-x>/<A-p> 在下方显式绑定，默认键
-" 只剩副作用，关闭。<Plug>* 注册在此开关之外，不受影响。
+" The `let` must precede the `set`: the extension reads it in init(), the same
+" constraint anyobject and quickscope have.
+" 2.45.0 aligned the default mappings with the original plugin (VIM-2178, a
+" breaking change). <C-n> gets swallowed in N/V/O and steals the IDE keymap's
+" C-n. Worse, skip-occurrence lands on <C-x> by default, which would eat this
+" file's entire chord prefix. Our <A-n>/<A-x>/<A-p> are bound explicitly below,
+" so the defaults contribute nothing but damage. <Plug>* registration is
+" independent of this switch and keeps working.
 let g:multi_cursor_use_default_mapping = 0
 set multiple-cursors
 
@@ -38,92 +36,121 @@ set commentary
 set exchange
 set highlightedyank
 set matchit
-set vim-paragraph-motion          " { / } 跳过纯空白行
+set vim-paragraph-motion          " { / } skip whitespace-only lines
 
-" --- 结构文本对象 / 结构导航：能用 IdeaVim 内置就用内置 ---
-" 内置实现走 IntelliJ PSI（functextobj / classtextobj / [m ]m）或纯文本算法
-" （mini-ai / argtextobj / indentwise / CamelCaseMotion），都不"自己猜文件
-" 是什么语言"——那正是 AnyObject 的病根（见下方 "AnyObject 收缩"）。
+" --- Structural text objects and navigation: prefer IdeaVim's built-ins ---
+" The built-ins run on IntelliJ PSI (functextobj, classtextobj, [m ]m) or on
+" plain-text algorithms (mini-ai, argtextobj, indentwise, CamelCaseMotion).
+" None of them guesses what language a file is written in. That guess is what
+" breaks AnyObject; see "AnyObject shrink" below.
 "
-" ⚠️ 定序事实：扩展的 init() 不在 `set` 行执行，而是整个 rc 跑完后按 set
-" 顺序统一执行。推论：
-"   1. rc 里的 map 拦不住"之后才 init 的扩展"的 putKeyMapping 强制覆盖，
-"      书写顺序保护不了任何键；
-"   2. 已启用扩展在 init 里读的 g:* 改动后 :source 不生效（option 没翻转
-"      → init 不重跑），要 `:set no<name>` + `:source`，或重启 IDE。
-" 铁律：只启用 IfMissing 语义的扩展，键位归属靠"无人相争"，不靠加载顺序。
+" ORDERING FACT: an extension's init() does not run at its `set` line. IdeaVim
+" runs every init() after the whole rc finishes, in `set` order. Two
+" consequences:
+"   1. A `map` in this file cannot stop a later-initialising extension from
+"      force-overriding it through putKeyMapping. Writing order protects
+"      nothing.
+"   2. Changing a g:* that an already-enabled extension read in init() has no
+"      effect on :source, because the option never flipped so init() never
+"      reran. Use `:set no<name>` then `:source`, or restart the IDE.
+" Rule: enable only extensions with IfMissing semantics. A key belongs to an
+" extension because nothing else claims it, never because of load order.
 "
-" ⛔ targets.vim 禁用：它给每个对象注册 n/l seek 变体，占满 an*/in*/al*/il*
-" 整片前缀，与 al/il=@loop、an/in=缩进块相撞——完整映射同时是 targets 的
-" 前缀，`set notimeout` 下 `dal` 会无限挂起等第二键。要 targets 就得把 loop
-" 挪离 l，等于放弃 parity。代价（接受）：无 I/A 修饰与 n/l seek；分隔符
-" 对象由 anyitem 顶。解禁条件：IdeaVim 移植支持 g:targets_nl（把 n/l 换键）
-" ——2.44 尚不支持（doc 明写 settings not supported），升级后可复查。
+" FORBIDDEN: targets.vim. It registers n/l seek variants for every object,
+" claiming the whole an*/in*/al*/il* prefix space. That collides with
+" al/il=@loop and an/in=indent block. The complete mapping doubles as a targets
+" prefix, so under `set notimeout` a `dal` hangs forever waiting for a second
+" key. Taking targets would mean moving loop off l, which gives up parity.
+" Accepted cost: no I/A modifiers, no n/l seek. anyitem covers separator
+" objects. Unblock condition: IdeaVim ports g:targets_nl so n/l can move
+" elsewhere. Still unsupported at 2.46, and targets has shipped without
+" settings since it went built-in in 2.39. Recheck on upgrade.
 "
-" ⛔ textobj-indent 禁用：init 里 putKeyMapping（非 IfMissing）无条件强绑
-" ai/aI/ii 且无开关——按定序事实必然盖掉 conditional，归属随 init 顺序
-" 漂移。缩进块用 anyobject 的 anyindentblock：纯行缩进算法、不经语言识别，
-" 同等可靠。代价：无 aI 变体，an 不含块上方 header 行。解禁条件：上游改成
-" IfMissing 或加默认键开关（2.44 均无），届时缩进块可迁回、换掉 anyobject 版。
-set mini-ai                       " aq/iq（任意引号）+ ab/ib（任意括号）
-set argtextobj                    " aa/ia 参数对象（<Plug>{Inner,Outer}Argument）
-set functextobj                   " 函数对象 am/aM/im（下方 remap 到 af/if）
-set classtextobj                  " 类对象 ac（outer；inner 走 anyobject 的 iC）
-set textobj-entire                " 整文件 ae/ie
-set indentwise                    " [- ]- [+ ]+ [= ]= [% ]% 按缩进层级导航
-set CamelCaseMotion               " 故意不设 g:camelcasemotion_key：不生成
-                                  " <leader>w/b/e/ge 默认键，只在下方把
-                                  " 它的 inner-subword <Plug> 挂到 iu
+" FORBIDDEN: textobj-indent. Its init() calls putKeyMapping, not IfMissing, and
+" binds ai/aI/ii unconditionally with no switch. By the ordering fact above it
+" always shadows conditional, and ownership drifts with init order. Indent
+" blocks go to anyobject's anyindentblock instead: a pure line-indent algorithm
+" that never consults language detection, and just as reliable. Accepted cost:
+" no aI variant, and an excludes the header line above the block. Unblock
+" condition: upstream switches to IfMissing or adds a default-key switch.
+" Neither exists at 2.46. A second route opened up in 2.45, which shipped
+" built-in textobj-user: it declares an indent object on keys you choose,
+" with no forced mapping. Try that first if you want to migrate back.
+set mini-ai                       " aq/iq any quote, ab/ib any bracket
+set argtextobj                    " aa/ia argument (<Plug>{Inner,Outer}Argument)
+set functextobj                   " am/aM/im function objects, remapped to af/if below
+set classtextobj                  " ac class outer; inner comes from anyobject's iC
+set textobj-entire                " ae/ie whole file
+set indentwise                    " [- ]- [+ ]+ [= ]= [% ]% navigate by indent level
+set CamelCaseMotion               " g:camelcasemotion_key deliberately unset, so it
+                                  " generates no <leader>w/b/e/ge defaults. Only its
+                                  " inner-subword <Plug> gets bound, to iu below.
 
-" --- Marketplace（须先在 Settings → Plugins 装对应插件，否则 set 静默失效）---
+" --- Marketplace (install the plugin in Settings > Plugins first, or the `set` fails silently) ---
 set easymotion                    " AceJump + IdeaVim-EasyMotion
 set which-key                     " Which-Key
-" === AnyObject 收缩 (28333) ===
-" 只保留内置没有对等实现的七个对象，其余全部迁到上方内置扩展（键位归属见
-" "Syntax-aware" 段末的一览表）。
-" 根因（v3.1.4 源码 TSLanguageUtils 实测）：它自己猜语言——后缀白名单优先
-" （不问 IDE file type）、PSI displayName 精确比对（不沿 baseLanguage 回溯，
-" .pyi/.bzl/.pyx 等方言全落空）、最后按 IDE 名兜底且必命中。兜底必返回 ⇒
-" 认错语言时不是"干净地不动"，而是拿错误文法硬啃出 ERROR 树，选择与 ]/[
-" 跳转全部乱落点。以上是 v3.1.4 的现状；插件在活跃迭代，升级后若语言识别
-" 修好（PSI 优先 + baseLanguage 回溯），本节的收缩范围可以重新放宽。
+" === AnyObject shrink (28333) ===
+" Keep only the seven objects the built-ins have no equivalent for. Everything
+" else moved to the built-in extensions above. The key-ownership table at the
+" end of the "Syntax-aware" section lists who owns what.
 "
-" 保留：l=loop  i=conditional  k=comment  v=variable
-"       y=列表项（targets 被 ⛔，无分隔符对象可替）
-"       n=缩进块（textobj-indent 被 ⛔；纯文本实现，唯一不受认错语言影响）
-"       C=class——只为 inner：outer 用原生 ac（PSI 可靠），iC 是 class-inner
-"       目前唯一的来源；小写 ic 暂无绑定（classtextobj 尚无 inner，上游
-"       补上后 ic 让给它）。
-" 接受丢失的三个语义：anystring（mini-ai 引号近似）、lambda 独立键
-" （functextobj 启发式会吃到）、arg|item 合并键（aa 与 ay 分别覆盖）。
+" Why shrink it (read from v3.1.4's TSLanguageUtils source): AnyObject guesses
+" the language itself. It checks a file-suffix whitelist first and never asks
+" the IDE for the file type, then compares PSI displayName exactly without
+" walking baseLanguage, which drops every dialect such as .pyi, .bzl and .pyx.
+" It finally falls back to the IDE name, and that fallback always returns a
+" hit. Because the fallback can never miss, guessing wrong does not leave the
+" buffer alone. It parses the file with the wrong grammar, produces an ERROR
+" tree, and every selection and ]/[ jump lands somewhere arbitrary. That is
+" v3.1.4 behaviour. The plugin iterates fast, so if language detection gets
+" fixed (PSI first, baseLanguage fallback), this shrink can be relaxed again.
 "
-" ⚠️ let 必须在 set 之前；改动后按"定序事实"第 2 条重新 init 才生效。
-" i/y 互换对齐 nvim（textobjects.lua: ai/ii=@conditional）；anyindentblock
-" 默认键就是 n，无需变量。
+" Kept: l=loop  i=conditional  k=comment  v=variable
+"       y=list item (targets is forbidden, nothing else offers a separator object)
+"       n=indent block (textobj-indent is forbidden; this one is plain-text, the
+"         only object that a wrong language guess cannot affect)
+"       C=class, for inner only. Outer uses native ac, which is PSI-backed and
+"         reliable. iC is currently the only source of class-inner. Lowercase
+"         ic stays unbound; when classtextobj grows an inner object, ic goes
+"         to it.
+" Three semantics given up on purpose: anystring (mini-ai's quote objects
+" approximate it), a dedicated lambda key (functextobj's heuristic swallows
+" it), and the merged arg|item key (aa and ay cover the two halves).
+"
+" The `let`s must precede the `set`. After changing one, re-init per point 2 of
+" the ordering fact or it will not take effect. i and y are swapped to match
+" nvim (textobjects.lua binds ai/ii=@conditional). anyindentblock already
+" defaults to n, so it needs no variable.
 let g:anyobject_included = "anyloop,anyconditional,anycomment,anyvariable,anyitem,anyclass,anyindentblock"
 let g:anyobject_map_anyconditional = "i"
 let g:anyobject_map_anyitem = "y"
 let g:anyobject_map_anyclass = "C"
 set anyobject
-" ]C/[C（buffer 内类跳转）随 anyclass 附带恢复，恰与 nvim ]C/[C=@class.outer
-" 对齐；认错语言的文件里会失灵，届时用 Cmd-Up / Structure 面板。
-set peekaboo                      " Vim Peekaboo (25776) — " / @ / <C-r> 弹 register 预览
-" lazy 模式：平时不亮，只在按下 f/F/t/T 那一刻才高亮当前行的最佳跳转字符。
-" 镜像 nvim 侧 eyeliner.nvim 的 highlight_on_key = true（lua/plugins/edit/eyeliner.lua）。
-" ⚠️ let g:* 必须放在 `set quickscope` 之前，与 anyobject 同一约束。
+" anyclass brings ]C/[C (jump between classes in the buffer) back with it,
+" which happens to match nvim's ]C/[C=@class.outer. They fail in files whose
+" language AnyObject guesses wrong; use Cmd-Up or the Structure panel there.
+set peekaboo                      " Vim Peekaboo (25776). " / @ / <C-r> preview registers
+" Lazy mode: no highlight until you press f/F/t/T, which then marks the best
+" jump target on the current line. Mirrors highlight_on_key = true in nvim's
+" eyeliner.nvim (lua/plugins/edit/eyeliner.lua).
+" The `let` must precede `set quickscope`, same constraint as anyobject.
 let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
-set quickscope                    " IdeaVim-Quickscope (19417) — f/F/t/T 前高亮独特字符
-set keep-english-in-normal        " IdeaVimExtension (9615) — normal 模式自动切英文输入法
+set quickscope                    " IdeaVim-Quickscope (19417). Highlights unique f/F/t/T targets
+set keep-english-in-normal        " IdeaVimExtension (9615). Switches to a Latin IME in Normal mode
 
-" f/t/F/T 反向重复搬到 `\`（镜像 lua/core/keymaps.lua）。原生的 `,` 被
-" maplocalleader 占成了 `,g*` / `,d*` / `,m*` 一整片的前缀，且本文件 `set
-" notimeout`——裸按 `,` 不会自行回落，要再敲一个不构成映射的键才执行原生
-" 反向重复，那时光标已经跑了。故 `,` 直接 <Nop> 化作纯前缀（同 <C-x> 的
-" 处理），反向重复交给 `\`：无原生 normal 命令、两侧也无人占用。
-" `\` 用 noremap，rhs 的 `,` 是原生语义，不受下面 <Nop> 影响。
-" `;` 正向重复保持原生。
-" 不用 `noremap`/`map` 的全模式形式：那会连 select 模式一起吃掉，`\` 和 `,`
-" 在选区里应当照常替换选中文本。
+" f/t/F/T reverse-repeat moves to `\`, mirroring lua/core/keymaps.lua.
+" maplocalleader took the native `,` and turned it into the prefix for a whole
+" family of keys: `,g*`, `,d*`, `,m*`. This file also sets `notimeout`, so a
+" bare `,` never falls back on its own. You would have to type a second key
+" that forms no mapping before the native reverse-repeat runs, and by then the
+" cursor has already moved. So `,` becomes a plain <Nop> prefix, the same
+" treatment <C-x> gets, and reverse-repeat goes to `\`, which has no native
+" normal command and is unclaimed on both sides.
+" `\` uses noremap, so the `,` on its right-hand side keeps native semantics
+" and ignores the <Nop> below. `;` keeps native forward-repeat.
+" These use the three explicit modes rather than `noremap`/`map`, which would
+" also capture Select mode. In a selection, `\` and `,` should replace the
+" selected text as usual.
 nnoremap \ ,
 xnoremap \ ,
 onoremap \ ,
@@ -131,90 +158,108 @@ nnoremap , <Nop>
 xnoremap , <Nop>
 onoremap , <Nop>
 
-" -- C-x chord 层（workspace 动词：buffer / tab / file）。原生 decrement 落到
-" <C-S-A>；<C-x> 自身 Nop 化作前缀（按下后等待第二键，timeoutlen 5000）。
+" -- C-x chord layer (workspace verbs: buffer, tab, file). Native decrement
+" moves to <C-S-A>. <C-x> itself becomes a <Nop> prefix and waits for a second
+" key, up to timeoutlen 5000.
 "
-" 2026-07 起 C-x chord 整体从 IDE keymap（"Emacs Custom"）迁入此处，IDE 侧
-" C-x 面清零。动机：IDE keymap 里只要存在任一 C-x chord，C-x 首击就进入
-" IDE 的 chord-pending，Terminal 工具窗里的 shell 永远拿不到 C-x——终端内
-" emacs 的 C-x C-c 会误触发 CloseAllEditors（破坏性），zsh 的 C-x C-e
-" (edit-command-line) 也被吞。迁入 IdeaVim 后 C-x 只在编辑器内生效，终端
-" 完整归 shell。代价（有意接受）：工具窗内 C-x 层失效——Esc / Ctrl+Esc
-" 回编辑器一步即达；insert mode 无 chord，与 nvim 同构（nvim 的 <C-x>
-" 映射同样只绑 normal mode）。
-" 注意：IntelliJ IDEA 的 "Emacs Custom.xml" 是正本；其它 JetBrains 产品
-" 的同名 keymap 是它的逐字节拷贝（2026-07 起，改完 IDEA 后 cp 分发），
-" 所以 C-x 清零对全产品成立。改 keymap 只改 IDEA，再复制。
+" The whole C-x layer moved here from the IDE keymap ("Emacs Custom") in
+" 2026-07, leaving zero C-x shortcuts on the IDE side. One C-x chord anywhere
+" in the IDE keymap is enough to put the first keystroke into the IDE's
+" chord-pending state, and the shell in the Terminal tool window then never
+" receives C-x at all. Two concrete breakages that caused: emacs in the
+" terminal fired CloseAllEditors on C-x C-c, which destroys editor state, and
+" zsh lost C-x C-e (edit-command-line). With the layer in IdeaVim, C-x applies
+" only inside the editor and the terminal keeps the whole key.
+" Accepted cost: the C-x layer does not work inside tool windows. Esc or
+" Ctrl+Esc returns to the editor in one step. There are no insert-mode chords,
+" matching nvim, where the <C-x> mappings are normal-mode only.
+" Note: IntelliJ IDEA's "Emacs Custom.xml" is the canonical copy. Every other
+" JetBrains product carries a byte-for-byte copy of it, distributed by `cp`
+" after editing IDEA's since 2026-07, so clearing C-x holds product-wide.
+" Edit only IDEA's keymap, then copy.
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
-" close 家族——镜像 lua/plugins/ui/bufferline.lua：k = emacs kill-buffer 正统，
-" O = Others/Only。数字键全族已退役（0/C-0/1/2/3：窗格归 <C-w>，C-数字在
-" 终端还依赖 CSI-u 协议）。
+" close family, mirroring lua/plugins/ui/bufferline.lua. k is the emacs
+" kill-buffer spelling, O is Others/Only. The digit keys are all retired:
+" 0/C-0/1/2/3 addressed panes, which now belong to <C-w>, and Ctrl-digit also
+" depends on the CSI-u protocol in a terminal.
 nmap <C-x>k <Action>(CloseContent)
 nmap <C-x>O <Action>(CloseAllEditorsButActive)
 nmap <C-x>[ <Action>(CloseAllToTheLeft)
 nmap <C-x>] <Action>(CloseAllToTheRight)
-" buffer / file 导航——n/p 镜像 nvim 的 BufferLineCycle；o 镜像 <C-x>o
-" pick buffer（Switcher 是 JetBrains 里最接近"点选跳转"的面），b 是同一
-" action 的 emacs 助记别名（switch-to-buffer）。
+" buffer and file navigation. n/p mirror nvim's BufferLineCycle. o mirrors
+" nvim's <C-x>o pick-buffer, since Switcher is the closest JetBrains has to
+" pick-and-jump. b is an emacs mnemonic alias for the same action
+" (switch-to-buffer).
 nmap <C-x>n <Action>(NextTab)
 nmap <C-x>p <Action>(PreviousTab)
 nmap <C-x>o <Action>(Switcher)
 nmap <C-x>b <Action>(Switcher)
 nmap <C-x><C-f> <Action>(GotoFile)
-" Tab 本键保持 IDE 智能缩进（EmacsStyleIndent，绑在 IDE keymap）。插入
-" 字面 \t 的逃生舱不自造 chord：vim 原生 quoted-insert i_CTRL-V/i_CTRL-Q
-" （vim-engine InsertCompletedLiteralAction；<C-q> 在冲突仲裁里已判给
-" vim）——insert mode 按 <C-q><Tab>，若 raw Tab 仍被 IDE 抢走则用
-" <C-q>009（键码数字走 typed-char 通道，最稳）。恰好 emacs 的
-" quoted-insert 也是 C-q，两套肌肉记忆同键；nvim 侧 <C-v><Tab> 原生
-" 同义，跨编辑器零配置对齐。
-" NOTE 不可行方案存档：imap <C-x><Tab> <Action>(EditorTab)——chord 第二
-" 击 Tab 在 IDE 动作系统层先被 EmacsStyleIndent 消费，IdeaVim 的 pending
-" mapping 收不到 Tab，映射永远无法完成。以 Tab/Enter/Esc 这类 IDE 重度
-" 争用键结尾的 insert-mode chord 都有同类风险，勿再尝试。
-" nvim-only（不镜像）：<C-x>K 强关（IDE 自动保存无 dirty 概念）、<C-x>d
-" 点选关闭（无 picker）、<C-x>t/T/<Tab>/X/R tabpage 层（JetBrains 无
-" tabpage）、<C-x>,/. 移动 buffer、<C-x>` 终端、<C-x>m minimap。
-" 随迁移主动废弃的 stock emacs chord（vim 原生已覆盖）：C-x h (ggVG /
-" ⌘A)、C-x x (visual o)、C-x ` (]d，F2 保留)、C-x C-s (:w / autosave)、
-" C-x Tab 缩进 (> operator)、C-x C-c (危险，见上)、C-x C-o (低频，走菜单)。
+" Tab itself keeps the IDE's smart indent (EmacsStyleIndent, bound in the IDE
+" keymap). Inserting a literal tab needs no invented chord, because vim already
+" has quoted-insert i_CTRL-V / i_CTRL-Q (vim-engine's
+" InsertCompletedLiteralAction; the conflict arbitration already awarded <C-q>
+" to vim). In insert mode press <C-q><Tab>, or <C-q>009 if the IDE still grabs
+" the raw Tab, since the numeric key code goes through the typed-char channel
+" and is the most reliable form. Emacs spells quoted-insert C-q as well, so one
+" set of muscle memory covers both, and nvim's native <C-v><Tab> means the two
+" editors line up without configuration.
+" Archived dead end, do not retry: imap <C-x><Tab> <Action>(EditorTab). The
+" IDE action system consumes the chord's second keystroke as EmacsStyleIndent
+" before IdeaVim sees it, so the pending mapping never completes. Any
+" insert-mode chord ending in a key the IDE contests heavily (Tab, Enter, Esc)
+" fails the same way.
+" nvim-only, not mirrored: <C-x>K force close (the IDE autosaves, so it has no
+" dirty concept), <C-x>d pick-and-close (no picker), the <C-x>t/T/<Tab>/X/R
+" tabpage layer (JetBrains has no tabpages), <C-x>,/. move buffer, <C-x>`
+" terminal, <C-x>m minimap.
+" Stock emacs chords dropped during the migration because vim already covers
+" them: C-x h (ggVG or Cmd-A), C-x x (visual o), C-x ` (]d, F2 kept), C-x C-s
+" (:w, and autosave), C-x Tab indent (the > operator), C-x C-c (dangerous, see
+" above), C-x C-o (rare, use the menu).
 
 
 " -- Tab management asymmetry
-" JetBrains 没有 vim 那种"tabpage = workspace 容器"的概念——IDE 的 tab 是
-" file-level（≈ vim buffer），同一个项目窗口里所有 file tab 共享同一套 tool
-" window 布局，没法像 vim 那样为每个 tab 维护独立的 split layout + 名字。
-" 所以以下 nvim 侧的键位 IdeaVim 这边故意不绑：
-"   <C-x>R    重命名当前 tab（lua/core/keymaps.lua，存在 t:tabname，bufferline
-"             custom_areas 渲染）—— JetBrains 没有可命名的 workspace 单位，
-"             最接近的是 Tool Window 布局存档（"Window > Store/Restore Layout"），
-"             但语义不同，强行映射只会误导。
-" tab 创建/切换那几个 (<C-x>T / <C-x><Tab> / <C-x><S-Tab> / <C-x>X) 同理：
-" JetBrains 用 "New Window"（独立 IDE 窗口）和文件 tab 已经覆盖大部分场景。
+" JetBrains has no equivalent of vim's tabpage as a workspace container. An IDE
+" tab is file-level, roughly a vim buffer, and every file tab in a project
+" window shares one tool-window layout. There is no way to keep a separate
+" split layout and name per tab the way vim does. These nvim keys are therefore
+" left unbound here on purpose:
+"   <C-x>R    rename the current tab (lua/core/keymaps.lua stores t:tabname and
+"             bufferline renders it through custom_areas). JetBrains has no
+"             nameable workspace unit. The closest thing is saving a tool
+"             window layout ("Window > Store/Restore Layout"), which means
+"             something different; mapping it anyway would only mislead.
+" The tab create/switch keys (<C-x>T, <C-x><Tab>, <C-x><S-Tab>, <C-x>X) are
+" unbound for the same reason. On JetBrains, "New Window" (a separate IDE
+" window) plus file tabs already cover most of what they were for.
 
 " -- Terminal asymmetry (nvim-only)
-" JetBrains 的 Terminal 工具窗是独立的非模态界面，不经过 IdeaVim——终端里
-" 的按键 IDE 自己处理，天然没有"vim 键和 shell 键抢按键"的问题。nvim 侧的
-" 整套设计（lua/plugins/ui/toggleterm.lua + ui/flatten.lua）因此不映射：
-"   <C-x>`    toggleterm 开关（IDE 用 ⌥F12 / "Terminal" 工具窗）
-"   <C-]>     Terminal-mode 逃生舱——只因 nvim 终端是模态的才需要它；
-"             其余按键全部直通 shell（Esc/Meta/fzf/lazygit 不被劫持）
-"   flatten   终端里 nvim file / git commit 转发宿主防套娃——IDE 终端里
-"             这类操作本来就开在编辑器区，无对应问题
+" JetBrains' Terminal tool window is a separate non-modal surface that never
+" goes through IdeaVim. The IDE handles its keys directly, so vim keys and
+" shell keys never compete for the same keystroke. None of the nvim design
+" (lua/plugins/ui/toggleterm.lua and ui/flatten.lua) is mirrored:
+"   <C-x>`    toggleterm on/off. The IDE uses Opt-F12 or the Terminal tool window.
+"   <C-]>     escape hatch out of Terminal mode. nvim needs it only because its
+"             terminal is modal. Every other key reaches the shell untouched,
+"             so Esc, Meta, fzf and lazygit are never intercepted.
+"   flatten   forwards `nvim file` and git commit from inside the terminal to
+"             the host so sessions do not nest. In the IDE terminal those
+"             already open in the editor area, so the problem does not exist.
 
-" -- Window / split navigation (mirrors vim-tmux-navigator: lua/plugins/ui/tmux.lua,
-" lua/core/keymaps.lua:33 comment). IdeaVim natively implements vim's <C-w>{h,j,k,l}
-" window commands (verified against vim-engine's own generated command registry,
-" not just docs: WindowLeftAction/WindowDownAction/WindowUpAction/WindowRightAction,
-" mode N). Remapping Ctrl+hjkl onto them covers the "move focus across editor
-" splits" half of what vim-tmux-navigator does on the nvim side. Confirmed working
-" in-editor.
-" <C-h>/<C-l> also chain Diff.FocusOppositePane: diff panes are embedded
-" editors, not windows, so <C-w>h/l can't reach them (nvim diffview panes
-" are real windows, no counterpart needed). 实测 2026-08-21: in a diff,
-" bare <C-h>/<C-l> toggle panes and never leave the tab; leave via <C-w>hjkl
-" (<C-w>'s second key takes no user mapping, so it bypasses the chain).
+" -- Window / split navigation (mirrors vim-tmux-navigator: lua/plugins/ui/tmux.lua).
+" IdeaVim implements vim's <C-w>{h,j,k,l} window commands natively. Verified
+" against vim-engine's own generated command registry rather than the docs:
+" WindowLeftAction, WindowDownAction, WindowUpAction, WindowRightAction, mode
+" N. Remapping Ctrl+hjkl onto them covers the "move focus across editor splits"
+" half of what vim-tmux-navigator does on the nvim side. Confirmed in-editor.
+" <C-h>/<C-l> also chain Diff.FocusOppositePane. Diff panes are embedded
+" editors rather than windows, so <C-w>h/l cannot reach them. nvim needs no
+" counterpart because diffview panes there are real windows.
+" Measured 2026-08-21: inside a diff, bare <C-h>/<C-l> toggle panes and never
+" leave the tab. Leave with <C-w>hjkl, whose second key takes no user mapping
+" and so bypasses the chain.
 " Toggle semantics: FocusOppositePane is the only pane action, direction is
 " not honored. Reaches the component-local action via IdeaVim's EmptyAction
 " fallback (IjActionExecutor.getAction); if pane switching breaks after an
@@ -229,62 +274,68 @@ nmap <C-l> <C-w>l<Action>(Diff.FocusOppositePane)
 " Activate<Name>ToolWindow, already covered by <leader>v* below) and
 " non-directional focus toggles (Esc -> back to editor, F12 -> jump to last tool
 " window). Unresolved upstream, confirmed via three separate open YouTrack issues:
-" VIM-3302, VIM-3152, VIM-1042. Not faking a directional binding here -- there's
+" VIM-3302, VIM-3152, VIM-1042. Not faking a directional binding here. There is
 " nothing correct to bind it to.
 
 " -- Window lifecycle: vim-native <C-w> is the single grammar on both sides.
 " vim-engine implements <C-w>{h,j,k,l,s,v,c,q,o,w} natively (verified against
 " vim-engine action/window sources), so split/close/only/cycle need no mapping
 " here or on the nvim side. <C-x> stays a workspace-layer prefix (tab/buffer);
-" the emacs-style C-x 2/3 split chords are retired on BOTH sides — nvim's
+" the emacs-style C-x 2/3 split chords are retired on BOTH sides. nvim's
 " <C-x>2/3 are deleted (lua/core/keymaps.lua), and the IDE-keymap C-x split
 " chords are stripped from "Emacs Custom" (SplitHorizontally / SplitVertically /
 " UnsplitAll / NextSplitter inherited from stock Emacs, plus the custom
-" C-x C-2 / C-x C-3 / C-x alt-o — Ctrl-digit second keystrokes were untypable
-" in terminals anyway, which is what forced the two sides apart).
+" C-x C-2, C-x C-3, C-x alt-o). Ctrl-digit second keystrokes were untypable in
+" terminals anyway, which is what forced the two sides apart.
 "
 " Gap-filling maps for <C-w> subcommands vim-engine does NOT implement:
-"   <C-w>L / <C-w>J  move split right/down (mirrors nvim wincmd L/J, bound
-"     there as <C-w><S-L>/<S-J> for the kitty keyboard protocol). Semantics
-"     verified in platform SplitAction.java: MoveTabRight/Down ALWAYS split
-"     the current group and carry the tab into the new half (forceSplit) —
-"     split spawners, not grid movers — and are DISABLED while the group has
-"     a single tab (tabCount >= 2 guard). That is also why MoveTabLeft/Up
-"     don't exist upstream: a left/up spawn mirrors the right/down layout, so
-"     only one canonical direction is shipped. <C-w>H/K stay unbound: the one
-"     action that moves into an EXISTING group, MoveEditorToOppositeTabGroup,
-"     is direction-agnostic (2-group layouts only) — hanging it on a
-"     directional key would move the wrong way half the time; it lives on
-"     <C-w>x instead.
-"   <C-w>x  approximate: vim exchanges two windows, the action only MOVES the
-"     editor to the opposite group — closest available semantics.
+"   <C-w>L / <C-w>J  move split right/down, mirroring nvim's wincmd L/J, which
+"     is bound there as <C-w><S-L>/<S-J> for the kitty keyboard protocol.
+"     Semantics verified in platform SplitAction.java: MoveTabRight/Down always
+"     split the current group and carry the tab into the new half (forceSplit).
+"     They spawn splits, they do not move around a grid, and they are disabled
+"     while the group holds a single tab (the tabCount >= 2 guard). That is
+"     also why upstream has no MoveTabLeft/Up: a left or up spawn mirrors the
+"     right/down layout, so only one canonical direction ships.
+"     <C-w>H/K stay unbound. The one action that moves into an EXISTING group,
+"     MoveEditorToOppositeTabGroup, ignores direction and handles two-group
+"     layouts only, so a directional key would move the wrong way half the
+"     time. It lives on <C-w>x instead.
+"   <C-w>x  an approximation. vim exchanges two windows; the action only moves
+"     the editor to the opposite group. Closest semantics available.
 nmap <C-w>L <Action>(MoveTabRight)
 nmap <C-w>J <Action>(MoveTabDown)
 nmap <C-w>x <Action>(MoveEditorToOppositeTabGroup)
-" Resize——原生已全（2.39+，实测于 frontend_commands.json）：<C-w>+/- 高、
-" <C-w>>/< 宽、<C-w>= 等分、<C-w>_/| 最大化、:resize / :vertical resize [±n]。
-" 下方子模式遮蔽 > < + - 四键（语义等价 + 连调）；= _ | 与 ex 仍原生直达。
+" Resize is fully native since 2.39, verified in frontend_commands.json:
+" <C-w>+/- height, <C-w>>/< width, <C-w>= equalise, <C-w>_/| maximise, and
+" :resize / :vertical resize [±n]. The submode below shadows four of those
+" keys, > < + -, with equivalent semantics plus repeat. = _ | and the ex
+" commands still reach the native implementation directly.
 "
-" Hydra 式连调（镜像 nvim lua/plugins/ui/hydra.lua）：pending-<Plug> 子模式
-" （vim-submode 手法）。每步后追加伪键 <Plug>(wres)，`notimeout` 让它挂起等
-" 下一键：> < + - = 匹配则再调一步并重新挂起；其他键匹配失败、伪键被丢弃、
-" 照常执行（自然退出）。子模式里裸键可长按（OS auto-repeat 的每次 keydown
-" 都命中 pending 映射）。
-" 入口 RHS 用 ex 命令而非原生 <C-w>>：nmap 递归，RHS 含自身 LHS 会 E223。
-" 代价（接受）：count 前缀 5<C-w>> 失效（5 被吃进 : 的 range）。
-" 进入（首击即完成第一步调整）：
+" Hydra-style repeat, mirroring nvim's lua/plugins/ui/hydra.lua. This is a
+" pending-<Plug> submode, the vim-submode technique. Each step appends the
+" pseudo-key <Plug>(wres), and `notimeout` leaves it pending for the next key.
+" > < + - = match, so they adjust once more and go pending again. Any other key
+" fails to match, the pseudo-key is discarded, and that key executes normally,
+" which exits the submode. Bare keys inside the submode can be held down,
+" because every keydown from OS auto-repeat hits the pending mapping.
+" The entry mappings use ex commands rather than native <C-w>>, because nmap is
+" recursive and an RHS containing its own LHS raises E223.
+" Accepted cost: a count prefix like 5<C-w>> stops working, since the 5 gets
+" eaten as the range of the `:` command.
+" Entry, where the first keystroke already performs the first adjustment:
 nmap <C-w>> :vertical resize +1<CR><Plug>(wres)
 nmap <C-w><lt> :vertical resize -1<CR><Plug>(wres)
 nmap <C-w>+ :resize +1<CR><Plug>(wres)
 nmap <C-w>- :resize -1<CR><Plug>(wres)
-" 子模式内（裸键，可长按；= 用原生等分后继续留在子模式）：
+" Inside the submode: bare keys, holdable. = equalises natively and stays in.
 nmap <Plug>(wres)> :vertical resize +1<CR><Plug>(wres)
 nmap <Plug>(wres)<lt> :vertical resize -1<CR><Plug>(wres)
 nmap <Plug>(wres)+ :resize +1<CR><Plug>(wres)
 nmap <Plug>(wres)- :resize -1<CR><Plug>(wres)
 nmap <Plug>(wres)= <C-w>=<Plug>(wres)
 " nvim-only, intentionally unbound here:
-"   <C-w>T            break window out into a new tabpage — JetBrains has no
+"   <C-w>T            break window out into a new tabpage. JetBrains has no
 "                     tabpage concept (see Tab management asymmetry above);
 "                     MoveTabToNewWindow detaches a separate IDE window,
 "                     different semantics, not bound.
@@ -294,11 +345,11 @@ nmap <Plug>(wres)= <C-w>=<Plug>(wres)
 " insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;
 "                                            bind in IDE Keymap if the default
 "                                            Cmd/Ctrl+P has been overridden)
-" Mirror of lua/core/lsp.lua. Intentionally unbound here — nothing to do.
+" Mirror of lua/core/lsp.lua. Intentionally unbound here, nothing to do.
 
 " -- easymotion
 " Mirrors ~/.config/nvim/lua/plugins/edit/motion.lua (Flash.nvim).
-" <leader><leader>t/T on the Neovim side is Flash Treesitter — intentionally
+" <leader><leader>t/T on the Neovim side is Flash Treesitter, intentionally
 " left unbound here since IdeaVim has no equivalent node-based jump.
 
 " Line direction (words, current line)
@@ -334,15 +385,16 @@ nmap <Plug>(easymotion-prefix) <Nop>
 
 map <A-n> <Action>(SelectNextOccurrence)
 map <A-S-n> <Action>(SelectAllOccurrences)
-" <A-x>：multicursor.nvim 那侧是 matchSkipCursor —跳过当前匹配选下一个。
-" IdeaVim 的 multiple-cursors 仿真自带 <Plug>SkipOccurrence（见官方 doc
-" emulated-plugins 的 multiple-cursors 节）。走 <Plug> 而不是 <Action>。
+" <A-x> is matchSkipCursor on the multicursor.nvim side: skip the current match
+" and select the next one. IdeaVim's multiple-cursors emulation ships
+" <Plug>SkipOccurrence for this (see the multiple-cursors section of the
+" official emulated-plugins doc), so this goes through <Plug>, not <Action>.
 map <A-x> <Plug>SkipOccurrence
 map <A-p> <Action>(UnselectPreviousOccurrence)
 " nvim-side asymmetry: <A-p> is also bound as a buffer-local "toggle preview popup"
 " inside the snacks.explorer list (lua/plugins/ui/snacks.lua) and the trouble list
 " (lua/plugins/ui/trouble.lua). Both are sidebar tools that don't exist as IdeaVim
-" surfaces — JetBrains has its own Project tool window and Problems view — so there's
+" surfaces. JetBrains has its own Project tool window and Problems view, so there's
 " no IDE Action to mirror here. Multi-cursor semantics are unaffected: those buffers
 " don't accept multi-cursor anyway, so the buffer-local override is invisible outside
 " them. Recorded here so the parity map stays a single source of truth for <A-p>.
@@ -355,49 +407,43 @@ map  <A-k>   <Action>(EditorCloneCaretAbove)
 nmap <leader>/ <Action>(FindInPath)
 nmap <leader>, <Action>(RecentFiles)
 
-" Structure / Outline — mirrors lua/plugins/ui/aerial.lua on the Neovim side.
+" Structure / Outline. Mirrors lua/plugins/ui/aerial.lua on the Neovim side.
 " <leader>ns is the transient popup (Navigation extras namespace, no g* equivalent).
-" The persistent sidebar lives at <leader>vs in section "3) Views" below — its
+" The persistent sidebar lives at <leader>vs in section "3) Views" below. Its
 " semantics is "open a tool window", which is the Views-namespace contract.
 nmap <leader>ns <Action>(FileStructurePopup)
 
 " Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua +
 " lua/plugins/edit/rip-substitute.lua + lua/plugins/edit/grug-far.lua):
-"   <leader>ss  → workspace symbols    — use Shift+Shift (Search Everywhere)
-"   <leader>sc  → commands / actions   — use Shift+Shift, "Actions" tab
-"   <leader>sk  → keymaps picker       — use Help → Find Action
-"   <leader>sb  → buffer lines fuzzy   — use Ctrl+F (Find in File) + fuzzy mode
-"   <leader>sB  → grep open buffers    — use Edit → Find → Find in Files (scope: open)
-"   <leader>sw  → grep word/selection  — use Ctrl+Shift+F on cursor word
-"   <leader>s/  → search history       — IDE keeps history in Find toolbar dropdown
-"   <leader>sr  → rip-substitute       — use Ctrl+R (Replace, current file)
-"   <leader>sR  → grug-far             — use Ctrl+Shift+R (Replace in Path)
+"   <leader>ss  workspace symbols     Shift+Shift (Search Everywhere)
+"   <leader>sc  commands / actions    Shift+Shift, "Actions" tab
+"   <leader>sk  keymaps picker        Help > Find Action
+"   <leader>sb  buffer lines fuzzy    Ctrl+F (Find in File) + fuzzy mode
+"   <leader>sB  grep open buffers     Edit > Find > Find in Files (scope: open)
+"   <leader>sw  grep word/selection   Ctrl+Shift+F on cursor word
+"   <leader>s/  search history        the Find toolbar dropdown keeps history
+"   <leader>sr  rip-substitute        Ctrl+R (Replace, current file)
+"   <leader>sR  grug-far              Ctrl+Shift+R (Replace in Path)
 " IdeaVim deliberately doesn't mirror these: Search Everywhere + native Find/
 " Replace already cover the same ground with a single entry point, so
 " duplicating them as leader bindings would just add noise.
 "
 " Note: the nvim side splits replace into two scopes that JetBrains keeps as
-" two shortcuts — <leader>sr (rip-substitute, current buffer, PCRE2 popup over
+" two shortcuts. <leader>sr (rip-substitute, current buffer, PCRE2 popup over
 " vim's native :s) mirrors Ctrl+R, and <leader>sR (grug-far, workspace-wide,
 " editable result buffer with file-filter/paths/flags) mirrors Ctrl+Shift+R.
-" IDE side has no PCRE2-vs-vim :s split — Ctrl+R supports regex out of the box.
+" IDE side has no PCRE2-vs-vim :s split. Ctrl+R supports regex out of the box.
 
 
-"" -- map IDE actions to IdeaVim -- https://jb.gg/abva3t
-"" Map \r to the Reformat Code action
-"map \r <Action>(ReformatCode)
-"" Map <leader>d to start debug
-"map <leader>d <Action>(Debug)
-
-"" IDE function map to ideavim
+" Mapping IDE actions: https://jb.gg/abva3t
 
 " 1)  Refactoring
-" 需要在选中模式下工作的填写成map
+" Anything that must also work on a selection uses `map`, not `nmap`.
 " <leader>ca = quick-fixes + intentions + code actions (mirror of
 " vim.lsp.buf.code_action in lua/core/lsp.lua). Kept outside <leader>r*
 " because that namespace is reserved for deterministic refactorings.
 " nvim additionally binds <A-CR> to the same code_action, mirroring the
-" IDE's *native* Alt-Enter — that shortcut already works here without
+" IDE's native Alt-Enter. That shortcut already works here without
 " any IdeaVim mapping, so nothing to bind on this side.
 map <leader>ca <Action>(ShowIntentionActions)
 map <leader>R <Action>(RefactoringMenu)
@@ -416,11 +462,11 @@ nmap <leader>rr <Action>(RefactorCode)
 map <leader>rM <Action>(Move)
 
 
-" 2) Navigation — aligned with Neovim/LSP community g* defaults.
+" 2) Navigation. Aligned with Neovim/LSP community g* defaults.
 " Overriding Vim natives here:
-"   gi — "insert at last insert position" (use <C-o>i or `^i instead)
-"   gr — virtual replace mode (use R for normal replace)
-"   gD — search word in current file (use * / # instead)
+"   gi  "insert at last insert position" (use <C-o>i or `^i instead)
+"   gr  virtual replace mode (use R for normal replace)
+"   gD  search word in current file (use * / # instead)
 " gd is already IdeaVim default (GotoDeclaration); declared here for symmetry.
 nmap gd <Action>(GotoDeclaration)
 nmap gD <Action>(GotoTypeDeclaration)
@@ -428,18 +474,18 @@ nmap gi <Action>(GotoImplementation)
 nmap gr <Action>(FindUsages)
 
 
-" <leader>n* — extras that have no standard g* default:
+" <leader>n*, extras that have no standard g* default:
 "   nb  → supertypes / GotoSuperClass
 "   nt  → GotoTest
 "   nf  → FindInPath (search, not jump)
 "   ns  → structure popup (transient; persistent sidebar at <leader>vs)
 " GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
-" class-level, not method-level — keep parity with Neovim side.
+" class-level, not method-level. Keep parity with the Neovim side.
 "
-" Asymmetry — Neovim only:
+" Asymmetry, Neovim only:
 "   <leader>n{h,j,k,l} → treewalker.nvim AST walker (sticky hydra)
 "     h=parent  j=next sibling  k=prev sibling  l=drill into child
-"   No JetBrains equivalent — IDE has Move Statement Up/Down (Cmd+Shift+↑/↓)
+"   No JetBrains equivalent. The IDE has Move Statement Up/Down (Cmd+Shift+Up/Down)
 "   for swap but no AST sibling/parent walk. Not bound here; reserve
 "   <leader>n{h,j,k,l} on the IDE side for possible future use.
 map <leader>nb <Action>(GotoSuperClass)
@@ -452,17 +498,18 @@ nmap <leader>vp <Action>(ActivateProjectToolWindow)
 " Asymmetry: snacks.explorer on Neovim binds vim-fold-style z[oOcCaARM] inside
 " the tree (lua/plugins/ui/snacks.lua). The JetBrains Project tool window uses
 " the IDE's own keymap (Right/Left, NumPad +/-, Ctrl+NumPad+ for expand-all),
-" which IdeaVim cannot intercept — leave it to the IDE keymap.
+" which IdeaVim cannot intercept. Leave it to the IDE keymap.
 nmap <leader>vs <Action>(ActivateStructureToolWindow)
 nmap <leader>vc <Action>(ActivateCommitToolWindow)
 nmap <leader>vr <Action>(ActivateRunToolWindow)
 nmap <leader>vd <Action>(ActivateDebugToolWindow)
 nmap <leader>vt <Action>(ActivateTODOToolWindow)
 nmap <leader>vP <Action>(ActivateProblemsViewToolWindow)
-" vD/vH 镜像 diffview（lua/plugins/git/diffview.lua）。范围差异（接受）：
-" nvim vD = 全仓库树 diff（DiffviewOpen <base>...HEAD），IDEA 的
-" CompareWithBranch 是当前文件 vs 所选 ref；全仓库对比走 Git.Branches
-" popup → Compare。两边都是"选个 base 看 diff"。
+" vD and vH mirror diffview (lua/plugins/git/diffview.lua). Accepted difference
+" in scope: nvim's vD diffs the whole repo tree (DiffviewOpen <base>...HEAD),
+" while IDEA's CompareWithBranch compares the current file against the chosen
+" ref. For a whole-repo comparison use the Git.Branches popup and Compare.
+" Both sides still mean "pick a base, look at the diff".
 nmap <leader>vD <Action>(Git.CompareWithBranch)
 nmap <leader>vH <Action>(Vcs.ShowTabbedFileHistory)
 nmap <leader>vz <Action>(ToggleDistractionFreeMode)
@@ -474,33 +521,34 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 "   vr → :OverseerToggle            (lua/plugins/runtime/overseer.lua)
 "   vd → require'dapui'.toggle      (lua/plugins/runtime/dap.lua)
 "   vt → :TodoTrouble                (lua/plugins/ui/todo-comments.lua)
-"        nvim 同时在 <leader>st 暴露 Snacks picker —— 心智模型是
-"        "Search 用 picker / View 用 panel"。IdeaVim 这边没有 <leader>s*
-"        命名空间（用 Search Everywhere 替代），所以只对齐 vt = panel。
-"   vP → :Trouble diagnostics …     (lua/plugins/ui/trouble.lua)
+"        nvim also exposes a Snacks picker at <leader>st. The mental model is
+"        that Search uses a picker and View uses a panel. IdeaVim has no
+"        <leader>s* namespace, since Search Everywhere replaces it, so only
+"        vt = panel is mirrored.
+"   vP → :Trouble diagnostics ...     (lua/plugins/ui/trouble.lua)
 "   vm → :BookmarksTree (alias of <leader>M) for cross-editor parity.
 "        Canonical entry on the nvim side is <leader>M (master-singleton
 "        convention: uppercase single letter = total/master menu, mirrors
 "        <leader>R for refactoring). <leader>vm is an alias so JetBrains
 "        muscle memory still works on the nvim side.
-"        Picker form lives at <leader>sm (nvim-only — <leader>s* namespace
-"        is nvim-only since IDE uses Search Everywhere; backed by telescope
-"        due to LintaoAmons hard dep).
+"        Picker form lives at <leader>sm. That whole <leader>s* namespace is
+"        nvim-only, since the IDE uses Search Everywhere instead. It runs on
+"        the snacks picker; the old telescope hard-dep worry is retired.
 " Asymmetries (intentional, not bound on the nvim side):
 "   vc  → Commit Tool Window  (nvim uses lazygit via <localleader>G instead)
 "   vz  → Distraction Free    (no zen-mode plugin installed)
-"   vF  → FullScreen          (terminal-multiplexer level — out of nvim scope)
+"   vF  → FullScreen          (terminal-multiplexer level, out of nvim scope)
 " nvim-only extras with no IdeaVim equivalent:
 "   vn  → Snacks.notifier.show_history  (lua/plugins/ui/snacks.lua)
 "   vM  → toggle code minimap           (lua/plugins/ui/neominimap.lua)
 "        On JetBrains the equivalent is the CodeGlance plugin (or built-in
-"        Settings → Editor → General → Appearance → "Show code lens on the
+"        Settings > Editor > General > Appearance > "Show code lens on the
 "        scrollbar"); both render in the gutter outside IdeaVim's reach, so
 "        no <leader>vM mirror here. Default-on on the nvim side to match
 "        CodeGlance's always-visible behavior.
 "   <C-x>m → toggle focus into/out of minimap (nvim-only; <C-x> chord prefix
 "        is IDE-routed, see top-of-file note. JetBrains has no native
-"        equivalent — minimap there isn't a focusable window.)
+"        equivalent, since the minimap there is not a focusable window.)
 
 
 " 4)  Generate
@@ -587,40 +635,48 @@ augroup GenerateConceptDispatch
   autocmd BufEnter *.js,*.jsx,*.mjs,*.cjs,*.ts,*.tsx,*.mts,*.cts nmap <leader>gA <Action>(Generate.GetSetAccessor.JavaScript)
 augroup END
 
-" 5)  Git — <localleader>g*，镜像 gitsigns/git-conflict（lua/plugins/git/）。
-"     action ID 全部实测于开源 VcsActions.xml / intellij.vcs.git.backend.xml
-"     （all-in-IDEA 后可直接查源码，旧的"闭源 GoLand 无法验证"顾虑作废）。
+" 5)  Git. <localleader>g*, mirroring gitsigns and git-conflict
+"     (lua/plugins/git/). Every action ID here was read out of the open-source
+"     VcsActions.xml and intellij.vcs.git.backend.xml. Since the move to
+"     all-in-IDEA the source is directly readable, so the old "closed-source
+"     GoLand, cannot verify" caveat no longer applies.
 "
-" ]c/[c 已在 Bracket-prefix 节：编辑器弹 gutter 工具条（对齐 nvim
-" gs.nav_hunk preview），diff viewer 跳 chunk。无需加键。
+" ]c/[c already live in the Bracket-prefix section. In a normal editor they pop
+" the gutter toolbar, matching nvim's gs.nav_hunk preview; in a diff viewer
+" they jump between chunks. No extra key needed.
 nmap ,gp <Action>(VcsShowCurrentChangeMarker)
-" ,gb 语义差异（接受）：nvim blame_line 是单行弹窗，Annotate 是 gutter 栏
-" 开关（再按一次关）。IDE 无单行 blame 弹窗 action。
+" ,gb differs in meaning, and that is accepted. nvim's blame_line pops a single
+" line; Annotate toggles a gutter column, and pressing again closes it. The IDE
+" has no single-line blame popup action.
 nmap ,gb <Action>(Annotate)
 nmap ,gr <Action>(Vcs.RollbackChangedLines)
 nmap ,gd <Action>(Compare.SameVersion)
-" ,gx：nvim 是冲突塞 quickfix；IDE 是 Resolve Conflicts 对话框列冲突文件，
-" 双击进 merge 工具。冲突的逐块处理（nvim 侧 co/ct/cb/c0、]x/[x 在 buffer
-" 内解决）IDE 归 merge 对话框，编辑器内不设镜像。
+" ,gx: nvim puts conflicts in the quickfix list. The IDE opens the Resolve
+" Conflicts dialog listing conflicted files, and double-clicking one enters the
+" merge tool. Resolving hunk by hunk (nvim's co/ct/cb/c0 and ]x/[x, all done
+" inside the buffer) belongs to the merge dialog on the IDE side, so nothing
+" mirrors it in the editor.
 nmap ,gx <Action>(Git.ResolveConflicts)
 nmap ,G <Action>(Vcs.QuickListPopupAction)
-" nvim-only（无对等 action，有意不绑）：
-"   ,gs  stage/unstage hunk toggle —— IDE 无 hunk 级 stage 的 action ID
-"        （Git.Stage.Add 是整文件、非 toggle）；用 gutter 工具条的 stage
-"        按钮或 Commit 工具窗（<leader>vc）。
-"   ,gB  切换 gutter diff base —— IDEA 的 gutter 恒 vs HEAD/index，不可换
-"        base；一次性的"vs 任意 ref"走 <leader>vD（Views 节）。
-"   ,do  mini-diff overlay —— IDE 的 gutter 弹窗已覆盖预览需求。
-" 文件历史在 <leader>vH（Views 节，镜像 diffview）。
+" nvim-only, deliberately unbound because no equivalent action exists:
+"   ,gs  stage/unstage hunk toggle. The IDE has no hunk-level stage action ID;
+"        Git.Stage.Add works on whole files and does not toggle. Use the stage
+"        button in the gutter toolbar, or the Commit tool window (<leader>vc).
+"   ,gB  switch the gutter diff base. IDEA's gutter always compares against
+"        HEAD or the index and the base cannot be changed. For a one-off
+"        comparison against an arbitrary ref use <leader>vD in the Views
+"        section.
+"   ,do  mini-diff overlay. The IDE's gutter popup already covers previewing.
+" File history lives at <leader>vH in the Views section, mirroring diffview.
 
-" 6)  Debug — mirrors lua/plugins/runtime/dap.lua (nvim-dap)
+" 6)  Debug. Mirrors lua/plugins/runtime/dap.lua (nvim-dap)
 "
 " Shared bindings (both sides):
 nmap <leader>D <Action>(DebugMainMenu)
 nmap <leader>db <Action>(ToggleLineBreakpoint)
 map <leader>dB <Action>(BreakpointActionsGroup)
 "
-" Asymmetry — step / inspect / frame controls intentionally NOT bound here.
+" Asymmetry: step, inspect and frame controls are intentionally NOT bound here.
 "
 " Neovim binds these under <localleader> (= `,`) and attaches them ONLY for
 " the duration of a DAP session (attach/detach via dap.listeners.on_session;
@@ -629,26 +685,26 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 " (continue / next / step / finish / repl / eval / hover / frame ↓↑ /
 " restart / quit / detach) only while debugging.
 "
-" IdeaVim has no debugger lifecycle hook — no Action or Plug fires on session
+" IdeaVim has no debugger lifecycle hook. No Action or Plug fires on session
 " start/end, so the same "attach-while-debugging" trick is not reproducible.
-" Static bindings to IDE Debug actions (Resume / StepOver / …) would work but
-" would permanently consume <localleader>{c,n,…} for an editor where the
+" Static bindings to IDE Debug actions (Resume / StepOver / ...) would work but
+" would permanently consume <localleader>{c,n,...} for an editor where the
 " canonical debug surface is F-keys + Debug Tool Window. Leaving those keys
 " free on the IDE side is the deliberate trade-off.
 "
 " nvim additionally auto-enters a sticky "step hydra" whenever the debugger
 " stops (tools/debug_hydra.lua): bare n/s/f/c/u step, J/K frames, `.` back
-" to exec point — single-key repeats with an on-screen hint, <Esc> leaves,
+" to exec point. Single-key repeats with an on-screen hint, <Esc> leaves,
 " `,d` re-enters. nvim-only by design: JetBrains' step surface is already
-" single-key (F7/F8/…), so there is nothing to mirror here.
+" single-key (F7/F8/...), so there is nothing to mirror here.
 "
 " On JetBrains: F8 (StepOver) / F7 (StepInto) / Shift-F8 (StepOut) /
 " F9 (Resume) / Alt-F8 (EvaluateExpression) / Alt-F9 (RunToCursor), plus the
 " Debug Tool Window (<leader>vd above). Static <leader>dl (run last) and
-" <leader>dq (terminate) on the nvim side have no mirror here — they're
+" <leader>dq (terminate) on the nvim side have no mirror here. They are
 " session-lifecycle conveniences that map cleanly to the IDE's own dropdown.
 
-" 6b) Test / Run — nvim-only namespace; on JetBrains the Run/Debug Tool
+" 6b) Test / Run. nvim-only namespace; on JetBrains the Run/Debug Tool
 " Window + run configurations cover the same workflow.
 "   <leader>tt   neotest run nearest        (IDE: gutter run icon / Ctrl-Shift-F10)
 "   <leader>tT   neotest run file
@@ -667,10 +723,10 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "   <leader>oo   overseer task action menu
 "   <leader>oc   overseer cancel running
 
-" 6c) Typst — nvim-only namespace (lua/plugins/lang/typst.lua + lsp/tinymist.lua).
+" 6c) Typst. nvim-only namespace (lua/plugins/lang/typst.lua + lsp/tinymist.lua).
 " Typst itself doesn't ship as a JetBrains-blessed language; preview/format/LSP
 " all run through tinymist on the Neovim side. On JetBrains use the third-party
-" "Typst" plugin if installed — its actions don't have stable IDs to map here.
+" "Typst" plugin if installed. Its actions have no stable IDs to map here.
 "
 "   <localleader>tp   :TypstPreview                   start preview (browser, live)
 "   <localleader>tt   :TypstPreviewToggle             toggle preview server
@@ -679,12 +735,12 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "   <localleader>tF   :TypstPreviewFollowCursorToggle toggle live cursor follow
 "
 " Format (.typ) goes through conform → typstyle on save (tools/mason_ensure.lua),
-" same gateway as every other filetype — <leader>ff still works.
+" same gateway as every other filetype, so <leader>ff still works.
 
-" 6d) Scheme / Racket / Steel — entirely nvim-only.
+" 6d) Scheme / Racket / Steel. Entirely nvim-only.
 "
 " JetBrains has no first-party Racket/Scheme/Steel environment with stable
-" Action IDs to mirror — no REPL integration, no paredit equivalent, no
+" Action IDs to mirror. No REPL integration, no paredit equivalent, no
 " structural-form motions. Rather than maintain a list of nvim keys that
 " perpetually drifts (Conjure's defaults change, paredit's API evolves), we
 " simply don't document them on the IDE side. The whole namespace is absent
@@ -692,15 +748,15 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "
 " If you need to read Lisp source on JetBrains: install the third-party
 " Racket plugin for syntax + indent + Reformat. Editing / REPL / LSP all
-" belong on the nvim side — see lua/plugins/lang/scheme.lua and
+" belong on the nvim side. See lua/plugins/lang/scheme.lua and
 " lsp/{racket_langserver,guile_lsp_server,steel_language_server}.lua.
 
-" 6e) Markdown — <localleader>m* nvim-only namespace
+" 6e) Markdown. <localleader>m* nvim-only namespace
 " (lua/plugins/lang/markdown.lua; rendering split explained in
 " lua/plugins/ui/snacks.lua image comments).
 " JetBrains' bundled Markdown plugin already ships editor+preview split
 " (layout buttons top-right of the editor; mermaid/math toggle in
-" Settings → Languages → Markdown) — it's the platform-level
+" Settings > Languages > Markdown). It is the platform-level
 " TextEditorWithPreview mechanism with no stable single Action ID to
 " mirror, so no mapping here, same precedent as 6c) Typst.
 "
@@ -708,21 +764,21 @@ map <leader>dB <Action>(BreakpointActionsGroup)
 "   <localleader>mR   render toggle, text + inline images follow (global)
 "   (<localleader>ii  image-only on/off, <localleader>it inline↔float,
 "    <localleader>ia{i,f,r}  allow blocked remote image/file/repo (trust
-"    tiers; :ImageTrust to audit/clear) — snacks.image, nvim-only; see
+"    tiers; :ImageTrust to audit/clear). snacks.image, nvim-only; see
 "    lua/tools/image_render.lua)
 "   <localleader>mp   render-markdown preview (split)
-"   <localleader>mb   :LivePreview start/close (toggle) — browser live
+"   <localleader>mb   :LivePreview start/close (toggle). Browser live
 "                     preview, the only rendering outlet for mermaid / KaTeX
 "                     math (deliberately NOT rendered in-terminal; no
 "                     mmdc / TeX toolchain)
 
-" 6f) AI / Claude Code — <leader>a* nvim-only namespace
+" 6f) AI / Claude Code. <leader>a* nvim-only namespace
 " (lua/plugins/ai/claudecode.lua). nvim runs coder/claudecode.nvim, which
 " speaks the SAME reverse-engineered WebSocket IDE protocol as the official
 " Claude Code editor extensions, in `none` mode: nvim hosts the WS server,
 " `claude` lives in a sibling tmux pane and attaches via its `/ide` picker.
 " JetBrains uses the official Claude Code plugin's own tool window +
-" keybindings — same underlying protocol, but a tool-window plugin with no
+" keybindings. Same underlying protocol, but a tool-window plugin with no
 " stable editor Action ID to mirror (same precedent as 6c Typst / 6e
 " Markdown), so no <Action> mapping here.
 "
@@ -740,7 +796,7 @@ map <leader>ff <Action>(ReformatCode)
 map <leader>fF <Action>(ShowReformatFileDialog)
 map <leader>fS <Action>(osmedile.intellij.stringmanip.PopupChoiceAction)
 
-" 8)  Mark — mirrors lua/plugins/edit/marks.lua
+" 8)  Mark. Mirrors lua/plugins/edit/marks.lua
 "
 " Core bindings (mirrored on both sides):
 nmap <leader>M <Action>(Bookmarks)
@@ -749,11 +805,11 @@ nmap <leader>mM <Action>(ToggleBookmarkWithMnemonic)
 nmap <leader>mn <Action>(GotoNextBookmarkInEditor)
 nmap <leader>mN <Action>(GotoPreviousBookmark)
 "
-" Search namespace — nvim-only (the <leader>s* namespace itself is nvim-only
+" Search namespace, nvim-only (the <leader>s* namespace itself is nvim-only
 " because IDE uses Search Everywhere); search by keyword, picker UI:
 "   <leader>sm  → :BookmarksGoto      fuzzy picker over bookmarks
-"                                     (telescope-backed, hard dep — see
-"                                      lua/plugins/edit/marks.lua lines 38–52)
+"                                     (snacks backend, set explicitly in
+"                                      lua/plugins/edit/marks.lua)
 "
 " nvim-only extras (no precise IdeaVim equivalent; the <leader>M IDE panel
 " covers similar ground interactively):
@@ -764,7 +820,7 @@ nmap <leader>mN <Action>(GotoPreviousBookmark)
 " AI
 map <leader>A <Action>(AIIntentionsActionGroup)
 
-" Popups / 菜单
+" Popups and menus
 
 nnoremap <leader>y "+y
 vnoremap <leader>y "+y
@@ -773,10 +829,10 @@ vnoremap <leader>p "+p
 
 nnoremap <A-d> "_d
 vnoremap <A-d> "_d
-" 视觉模式下，J 和 K 移动选区
 nmap zj <Action>(NextFoldingSection)
 nmap zk <Action>(PreviousFoldingSection)
 
+" In visual mode, J and K move the selection.
 vnoremap J :move '>+1<CR>gv=gv
 vnoremap K :move '<-2<CR>gv=gv
 
@@ -790,43 +846,58 @@ nmap [d <Action>(GotoPreviousError)
 " section so both sides share one source of truth).
 
 " Bracket-prefix motions
-" 函数跳转走原生 ]m/[m ]M/[M 而非 <Action>(MethodDown/Up)：原生是真 motion
-" （d]f 可组合）、进 jumplist（<C-o> 能回）、走 StructureView 所以语言无关
-" （Python 方言也覆盖）。代价：structure view 的所有节点都算落点（含 class
-" / field），不严格"只有 method"。
+" Function jumps use native ]m/[m ]M/[M rather than <Action>(MethodDown/Up).
+" The native commands are real motions, so d]f composes; they push the
+" jumplist, so <C-o> comes back; and they read StructureView, which makes them
+" language-agnostic and covers Python dialects too. Cost: every StructureView
+" node counts as a landing spot, including classes and fields, so these are not
+" strictly method-only.
 map ]f ]m
 map [f [m
 map ]F ]M
 map [F [M
-" ]c/[c 双上下文链：普通编辑器走 gutter marker 弹工具条，diff viewer 走
-" NextDiff/PreviousDiff 跳 chunk（含 merge）。两 action 互斥启用（marker
-" 有 !isDiffEditor 平台守卫），禁用侧被静默跳过，不双跳。
+" ]c/[c chain two contexts. In a normal editor the gutter marker pops the
+" toolbar; in a diff viewer NextDiff/PreviousDiff jump between chunks, merge
+" included. The two actions are mutually exclusive, because the marker action
+" carries a platform !isDiffEditor guard, and the disabled one is skipped
+" silently. They never both fire.
 nmap ]c <Action>(VcsShowNextChangeMarker)<Action>(NextDiff)
 nmap [c <Action>(VcsShowPrevChangeMarker)<Action>(PreviousDiff)
 
-" diff viewer 已知缺口（2026-08-21，未定位、不追——场景少）：PSI 类键
-" （]f/[f/]F/[F、af/if/aF）失灵；]d/[d 依赖 inspections，diff 里不跑。
+" Known gaps in the diff viewer (2026-08-21, not diagnosed and not being chased
+" because the situation is rare): the PSI-backed keys ]f/[f, ]F/[F, af/if/aF
+" stop working, and ]d/[d depend on inspections, which do not run in a diff.
 
-" 文本对象 remap 只有两处（af/if/aF、iu）；其余键全部由扩展 init 自绑默认
-" 键——有意为之：全是 IfMissing 语义、无人争键，收敛与加载顺序无关；在 rc
-" 手写这些 map 反而踩"定序事实"第 1 条。omap+xmap 而非 map：文本对象只在
-" operator-pending / visual 有意义。<Plug> 名对照安装包实测，非照抄文档。
+" Only two text objects are remapped here, af/if/aF and iu. Every other key is
+" left to the extensions' own init() defaults, on purpose: they all use
+" IfMissing semantics and nothing contests those keys, so the result does not
+" depend on load order. Hand-writing those maps in the rc would walk straight
+" into point 1 of the ordering fact. These use omap and xmap rather than map,
+" because a text object only means something in operator-pending and visual
+" mode. The <Plug> names were read off the installed package, not copied from
+" the docs.
 "
-" af/if ← functextobj（nvim: af/if = @function.outer/inner）。副作用（有意）：
-" 它的 IfMissing 判定是 hasMapTo(<Plug>)，因此不再绑默认 am/aM/im。
-" 已知不一致（2026-07 实测，当前接受）：if 的 inner = "函数体大括号之间"，
-" Python 下与 nvim @function.inner 选区不同；选函数体用 vin 更贴。IdeaVim
-" 内置扩展迭代快，升级后可复测——上游改成按语言取 body 就能对齐。
+" af/if come from functextobj (nvim binds af/if to @function.outer/inner).
+" Intended side effect: its IfMissing test is hasMapTo(<Plug>), so it stops
+" binding the am/aM/im defaults once these exist.
+" Known mismatch, measured 2026-07 and accepted for now: functextobj's inner
+" means "between the braces of the function body", which selects differently
+" from nvim's @function.inner in Python. Use vin there to select a body. The
+" built-in extensions iterate quickly, so retest after upgrades; if upstream
+" starts taking the body per language, the two sides line up.
 omap af <Plug>(textobj-function-am)
 xmap af <Plug>(textobj-function-am)
 omap if <Plug>(textobj-function-im)
 xmap if <Plug>(textobj-function-im)
-" aF = 含 JavaDoc/注解的整块，nvim 无对应物，放大写位不占 parity 键。
+" aF selects the whole block including JavaDoc and annotations. nvim has no
+" counterpart, so it sits on the uppercase key and costs no parity key.
 omap aF <Plug>(textobj-function-aM)
 xmap aF <Plug>(textobj-function-aM)
-" iu ← CamelCaseMotion inner sub-word（沿用 anyobject 旧 u 键）。无 au：它
-" 只有 inner。⚠️ <Plug> 名两套体系：w/b/e/ge 动作是 <Plug>CamelCaseMotion_w，
-" 文本对象走新 textObjects API = <Plug>(CamelCaseMotion-iw)，勿混写。
+" iu is CamelCaseMotion's inner sub-word, keeping anyobject's old u key. There
+" is no au, because the plugin offers inner only.
+" The <Plug> names follow two different schemes, so do not mix them: the
+" w/b/e/ge motions are <Plug>CamelCaseMotion_w, while text objects use the
+" newer textObjects API and spell it <Plug>(CamelCaseMotion-iw).
 omap iu <Plug>(CamelCaseMotion-iw)
 xmap iu <Plug>(CamelCaseMotion-iw)
 
@@ -838,42 +909,45 @@ nmap gsS <Action>(MoveStatementUp)
 nmap gsa <Action>(MoveElementRight)
 nmap gsA <Action>(MoveElementLeft)
 
-" Incremental selection — grow/shrink to enclosing syntax node.
+" Incremental selection. Grow or shrink to the enclosing syntax node.
 " <Action>(EditorSelectWord) through IdeaVim does NOT work: the dispatch
 " resets the caret/selection model between calls, so the action's internal
 " "extend further" state is lost and rapid presses all restart from cursor.
-" Workaround: sethandler — let the IDE handle the key natively. Requires a
-" one-time setup in IDE Preferences → Keymap:
+" Workaround: sethandler lets the IDE handle the key natively. Requires a
+" one-time setup in IDE Preferences > Keymap:
 "   Alt+W        → EditorSelectWord
 "   Alt+Shift+W  → EditorUnSelectWord
 " (IDE default is Opt+Up/Down on Mac; we rebind for parity with <A-w>/<A-W>.)
 sethandler <A-w> a:ide
 sethandler <A-W> a:ide
 
-" 键位归属一览（本节 SSOT）：
-"   af/if aF       functextobj（PSI）
-"   ac             classtextobj（PSI，outer；inner 在 iC，小写 ic 无绑定）
+" Key ownership. This table is the single source of truth for the section.
+"   af/if aF       functextobj(PSI)
+"   ac             classtextobj (PSI, outer; inner is iC, lowercase ic unbound)
 "   aC/iC ]C/[C    anyobject anyclass
 "   ai/ii ]i/[i    anyobject anyconditional
 "   al/il ]l/[l    anyobject anyloop
-"   ak/ik ]k/[k    anyobject anycomment（nvim 侧无对应，IdeaVim-only）
-"   av/iv ]v/[v    anyobject anyvariable。av/iv 有 parity：nvim 侧是
-"                  @assignment.outer / .rhs（2026-07 实测对齐，
-"                  `let rc: Rc<String> = Rc::new("hello".into());` 上两侧
-"                  av 都选整句、iv 都选 `Rc::new("hello".into())`）。
-"                  ]v/[v 仍是 IdeaVim-only——TS 系没给 assignment 跳转。
-"                  nvim 侧多覆盖 json/yaml/toml（treesitter 在数据文件里
-"                  一样有 @assignment；AnyObject 只认代码）。
-"   ay/iy ]y/[y    anyobject anyitem（列表项）
-"   an/in          anyobject anyindentblock（无 ]n/[n——跳转只有 TS 系有）
-"   aa/ia          argtextobj（参数）
-"   aq/iq ab/ib    mini-ai（引号 / 括号）
+"   ak/ik ]k/[k    anyobject anycomment (no nvim counterpart, IdeaVim-only)
+"   av/iv ]v/[v    anyobject anyvariable. av/iv have parity: nvim binds them to
+"                  @assignment.outer and .rhs. Measured 2026-07 on
+"                  `let rc: Rc<String> = Rc::new("hello".into());`, where both
+"                  sides select the whole statement for av and
+"                  `Rc::new("hello".into())` for iv.
+"                  ]v/[v stay IdeaVim-only, because the treesitter side ships
+"                  no assignment jump. nvim covers more file types instead:
+"                  json, yaml and toml all have @assignment through
+"                  treesitter, while AnyObject only recognises code.
+"   ay/iy ]y/[y    anyobject anyitem (list items)
+"   an/in          anyobject anyindentblock (no ]n/[n; only treesitter jumps)
+"   aa/ia          argtextobj (arguments)
+"   aq/iq ab/ib    mini-ai (quotes, brackets)
 "   ae/ie          textobj-entire
 "   iu             CamelCaseMotion inner sub-word
-"   ]f/[f ]F/[F    原生 ]m/[m ]M/[M
-"   [- ]- [+ ]+    indentwise（按缩进层级；nvim 侧无对应，IdeaVim-only）
-"   [= ]= [% ]%    同上
+"   ]f/[f ]F/[F    native ]m/[m ]M/[M
+"   [- ]- [+ ]+    indentwise, by indent level (no nvim counterpart, IdeaVim-only)
+"   [= ]= [% ]%    same
 "
-" nvim-only（IdeaVim 无对等实现，故意不绑）：
-"   ]a/[a          → @parameter.outer。argtextobj 给了 aa/ia 选择但没有跳转
-"   ]L/[L          → @loop.outer end。anyobject 的跳转只有 start
+" nvim-only, deliberately unbound because IdeaVim has no equivalent:
+"   ]a/[a          @parameter.outer. argtextobj selects with aa/ia but offers
+"                  no jump.
+"   ]L/[L          @loop.outer end. anyobject's jumps only reach the start.
