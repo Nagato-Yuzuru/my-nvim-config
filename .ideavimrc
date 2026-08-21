@@ -210,10 +210,20 @@ nmap <C-x><C-f> <Action>(GotoFile)
 " mode N). Remapping Ctrl+hjkl onto them covers the "move focus across editor
 " splits" half of what vim-tmux-navigator does on the nvim side. Confirmed working
 " in-editor.
-nnoremap <C-h> <C-w>h
+" <C-h>/<C-l> also chain Diff.FocusOppositePane: diff panes are embedded
+" editors, not windows, so <C-w>h/l can't reach them (nvim diffview panes
+" are real windows, no counterpart needed). 实测 2026-08-21: in a diff,
+" bare <C-h>/<C-l> toggle panes and never leave the tab; leave via <C-w>hjkl
+" (<C-w>'s second key takes no user mapping, so it bypasses the chain).
+" Toggle semantics: FocusOppositePane is the only pane action, direction is
+" not honored. Reaches the component-local action via IdeaVim's EmptyAction
+" fallback (IjActionExecutor.getAction); if pane switching breaks after an
+" IdeaVim update, look there. nmap: <Action> needs recursive maps.
+" <C-j>/<C-k> stay pure, pane layouts are horizontal only.
+nmap <C-h> <C-w>h<Action>(Diff.FocusOppositePane)
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
-nnoremap <C-l> <C-w>l
+nmap <C-l> <C-w>l<Action>(Diff.FocusOppositePane)
 " No tool-window half: IdeaVim/IntelliJ has no directional "focus the tool window
 " to the left/below" action, only fixed-target activators (Alt+1..9 /
 " Activate<Name>ToolWindow, already covered by <leader>v* below) and
@@ -581,8 +591,8 @@ augroup END
 "     action ID 全部实测于开源 VcsActions.xml / intellij.vcs.git.backend.xml
 "     （all-in-IDEA 后可直接查源码，旧的"闭源 GoLand 无法验证"顾虑作废）。
 "
-" ]c/[c 已在 Bracket-prefix 节：VcsShowNext/PrevChangeMarker 落到 marker 就弹
-" gutter 工具条，与 nvim 侧 gs.nav_hunk({preview=true}) 对齐，无需加键。
+" ]c/[c 已在 Bracket-prefix 节：编辑器弹 gutter 工具条（对齐 nvim
+" gs.nav_hunk preview），diff viewer 跳 chunk。无需加键。
 nmap ,gp <Action>(VcsShowCurrentChangeMarker)
 " ,gb 语义差异（接受）：nvim blame_line 是单行弹窗，Annotate 是 gutter 栏
 " 开关（再按一次关）。IDE 无单行 blame 弹窗 action。
@@ -788,8 +798,14 @@ map ]f ]m
 map [f [m
 map ]F ]M
 map [F [M
-nmap ]c <Action>(VcsShowNextChangeMarker)
-nmap [c <Action>(VcsShowPrevChangeMarker)
+" ]c/[c 双上下文链：普通编辑器走 gutter marker 弹工具条，diff viewer 走
+" NextDiff/PreviousDiff 跳 chunk（含 merge）。两 action 互斥启用（marker
+" 有 !isDiffEditor 平台守卫），禁用侧被静默跳过，不双跳。
+nmap ]c <Action>(VcsShowNextChangeMarker)<Action>(NextDiff)
+nmap [c <Action>(VcsShowPrevChangeMarker)<Action>(PreviousDiff)
+
+" diff viewer 已知缺口（2026-08-21，未定位、不追——场景少）：PSI 类键
+" （]f/[f/]F/[F、af/if/aF）失灵；]d/[d 依赖 inspections，diff 里不跑。
 
 " 文本对象 remap 只有两处（af/if/aF、iu）；其余键全部由扩展 init 自绑默认
 " 键——有意为之：全是 IfMissing 语义、无人争键，收敛与加载顺序无关；在 rc
