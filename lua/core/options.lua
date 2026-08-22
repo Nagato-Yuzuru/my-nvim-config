@@ -33,18 +33,32 @@ vim.opt.tabstop = 4 -- 设置显示 Tab 的宽度为 4
 
 -- 剪贴板不自动同步的决定（及 why）在 init.lua 顶部
 
--- 远端会话（ssh，含目标机 tmux 内）：强制 + 寄存器 copy 走 OSC52。
--- 为什么强制而不是等 0.10+ 的自动回落：自动回落要先向终端探测 OSC52 支持，
--- 探测穿 tmux 常无应答（:h clipboard-osc52 明言 multiplexer 会 inhibit 探测），
--- provider 解析走到头报 "No clipboard tool found"。g:clipboard 在解析顺序第一位，
--- 设了即短路探测；发出的 OSC52 由 tmux set-clipboard on 截获转发到外层终端
--- （与 tmux copy-mode 的透传同一条链路），落到人所在机器的剪贴板。
--- paste 刻意不走 OSC52 查询（穿 tmux 读到的是 tmux buffer 而非宿主机剪贴板，
--- 链路不应答还会阻塞等超时）：退化为读 unnamed 寄存器——<leader>y 过的内容
--- 可直接回贴；mac→远端方向走终端粘贴（Cmd-V，bracketed paste 直达 buffer）。
--- 门控查两个变量：tmux 默认 update-environment 含 SSH_CONNECTION 不含 SSH_TTY，
--- 只查后者会在目标机 tmux pane 里漏判。本机两者皆空，此块不执行，pbcopy 照旧。
-if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
+-- + 寄存器的 provider 按环境选，分支顺序即优先级。设了 g:clipboard，nvim 就不再自动探测。
+--
+-- tmux 内的复制交给 tmux。`load-buffer -w` 存一份 buffer，再由 tmux 向此刻 attach 的客户端发
+-- OSC 52。前提是 tmux ≥ 3.2，且 tmux.conf.local 里 set-clipboard on。
+-- 不能按 SSH_* 来判断，因为 pane 的环境在它出生那一刻就定死了。session 在远端本地的 Ghostty
+-- 里建好、之后从别的机器 ssh attach，旧 pane 里既没有 SSH_TTY 也没有 SSH_CONNECTION，nvim
+-- 探测到 pbcopy，内容进的是远端自己的剪贴板。只有 tmux 知道此刻是谁 attach 着。-w 直达客户端
+-- 不经 pane，pane 不在当前窗口也送得到。
+-- 粘贴不用内建 tmux provider 的 `refresh-client -l`。Ghostty 的 clipboard-read 默认 ask，每次
+-- 粘贴都弹框；终端没应答时拿到的只是 tmux 最新 buffer；over ssh 还有 50ms 的竞态。所以有
+-- pbpaste 就用 pbpaste，本机行为不变；远端 Mac 上读到的是远端剪贴板，mac→远端方向走 Cmd-V。
+-- 没有 pbpaste 的机器读 tmux 最新 buffer，<leader>y 过的和 copy-mode 复制的都能回贴。
+--
+-- ssh 但没有 tmux：复制走 OSC 52，终端直收。粘贴读 unnamed 寄存器，不发 OSC 52 查询，查询
+-- 没应答会阻塞到超时。
+--
+-- 其余情况交给 nvim 默认探测，本机就是 pbcopy/pbpaste。
+if vim.env.TMUX then
+	local copy = { "tmux", "load-buffer", "-w", "-" }
+	local paste = vim.fn.executable("pbpaste") == 1 and { "pbpaste" } or { "tmux", "save-buffer", "-" }
+	vim.g.clipboard = {
+		name = "tmux-copy",
+		copy = { ["+"] = copy, ["*"] = copy },
+		paste = { ["+"] = paste, ["*"] = paste },
+	}
+elseif vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
 	local osc52 = require("vim.ui.clipboard.osc52")
 	local function paste_fallback() return { vim.fn.getreg('"', 1, true), vim.fn.getregtype('"') } end
 	vim.g.clipboard = {
