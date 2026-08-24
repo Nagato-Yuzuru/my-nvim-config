@@ -11,3 +11,11 @@
   (#eq? @_cmd "jq")
   (#offset! @injection.content 0 1 0 -1)
   (#set! injection.language "jq"))
+
+; awk '...'——同款按命令名注入（gawk 一并；设计取舍同上）。
+((command
+  name: (command_name) @_cmd
+  argument: (raw_string) @injection.content)
+  (#any-of? @_cmd "awk" "gawk")
+  (#offset! @injection.content 0 1 0 -1)
+  (#set! injection.language "awk"))

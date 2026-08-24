@@ -40,10 +40,12 @@ return {
 					-- （MichaHoffmann/tree-sitter-promql）——随 nvim-treesitter 升级复查，
 					-- 同 go-deep / claudecode 的 unpinned 复查纪律。
 					"promql",
-					-- jq：.jq 文件 + markdown fence + bash 管道注入（after/queries/bash/
+					-- jq：.jq 文件 + markdown fence + bash/zsh 管道注入（after/queries/{bash,zsh}/
 					-- injections.scm）。grammar（flurie/tree-sitter-jq）停更于 2025-05，
 					-- tier 2——随 nvim-treesitter 升级复查，同 promql。
 					"jq",
+					-- awk：bash/zsh 管道注入（同 jq 一款，见同一对 injections.scm）+ 独立 .awk 文件。
+					"awk",
 				},
 				auto_install = true,
 			})

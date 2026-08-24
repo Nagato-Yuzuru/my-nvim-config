@@ -118,6 +118,8 @@ local LSP_TOOLS = {
 	-- jq-lsp（wader/jq-lsp，Go）：唯一的 jq LSP——诊断/补全/hover 内置文档/goto-def。
 	-- .jq 无 formatter/linter 可接
 	{ server = "jq_lsp", bin = "jq-lsp", mason = "jq-lsp" },
+	-- awk-language-server（Beaglefoot，npm）：诊断/补全/hover/goto-def。
+	{ server = "awk_ls", bin = "awk-language-server", mason = "awk-language-server" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
