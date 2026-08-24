@@ -64,7 +64,7 @@ return {
 			-- 只是浏览代码也白跑一个 racket，多实例/多文件时 ps 里一排来历不明的
 			-- 进程，且用户从未要求过 REPL。
 			vim.g["conjure#client_on_load"] = false
-			-- NOTE(REPL 后端未接)：.scm（scheme ft）当前仍走 Conjure 默认 client——命令是
+			-- NOTE(REPL 后端未接): .scm（scheme ft）当前仍走 Conjure 默认 client——命令是
 			-- mit-scheme（没装、也不是本工具链的 Guile/Steel），故 <localleader>cs 在 .scm
 			-- 里会失败。等真正用 Guile/Steel REPL 时再设 conjure#client#scheme#stdio#command
 			-- ＋匹配的 prompt_pattern（Guile 提示符形如 "scheme@(guile-user)>"）。.rkt（racket
