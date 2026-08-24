@@ -115,6 +115,9 @@ local LSP_TOOLS = {
 	{ server = "tinymist", bin = "tinymist", mason = "tinymist" },
 	{ server = "ty", bin = "ty", mason = "ty" },
 	{ server = "tsp_server", bin = "tsp-server", mason = "tsp-server" },
+	-- jq-lsp（wader/jq-lsp，Go）：唯一的 jq LSP——诊断/补全/hover 内置文档/goto-def。
+	-- .jq 无 formatter/linter 可接
+	{ server = "jq_lsp", bin = "jq-lsp", mason = "jq-lsp" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
