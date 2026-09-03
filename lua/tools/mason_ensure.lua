@@ -143,6 +143,7 @@ local TOOL_MAP = {
 	-- 避开撞名。不进 LINTERS_BY_FT：只对规则文件有意义，内容门控在 plugins/lint/
 	-- nvim-lint.lua（同 actionlint），首次命中时经 ensure_tool 兜底安装。
 	prometheus_pint = { bin = "prometheus-pint", mason = "prometheus-pint" },
+	selene = { bin = "selene", mason = "selene" },
 }
 
 -- Formatter 的**安装意图**（纯 install plane 事实）：打开某 ft 时 Mason 要兜底装上
@@ -193,6 +194,7 @@ local LINTERS_BY_FT = {
 	-- plugins/lint/nvim-lint.lua 按 executable 门控——缺失时不挂，免得每次 lint
 	-- 刷 uv.spawn ERROR。装：mise use aqua:realm/SwiftLint
 	swift = { "swiftlint" },
+	lua = { "selene" },
 }
 
 local M = {}
