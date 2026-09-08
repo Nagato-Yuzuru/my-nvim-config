@@ -515,6 +515,11 @@ nmap <leader>vH <Action>(Vcs.ShowTabbedFileHistory)
 nmap <leader>vz <Action>(ToggleDistractionFreeMode)
 nmap <leader>vF <Action>(ToggleFullScreen)
 nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
+" Presentation Assistant ships with the platform, not as a marketplace plugin
+" (com.intellij.platform.ide.impl.presentationAssistant, registered in
+" platform-impl's intellij.platform.ide.impl.actions.xml), so this is a real
+" mirror and needs no install.
+nmap <leader>vk <Action>(TogglePresentationAssistantAction)
 " Views panel toggles that mirror Neovim:
 "   vp → Snacks.explorer            (lua/plugins/ui/snacks.lua)
 "   vs → :AerialToggle!             (lua/plugins/ui/aerial.lua)
@@ -534,6 +539,13 @@ nmap <leader>vm <Action>(ActivateBookmarksToolWindow)
 "        Picker form lives at <leader>sm. That whole <leader>s* namespace is
 "        nvim-only, since the IDE uses Search Everywhere instead. It runs on
 "        the snacks picker; the old telescope hard-dep worry is retired.
+"   vk → :Screenkey toggle          (lua/plugins/ui/screenkey.lua)
+"        Both sides put the keys you press on screen, for demos and recorded
+"        tutorials. Accepted difference in what they show: Presentation
+"        Assistant announces the IDE *action* plus its shortcut on every
+"        platform keymap, screenkey shows the raw key sequence. The nvim side
+"        has to draw inside the editor because its recording target is a
+"        terminal capture (VHS), which sees nothing outside the terminal.
 " Asymmetries (intentional, not bound on the nvim side):
 "   vc  → Commit Tool Window  (nvim uses lazygit via <localleader>G instead)
 "   vz  → Distraction Free    (no zen-mode plugin installed)
