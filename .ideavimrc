@@ -879,6 +879,23 @@ nmap <leader>mN <Action>(GotoPreviousBookmark)
 "   <leader>ma  → :BookmarksCommands  bookmark command palette
 "   <leader>mg  → :BookmarksGrep      grep inside bookmarked files
 
+" 9) Shell filter. Nothing to map: IdeaVim implements Vim's `!` natively —
+" FilterMotionAction (normal `!{motion}`, and `!!` via DuplicableOperatorAction),
+" FilterVisualLinesAction (visual `!`), both FLAG_MOT_LINEWISE, plus the
+" `:[range]!{cmd}` ex command.
+"
+" nvim-only superset: bang.nvim (lua/plugins/edit/bang.lua, our own plugin) puts
+" g! / g!! / v_g! next to the built-in `!`, which stays where it is on both
+" sides. What g! adds:
+"   - keeps the motion's granularity, so charwise and blockwise regions filter
+"     as themselves instead of being widened to whole lines
+"   - a failing command leaves the buffer alone; the built-in writes stdout and
+"     stderr over the region whatever the exit code
+"   - `.` repeats motion *and* shell command, with no prompt
+"   - bare :Bang replays a past filter picked out of the `:` history
+" No IDE Action covers any of it, and it is not worth chasing with an IdeaVim
+" plugin: on the IDE side `!` stays the linewise built-in.
+
 " AI
 map <leader>A <Action>(AIIntentionsActionGroup)
 

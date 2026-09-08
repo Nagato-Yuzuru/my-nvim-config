@@ -45,6 +45,7 @@ what's bound where.
 | Views `<leader>v*`                                          | Spread across `lua/plugins/{ui,git,runtime,edit}/` — `grep '<leader>v'` |
 | Git `<localleader>g*` + `]c/[c` hunk nav, `<leader>v{D,H}` diff/history | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`. IdeaVim side mirrors per-key (`,gp/,gb/,gr/,gd/,gx`); nvim-only: `,gs` hunk-stage toggle, `,gB` gutter-base switch, in-buffer conflict ops (`co/ct/cb/c0`, `]x/[x`) — IDE handles those in gutter toolbar / merge dialog. Asymmetry notes live in the `.ideavimrc` Git section |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
+| Shell filter `!` (§9 — IdeaVim has it natively, nothing mapped) | `lua/plugins/edit/bang.lua` (Nagato-Yuzuru/bang.nvim, our own plugin; `g!`/`g!!`/`v_g!` are a nvim-only superset of `!`) |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
 | Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped), 停点 sticky 步进 hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua`        |
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
