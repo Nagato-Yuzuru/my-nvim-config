@@ -136,9 +136,27 @@ return {
 					},
 				},
 				completion = {
-					-- 只在输入 : 命令时自动显示菜单；/ ? 搜索仍按原生行为
+					-- `:` 命令行一直自动弹；`/` `?` 搜索保持原生行为（不弹）。
+					--
+					-- `@` 是 vim.fn.input() 的提示符。vim.ui.input 走的是 nvim 原生实现
+					-- （本配置没开 Snacks.input），所以提示符也是一条真 cmdline，blink 的
+					-- cmdline 源本来就吃得下——sources/cmdline/init.lua 的 enabled() 显式收
+					-- ':' 和 '@'，`@` 分支直接拿提示符声明的类型去 getcompletion()。
+					-- bang.nvim 的 g!{motion} 就落在这里：它的 `!` 提示符声明了
+					-- completion = "shellcmdline"，getcmdcompltype() 报回 shellcmd。
+					-- 旧写法只放行 ':'，结果候选**已经算出来了**（实测 200 条 shellcmd）却
+					-- 不弹菜单，非按 <Tab> 不可。
+					--
+					-- 用 getcmdcompltype() 而不是无条件放行 '@'：只有自己声明了补全类型的
+					-- 提示符才弹，普通的 input("Name: ") 不会被 buffer 源刷一屏。
 					menu = {
-						auto_show = function() return vim.fn.getcmdtype() == ":" end,
+						auto_show = function()
+							local cmdtype = vim.fn.getcmdtype()
+							if cmdtype == ":" then
+								return true
+							end
+							return cmdtype == "@" and vim.fn.getcmdcompltype() ~= ""
+						end,
 					},
 					-- 纯 ghost 模式：预选首项（ghost 立即显示），但不自动写入 cmdline。
 					-- 覆盖 blink.cmp cmdline 模式默认的 auto_insert=true
