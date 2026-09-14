@@ -22,7 +22,11 @@ return {
 	-- yank 高亮由 core/options.lua 的 TextYankPost + vim.hl.on_yank() 提供
 	-- （Neovim 并无默认行为），无需 vim-highlightedyank。
 	{
-		"keaising/im-select.nvim",
+		-- 长期使用自己的 fork：上游 setup() 在 Linux 上按 fcitx/ibus 白名单否决，
+		-- 显式给的 default_command 也会被静默丢弃。fork 只改一处——用户给了
+		-- default_command 就跳过平台探测。OrbStack 客户机里 PATH 上的 macism
+		-- 是转发到宿主机的垫片（exec mac macism），所以 cond 能命中。
+		"Nagato-Yuzuru/im-select.nvim",
 		event = "VeryLazy",
 		cond = function()
 			local function binary_exists(name) return vim.fn.executable(name) == 1 end
