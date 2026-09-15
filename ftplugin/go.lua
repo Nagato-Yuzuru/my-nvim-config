@@ -36,12 +36,14 @@ local function unparenthesized_result_at_cursor()
 end
 
 vim.keymap.set("i", ",", function()
-	local r, c = unpack(vim.api.nvim_win_get_cursor(0))
 	local result = unparenthesized_result_at_cursor()
 	-- 多行返回值类型（如裸 function_type 跨行）罕见，保守落原 `,`。
+	-- 普通 `,` 必须走 typeahead 真打出来：插入中途 nvim_buf_set_text 会截断 redo
+	-- buffer，`.` 寄存器丢掉逗号之前的内容——dot-repeat 和 multicursor.nvim（退出
+	-- 插入时按 `.` 寄存器回放到其他光标）都会少掉 `,`。
+	-- "n" 防递归触发本映射；"i" 插到 typeahead 队首，快速连打 `,x` 不乱序。
 	if not result or select(1, result:range()) ~= select(3, result:range()) then
-		vim.api.nvim_buf_set_text(0, r - 1, c, r - 1, c, { "," })
-		vim.api.nvim_win_set_cursor(0, { r, c + 1 })
+		vim.api.nvim_feedkeys(",", "ni", false)
 		return
 	end
 	local sr, sc, _, ec = result:range()
