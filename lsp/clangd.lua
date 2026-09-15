@@ -1,4 +1,6 @@
--- clangd：C/C++/ObjC/CUDA/proto 的 LSP。clang-tidy（--clang-tidy）和 clang-format
+-- clangd：C/C++/ObjC/CUDA 的 LSP。lspconfig 默认还挂 proto，这里不挂：proto 归
+-- lsp/buf_ls.lua，clangd 对 .proto 只会报 "expected exactly one compiler job"。
+-- clang-tidy（--clang-tidy）和 clang-format
 --（formatting 走内嵌 libFormat，conform 的 lsp_fallback 直接用）都在这个进程里，
 -- 不另挂 nvim-lint / conform 条目。二进制 PATH 优先，Mason 兜底见 mason_ensure.lua。
 --
@@ -13,6 +15,6 @@ return {
 		"--header-insertion=never",
 		"--offset-encoding=utf-16",
 	},
-	filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
+	filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
 	root_markers = { "compile_commands.json", "compile_flags.txt", ".clangd", ".git" },
 }

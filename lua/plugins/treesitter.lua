@@ -46,6 +46,8 @@ return {
 					"jq",
 					-- awk：bash/zsh 管道注入（同 jq 一款，见同一对 injections.scm）+ 独立 .awk 文件。
 					"awk",
+					-- proto：高亮/折叠/文本对象用 grammar；语义高亮由 buf LSP 的 semantic tokens 叠加。
+					"proto",
 				},
 				auto_install = true,
 			})
