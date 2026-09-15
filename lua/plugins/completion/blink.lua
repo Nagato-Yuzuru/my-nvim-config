@@ -14,7 +14,28 @@ return {
 		},
 		build = "cargo +nightly build --release",
 		opts = {
-			fuzzy = { implementation = "prefer_rust" },
+			fuzzy = {
+				implementation = "prefer_rust",
+				-- 片段排序规则：触发词打全（`exact`）的片段正常参与排序，可居首、<Tab>
+				-- 展开，即 IDEA live template「缩写 + Tab」；没打全的片段一律沉到 LSP 候选
+				-- 之后。friendly-snippets 不看上下文，靠默认 score_offset 只能让它们在
+				-- LSP 项之间随模糊分漂，这条硬规则把位置固定下来。
+				-- 不选"一律沉底"：打完 `for` 时 gopls 不再给关键字，只剩模糊命中，
+				-- <Tab> 会落到 `fmt.FormatString` 上。
+				-- 比较器同 table.sort（true = a 在 b 前），返回 nil 交给下一级。
+				sorts = {
+					function(a, b)
+						local a_sink = a.source_id == "snippets" and not a.exact
+						local b_sink = b.source_id == "snippets" and not b.exact
+						if a_sink == b_sink then
+							return nil
+						end
+						return b_sink
+					end,
+					"score",
+					"sort_text",
+				},
+			},
 			keymap = { -- 常用键位
 				preset = "none",
 				["<cr>"] = { "accept", "fallback" },
