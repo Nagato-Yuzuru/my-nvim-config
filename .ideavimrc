@@ -58,9 +58,11 @@ set vim-paragraph-motion          " { / } skip whitespace-only lines
 "
 " FORBIDDEN: targets.vim. It registers n/l seek variants for every object,
 " claiming the whole an*/in*/al*/il* prefix space. That collides with
-" al/il=@loop and an/in=indent block. The complete mapping doubles as a targets
-" prefix, so under `set notimeout` a `dal` hangs forever waiting for a second
-" key. Taking targets would mean moving loop off l, which gives up parity.
+" an/in=indent block (it used to collide with al/il=loop too; loop moved to
+" o in 2026-09 for nvim 0.13's builtin al/il, so only the n half remains).
+" The complete mapping doubles as a targets prefix, so under `set notimeout`
+" a `dan` hangs forever waiting for a second key. Taking targets would mean
+" moving indent block off n, which gives up parity.
 " Accepted cost: no I/A modifiers, no n/l seek. anyitem covers separator
 " objects. Unblock condition: IdeaVim ports g:targets_nl so n/l can move
 " elsewhere. Still unsupported at 2.46, and targets has shipped without
@@ -105,23 +107,27 @@ set which-key                     " Which-Key
 " v3.1.4 behaviour. The plugin iterates fast, so if language detection gets
 " fixed (PSI first, baseLanguage fallback), this shrink can be relaxed again.
 "
-" Kept: l=loop  i=conditional  k=comment  v=variable
+" Kept: o=loop  i=conditional  k=comment  v=variable
 "       y=list item (targets is forbidden, nothing else offers a separator object)
 "       n=indent block (textobj-indent is forbidden; this one is plain-text, the
 "         only object that a wrong language guess cannot affect)
-"       C=class, for inner only. Outer uses native ac, which is PSI-backed and
-"         reliable. iC is currently the only source of class-inner. Lowercase
-"         ic stays unbound; when classtextobj grows an inner object, ic goes
-"         to it.
+"       C=class. nvim binds aC/iC/]C/[C to the same letter (its ]c/[c is
+"         gitsigns hunk nav, mirroring ]c/[c here), so aC/iC is the parity
+"         pair. Outer also exists as native ac, which is PSI-backed and
+"         reliable; that one is IdeaVim-only. Lowercase ic stays unbound; when
+"         classtextobj grows an inner object, ic goes to it.
 " Three semantics given up on purpose: anystring (mini-ai's quote objects
 " approximate it), a dedicated lambda key (functextobj's heuristic swallows
 " it), and the merged arg|item key (aa and ay cover the two halves).
 "
 " The `let`s must precede the `set`. After changing one, re-init per point 2 of
-" the ordering fact or it will not take effect. i and y are swapped to match
-" nvim (textobjects.lua binds ai/ii=@conditional). anyindentblock already
-" defaults to n, so it needs no variable.
+" the ordering fact or it will not take effect. o, i and y are moved to match
+" nvim (textobjects.lua: ao/io=@loop, ai/ii=@conditional). Loop is on o, not
+" l, because nvim 0.13 ships builtin al/il (whole buffer / inner line) and the
+" letter must match ]o/[o on both sides. anyindentblock already defaults to n,
+" so it needs no variable.
 let g:anyobject_included = "anyloop,anyconditional,anycomment,anyvariable,anyitem,anyclass,anyindentblock"
+let g:anyobject_map_anyloop = "o"
 let g:anyobject_map_anyconditional = "i"
 let g:anyobject_map_anyitem = "y"
 let g:anyobject_map_anyclass = "C"
@@ -1014,10 +1020,12 @@ sethandler <A-W> a:ide
 
 " Key ownership. This table is the single source of truth for the section.
 "   af/if aF       functextobj(PSI)
-"   ac             classtextobj (PSI, outer; inner is iC, lowercase ic unbound)
-"   aC/iC ]C/[C    anyobject anyclass
+"   ac             classtextobj (PSI, outer only; IdeaVim-only, nvim leaves
+"                  ac/ic unbound and puts class on C like the jump)
+"   aC/iC ]C/[C    anyobject anyclass (parity pair; nvim binds the same four)
 "   ai/ii ]i/[i    anyobject anyconditional
-"   al/il ]l/[l    anyobject anyloop
+"   ao/io ]o/[o    anyobject anyloop (o, not l: nvim 0.13 has builtin al/il,
+"                  and the letter must match the jump on both sides)
 "   ak/ik ]k/[k    anyobject anycomment (no nvim counterpart, IdeaVim-only)
 "   av/iv ]v/[v    anyobject anyvariable. av/iv have parity: nvim binds them to
 "                  @assignment.outer and .rhs. Measured 2026-07 on
@@ -1041,4 +1049,5 @@ sethandler <A-W> a:ide
 " nvim-only, deliberately unbound because IdeaVim has no equivalent:
 "   ]a/[a          @parameter.outer. argtextobj selects with aa/ia but offers
 "                  no jump.
-"   ]L/[L          @loop.outer end. anyobject's jumps only reach the start.
+"   al/il          nvim 0.13 builtins (whole buffer / inner line, :help v_al).
+"                  Nearest IdeaVim analogue is ae/ie from textobj-entire.

@@ -44,17 +44,30 @@ return {
 		--
 		-- @assignment.lhs（只要键）故意不绑：改键名多数时候是 ciw，等真出现第二
 		-- 个具体用例再补 ak/ik。json 的 query 里 lhs 已经备好了。
+		--
+		-- Letter invariant: a kind uses ONE letter across `a?`/`i?`/`]?`/`[?`, so
+		-- `vaC` and `]C` are the same muscle. Two letters are off the obvious
+		-- mnemonic because of that:
+		--   C (not c) — class. `]c`/`[c` belong to gitsigns hunk nav (mirrors
+		--               IdeaVim `]c`), so the jump is uppercase and the object
+		--               follows it. `ac`/`ic` stay unbound on purpose.
+		--   o (not l) — loop. Nvim 0.13 ships builtin `al`/`il` (whole buffer /
+		--               inner line, `:help v_al`), and moving off `l` also gives
+		--               the builtin `]l`/`[l` loclist jumps back. `o` = lOop; the
+		--               IdeaVim side follows via g:anyobject_map_anyloop.
+		-- `n`/`N` are also taken: builtin treesitter node objects/jumps
+		-- (`an`/`in`, `]n`/`[n`, `]N`/`[N` — `:help v_an`).
 		local selections = {
 			["af"] = "@function.outer",
 			["if"] = "@function.inner",
-			["ac"] = "@class.outer",
-			["ic"] = "@class.inner",
+			["aC"] = "@class.outer",
+			["iC"] = "@class.inner",
 			["aa"] = "@parameter.outer",
 			["ia"] = "@parameter.inner",
 			["ai"] = "@conditional.outer",
 			["ii"] = "@conditional.inner",
-			["al"] = "@loop.outer",
-			["il"] = "@loop.inner",
+			["ao"] = "@loop.outer",
+			["io"] = "@loop.inner",
 			["av"] = "@assignment.outer",
 			["iv"] = "@assignment.rhs",
 		}
@@ -72,18 +85,21 @@ return {
 		-- (use `vaf`/`daf` text-objects for ops; use matchup `%` to cycle within
 		-- a block).
 		--
-		-- Exceptions to the lowercase rule:
-		--   `]C`/`[C` class — uppercase to avoid gitsigns claiming `]c`/`[c`.
+		-- Letters follow the `selections` table above (same letter for object and
+		-- jump). Exceptions to the lowercase rule:
+		--   `]C`/`[C` class — uppercase, see the letter invariant above.
 		--   `[i` conditional — shadows vim's builtin "search word in included
 		--                      files" (`:help [i`); intentional, that builtin
 		--                      is rarely useful outside C-with-headers workflows.
+		--   `]a`/`[a` argument — shadows the builtin arglist jumps; intentional,
+		--                      the arglist is unused in this config.
 		local moves = {
 			["]f"] = { move.goto_next_start, "@function.outer", "Next function start" },
 			["[f"] = { move.goto_previous_start, "@function.outer", "Prev function start" },
 			["]a"] = { move.goto_next_start, "@parameter.outer", "Next argument" },
 			["[a"] = { move.goto_previous_start, "@parameter.outer", "Prev argument" },
-			["]l"] = { move.goto_next_start, "@loop.outer", "Next loop start" },
-			["[l"] = { move.goto_previous_start, "@loop.outer", "Prev loop start" },
+			["]o"] = { move.goto_next_start, "@loop.outer", "Next loop start" },
+			["[o"] = { move.goto_previous_start, "@loop.outer", "Prev loop start" },
 			["]C"] = { move.goto_next_start, "@class.outer", "Next class" },
 			["[C"] = { move.goto_previous_start, "@class.outer", "Prev class" },
 			["]i"] = { move.goto_next_start, "@conditional.outer", "Next conditional" },
