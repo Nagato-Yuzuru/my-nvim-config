@@ -1,6 +1,11 @@
--- symbol-usage: 在符号上方显示"N usages"虚拟文本——对位 JetBrains 默认开启的
--- Code Vision (usages)。nvim 侧补齐 IDE 已有的能力，方向是消除非对称，
--- .ideavimrc 不需要注释。
+-- symbol-usage: 在符号上方显示"N usages, M impls"虚拟文本——对位 JetBrains 默认
+-- 开启的 Code Vision (usages + implementations)。nvim 侧补齐 IDE 已有的能力，
+-- 方向是消除非对称，.ideavimrc 不需要注释。Code Vision 的第三项 code author
+-- 由 gitsigns current_line_blame 承担（git/gitsigns.lua）。
+--
+-- 插件的第三个计数器 definition（textDocument/definition 返回的位置数）故意不开：
+-- 它与接口关系无关，正常代码永远是 1，只有 TS 重载/声明合并、lua_ls 多处赋值
+-- 这类情况才 >1，IDEA 也没有对应项。
 --
 -- 为什么不是原生 codelens（core/lsp.lua 已开 vim.lsp.codelens.enable）：
 -- 引用计数 lens 由服务端决定给不给——gopls 只有 generate/test/tidy 一类命令型
@@ -8,14 +13,23 @@
 -- 客户端做：documentSymbol 拿符号列表，再逐个发 textDocument/references 计数，
 -- 所以只要服务端会答 references 就统一生效。
 --
--- 与 codelens 不重复显示：lua_ls 的 Lua.codeLens.enable 默认 false，rustaceanvim
--- 默认 lens 只有 run/debug/implementations——都没有引用计数，无需关闭。
+-- implementations 同理走 textDocument/implementation，插件会先查服务端的
+-- implementationProvider，lua_ls / ty 这类没有的直接跳过。只对接口/类型/方法发
+-- （IMPL_KINDS），普通函数不发——请求量才不会整体翻倍。数字的含义由服务端定：
+-- 接口上是实现者数；gopls 对具体类型和它的方法返回**它满足的接口**，所以 struct
+-- 上的 "N impls" 读作"实现了 N 个接口"——这正是 IDEA gutter 实现箭头的反向信息。
+-- 0 不显示（IDEA 同样只在有实现时显示），否则每个无接口的方法都会挂一条噪音。
 --
--- 代价：documentSymbol 一次 + 每个符号一次 references，但计数只对**视口内**的
--- 符号发（WinScrolled 时补算，视口外先挂 "loading..." 占位），所以大文件的开销
--- 按屏而不是按文件算。刷新契机：LspAttach / TextChanged / InsertLeave / 滚动 /
--- BufEnter（强制），均有 debounce。实测 gopls / ty / tsc 小文件 ~1s；lua_ls 首次
--- ~5s 是它索引工作区的时间，不是插件的。
+-- 与 codelens 不重复显示：lua_ls 的 Lua.codeLens.enable 默认 false，无引用计数。
+-- rustaceanvim 默认 lens 有 run/debug/implementations——implementations 与本插件
+-- 重叠，rust 由 filetypes 覆盖关掉本插件的 implementation，保留 rust-analyzer 的
+-- lens（它按 impl 块计数，语义比 LSP implementation 请求更贴 Rust）。
+--
+-- 代价：documentSymbol 一次 + 每个符号一次 references（IMPL_KINDS 再加一次
+-- implementation），但计数只对**视口内**的符号发（WinScrolled 时补算，视口外先挂
+-- "loading..." 占位），所以大文件的开销按屏而不是按文件算。刷新契机：LspAttach /
+-- TextChanged / InsertLeave / 滚动 / BufEnter（强制），均有 debounce。实测 gopls /
+-- ty / tsc 小文件 ~1s；lua_ls 首次 ~5s 是它索引工作区的时间，不是插件的。
 --
 -- 懒加载：event = LspAttach。插件在 setup() 里自建 LspAttach autocmd，lazy 加载
 -- 后会带 buffer/data 重放同一事件（lazy/core/handler/event.lua nvim_exec_autocmds），
@@ -25,6 +39,26 @@ local SymbolKind = vim.lsp.protocol.SymbolKind
 -- IDEA 的 Code Vision 对类/接口同样显示 usages：在插件默认的 Function/Method
 -- 之外补上这三种，覆盖 Go 的 type、Rust 的 struct/trait、TS 的 class/interface。
 local TYPE_KINDS = { SymbolKind.Class, SymbolKind.Struct, SymbolKind.Interface }
+-- implementation 只对这些发：类型 + 方法（接口方法 → 实现者；struct 方法 →
+-- 满足的接口方法）。Function 不发，见头注释。
+local IMPL_KINDS = vim.list_extend({ SymbolKind.Method }, TYPE_KINDS)
+
+-- 插件默认 text_format 的差异只有一处：implementation 为 0 时不显示。
+---@param symbol { references?: integer, implementation?: integer, stacked_count: integer }
+local function text_format(symbol)
+	local parts = {}
+	if symbol.references then
+		local n = symbol.references
+		parts[#parts + 1] = ("%s %s"):format(n == 0 and "no" or n, n == 1 and "usage" or "usages")
+	end
+	if symbol.implementation and symbol.implementation > 0 then
+		local n = symbol.implementation
+		parts[#parts + 1] = ("%d %s"):format(n, n == 1 and "impl" or "impls")
+	end
+	-- 同一行还有别的符号时插件用 " | +N" 提示（它们的计数没地方画）。
+	local stacked = symbol.stacked_count > 0 and (" | +%d"):format(symbol.stacked_count) or ""
+	return table.concat(parts, ", ") .. stacked
+end
 
 return {
 	"Wansmer/symbol-usage.nvim",
@@ -42,8 +76,14 @@ return {
 				filetypes[ft] = { kinds = vim.list_extend(vim.deepcopy(cfg.kinds), TYPE_KINDS) }
 			end
 		end
+		-- ft 覆盖表与顶层 opts 是深合并，只盖 enabled 即可（见头注释 rustaceanvim 段）。
+		filetypes.rust = { implementation = { enabled = false } }
 		return {
 			kinds = vim.list_extend({ SymbolKind.Function, SymbolKind.Method }, TYPE_KINDS),
+			-- 插件支持按方法单独限定 kinds（options.lua 未在类型注解里写，但
+			-- worker.lua is_need_count 读 opts[method].kinds）。
+			implementation = { enabled = true, kinds = IMPL_KINDS },
+			text_format = text_format,
 			-- 'above' 与 IDEA 的 Code Vision 位置一致；配合默认的 request_pending_text
 			-- 占位，避免请求返回时行跳动。
 			vt_position = "above",
