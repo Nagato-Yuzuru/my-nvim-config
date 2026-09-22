@@ -25,6 +25,14 @@ return {
 							context = { only = { require("tools.golangci_fix").FIXALL_KIND }, diagnostics = {} },
 							apply = true,
 						})
+						-- gopls Organize Imports：删未用 import / 补缺失 import。`golangci-lint fmt`
+						-- 只跑 formatters 块（gofumpt 不动 import），goimports 仅在无 .golangci.yml
+						-- 的仓库兜底，所以这一步和 python 分支的 source.organizeImports.ruff 一样
+						-- 显式发一次。
+						vim.lsp.buf.code_action({
+							context = { only = { "source.organizeImports" }, diagnostics = {} },
+							apply = true,
+						})
 					elseif
 						ft == "javascript"
 						or ft == "javascriptreact"
