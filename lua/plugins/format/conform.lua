@@ -16,6 +16,15 @@ return {
 							context = { only = { "source.organizeImports.ruff" }, diagnostics = {} },
 							apply = true,
 						})
+					elseif ft == "go" then
+						-- golangci-lint 一键修全部：进程内 golangci_fix server 把上次 lint 攒下的
+						-- SuggestedFixes 合并成一条 source.fixAll.golangci（tools/golangci_fix.lua），
+						-- 与 python 分支的 source.fixAll.ruff 同形。不走 `golangci-lint run --fix`：
+						-- 它无 stdin 模式、要对磁盘上的整个 package 跑、还会带外改写同包其它文件。
+						vim.lsp.buf.code_action({
+							context = { only = { require("tools.golangci_fix").FIXALL_KIND }, diagnostics = {} },
+							apply = true,
+						})
 					elseif
 						ft == "javascript"
 						or ft == "javascriptreact"

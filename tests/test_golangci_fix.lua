@@ -264,13 +264,15 @@ end
 -- ============================================================ code_actions
 T["code_actions"] = MiniTest.new_set()
 
--- child 侧公共流程：parse → vim.diagnostic.set → 以 row0 行发起 codeAction 请求
+-- child 侧公共流程：parse → vim.diagnostic.set → 以 row0 行发起 codeAction 请求。
+-- 这一组只看 quickfix，故 only 限定；不带 only 时还会多出一条 fixAll，见 fixAll 组。
 local CA_PRELUDE = [[
 	NS = vim.api.nvim_create_namespace("golangci_fix_test")
 	function REQUEST(row0)
 		return GF.code_actions({
 			textDocument = { uri = vim.uri_from_bufnr(BUF) },
 			range = { start = { line = row0, character = 0 }, ["end"] = { line = row0, character = 0 } },
+			context = { diagnostics = {}, only = { "quickfix" } },
 		})
 	end
 ]]
@@ -365,6 +367,163 @@ T["code_actions"]["unloaded buffer yields {}"] = function()
 		),
 		{}
 	)
+end
+
+-- ============================================================ code_actions: source.fixAll.golangci
+T["fixAll"] = MiniTest.new_set()
+
+-- 两条诊断各带一个 fix：`x := doIt()\ny := doIt()\n`，第二行 doIt() 在 byte 17..23
+local FIXALL_PRELUDE = CA_PRELUDE
+	.. [[
+	function REQUEST_ONLY(row0, only)
+		return GF.code_actions({
+			textDocument = { uri = vim.uri_from_bufnr(BUF) },
+			range = { start = { line = row0, character = 0 }, ["end"] = { line = row0, character = 0 } },
+			context = { diagnostics = {}, only = only },
+		})
+	end
+	function KINDS(actions)
+		return vim.tbl_map(function(a) return a.kind end, actions)
+	end
+	function SETUP_TWO()
+		SETUP_FILE("x := doIt()\ny := doIt()\n")
+		PARSE({
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 5, End = 11, NewText = B64("run()") } } } } }),
+			ISSUE({
+				Pos = { Filename = PATH, Line = 2, Column = 1 },
+				SuggestedFixes = { { TextEdits = { { Pos = 17, End = 23, NewText = B64("go()") } } } },
+			}),
+		})
+		vim.diagnostic.set(NS, BUF, DIAGS)
+	end
+]]
+
+T["fixAll"]["merges every fresh fix buffer-wide regardless of cursor range"] = function()
+	child.lua(FIXALL_PRELUDE)
+	child.lua([[
+		SETUP_TWO()
+		ACTIONS = REQUEST_ONLY(0, { GF.FIXALL_KIND })
+	]])
+	eq(child.lua_get("#ACTIONS"), 1)
+	eq(child.lua_get("ACTIONS[1].kind"), "source.fixAll.golangci")
+	eq(child.lua_get("ACTIONS[1].title"), "Fix all golangci-lint issues (2)")
+	eq(child.lua_get("ACTIONS[1].edit.changes[vim.uri_from_bufnr(BUF)]"), {
+		{
+			range = { start = { line = 0, character = 5 }, ["end"] = { line = 0, character = 11 } },
+			newText = "run()",
+		},
+		{
+			range = { start = { line = 1, character = 5 }, ["end"] = { line = 1, character = 11 } },
+			newText = "go()",
+		},
+	})
+	-- 应用后两处都换掉 —— 走真实 client 路径（utf-8 byte 列）
+	child.lua([[vim.lsp.util.apply_workspace_edit(ACTIONS[1].edit, "utf-8")]])
+	eq(child.lua_get("vim.api.nvim_buf_get_lines(BUF, 0, -1, false)"), { "x := run()", "y := go()" })
+end
+
+T["fixAll"]["edits are sorted by position even when diagnostics arrive out of order"] = function()
+	child.lua(FIXALL_PRELUDE)
+	child.lua([[
+		SETUP_FILE("x := doIt()\ny := doIt()\n")
+		PARSE({
+			ISSUE({
+				Pos = { Filename = PATH, Line = 2, Column = 1 },
+				SuggestedFixes = { { TextEdits = { { Pos = 17, End = 23, NewText = B64("go()") } } } },
+			}),
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 5, End = 11, NewText = B64("run()") } } } } }),
+		})
+		vim.diagnostic.set(NS, BUF, DIAGS)
+		EDITS = REQUEST_ONLY(0, { GF.FIXALL_KIND })[1].edit.changes[vim.uri_from_bufnr(BUF)]
+	]])
+	eq(child.lua_get("EDITS[1].newText"), "run()")
+	eq(child.lua_get("EDITS[2].newText"), "go()")
+end
+
+T["fixAll"]["overlapping fix is dropped whole, earlier one wins"] = function()
+	child.lua(FIXALL_PRELUDE)
+	-- fix A 换整行 0..11，fix B 换 5..11：B 与 A 重叠，整条 B 丢弃
+	child.lua([[
+		SETUP_FILE("x := doIt()\n")
+		PARSE({
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 5, End = 11, NewText = B64("run()") } } } } }),
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 0, End = 11, NewText = B64("y := run()") } } } } }),
+		})
+		vim.diagnostic.set(NS, BUF, DIAGS)
+		ACTION = REQUEST_ONLY(0, { GF.FIXALL_KIND })[1]
+	]])
+	eq(child.lua_get("ACTION.title"), "Fix all golangci-lint issues (1)")
+	eq(child.lua_get("#ACTION.edit.changes[vim.uri_from_bufnr(BUF)]"), 1)
+	eq(child.lua_get("ACTION.edit.changes[vim.uri_from_bufnr(BUF)][1].newText"), "y := run()")
+end
+
+T["fixAll"]["adjacent ranges do not count as overlap"] = function()
+	child.lua(FIXALL_PRELUDE)
+	-- `ab\n`：删 a（0..1）和删 b（1..2）相邻不相交，两条都保留
+	child.lua([[
+		SETUP_FILE("ab\n")
+		PARSE({
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 0, End = 1 } } } } }),
+			ISSUE({ SuggestedFixes = { { TextEdits = { { Pos = 1, End = 2 } } } } }),
+		})
+		vim.diagnostic.set(NS, BUF, DIAGS)
+		ACTION = REQUEST_ONLY(0, { GF.FIXALL_KIND })[1]
+	]])
+	eq(child.lua_get("ACTION.title"), "Fix all golangci-lint issues (2)")
+end
+
+T["fixAll"]["only the first fix of a diagnostic is used (alternatives are exclusive)"] = function()
+	child.lua(FIXALL_PRELUDE)
+	child.lua([[
+		SETUP_FILE("x := doIt()\n")
+		PARSE({ ISSUE({ SuggestedFixes = {
+			{ TextEdits = { { Pos = 5, End = 11, NewText = B64("run()") } } },
+			{ TextEdits = { { Pos = 0, End = 1, NewText = B64("z") } } }, -- 与第一条不重叠，仍不该进 fixAll
+		} }) })
+		vim.diagnostic.set(NS, BUF, DIAGS)
+		ACTION = REQUEST_ONLY(0, { GF.FIXALL_KIND })[1]
+	]])
+	eq(child.lua_get("ACTION.title"), "Fix all golangci-lint issues (1)")
+	eq(child.lua_get("ACTION.edit.changes[vim.uri_from_bufnr(BUF)][1].newText"), "run()")
+end
+
+T["fixAll"]["stale fixes are excluded; no fresh fix means no fixAll action"] = function()
+	child.lua(FIXALL_PRELUDE)
+	child.lua([[
+		SETUP_TWO()
+		vim.api.nvim_buf_set_text(0, 1, 7, 1, 8, { "X" }) -- 第二行 doIt → doXt
+		PARTIAL = REQUEST_ONLY(0, { GF.FIXALL_KIND })
+		vim.api.nvim_buf_set_text(0, 0, 7, 0, 8, { "X" }) -- 第一行也脏
+		NONE = REQUEST_ONLY(0, { GF.FIXALL_KIND })
+	]])
+	eq(child.lua_get("PARTIAL[1].title"), "Fix all golangci-lint issues (1)")
+	eq(child.lua_get("NONE"), {})
+end
+
+T["fixAll"]["context.only filters kinds hierarchically; nil returns both"] = function()
+	child.lua(FIXALL_PRELUDE)
+	child.lua([[
+		SETUP_TWO()
+		BOTH = KINDS(REQUEST_ONLY(0, nil))
+		QF = KINDS(REQUEST_ONLY(0, { "quickfix" }))
+		FA = KINDS(REQUEST_ONLY(0, { "source.fixAll" }))
+		SRC = KINDS(REQUEST_ONLY(0, { "source" }))
+		NONE = KINDS(REQUEST_ONLY(0, { "refactor" }))
+	]])
+	-- 光标在第 0 行：quickfix 只出第 0 行那条，fixAll 全 buffer
+	eq(child.lua_get("BOTH"), { "quickfix", "source.fixAll.golangci" })
+	eq(child.lua_get("QF"), { "quickfix" })
+	eq(child.lua_get("FA"), { "source.fixAll.golangci" })
+	eq(child.lua_get("SRC"), { "source.fixAll.golangci" })
+	eq(child.lua_get("NONE"), {})
+end
+
+T["fixAll"]["server advertises both kinds"] = function()
+	child.lua([[
+		local srv = GF.server({ on_exit = function() end })
+		srv.request("initialize", {}, function(_, res) CAPS = res.capabilities end)
+	]])
+	eq(child.lua_get("CAPS.codeActionProvider.codeActionKinds"), { "quickfix", "source.fixAll.golangci" })
 end
 
 return T

@@ -13,8 +13,11 @@
 --   2. lsp/golangci_fix.lua 用 M.server 起 in-process LSP(仅 codeAction
 --      能力、无外部进程),由 core/lsp.lua enable。
 --   3. codeAction 请求 → M.code_actions 从 vim.diagnostic.get() 捞
---      user_data,校验 orig 仍与 buffer 一致后造 quickfix action。
---      于是 <leader>ca / <A-CR> 标准入口就能修单条 golangci 诊断。
+--      user_data,校验 orig 仍与 buffer 一致后造 action:
+--        quickfix               单条诊断,<leader>ca / <A-CR> 标准入口;
+--        source.fixAll.golangci 整 buffer 合并,<leader>ff 的 go 分支定点
+--                               调用(plugins/format/conform.lua,与 ruff 的
+--                               source.fixAll.ruff 同一形状)。
 --
 -- 一致性模型:golangci lint 的是**磁盘文件**(InsertLeave 触发时 buffer 可能
 -- 已领先磁盘)。TextEdits 的 offset 在 parse 时用磁盘快照换算并抠出 orig;
@@ -183,8 +186,44 @@ local function buf_text(bufnr)
 	return text
 end
 
----textDocument/codeAction 实现:光标行(或 visual 范围)上带 fix 的 golangci
----诊断 → quickfix CodeAction[](带 edit,client 直接 apply,无 resolve)。
+---buffer 级"一键修全部"的 action kind。命名跟 ruff 的 source.fixAll.ruff 同构,
+---<leader>ff 用 only={FIXALL_KIND} + apply=true 定点调用(见 plugins/format/conform.lua);
+---带 server 后缀是为了不和 gopls 自己的 source.fixAll 撞车——两家都返回时 client
+---会弹选择框而不是直接 apply。
+M.FIXALL_KIND = "source.fixAll.golangci"
+
+-- context.only 的层级匹配(LSP 规范:kind 以 . 分层,只给 "source" 也命中
+-- "source.fixAll.golangci")。nil = 不筛。
+local function kind_wanted(only, kind)
+	if only == nil then
+		return true
+	end
+	for _, o in ipairs(only) do
+		if kind == o or vim.startswith(kind, o .. ".") then
+			return true
+		end
+	end
+	return false
+end
+
+local function pos_lt(a, b) return a.line < b.line or (a.line == b.line and a.character < b.character) end
+
+-- 两个 range 是否重叠。相邻(a.end == b.start)不算重叠;两个同点空 range(纯插入)
+-- 也不算,LSP 允许同位置多次插入。
+local function ranges_overlap(a, b) return pos_lt(a.start, b["end"]) and pos_lt(b.start, a["end"]) end
+
+-- fix 的 edits 剥掉内部字段 orig,只留 client 能吃的 range+newText。
+local function public_edits(edits)
+	return vim.tbl_map(function(e) return { range = e.range, newText = e.newText } end, edits)
+end
+
+---textDocument/codeAction 实现。两种 kind:
+---  * quickfix:光标行(或 visual 范围)上每条带 fix 的 golangci 诊断各一条。
+---  * source.fixAll.golangci:整 buffer 一条,合并所有仍新鲜的 fix。与 range 无关。
+---    每条诊断只取第一个 fix(SuggestedFixes 里多条是互斥备选);按位置排序后
+---    与已收 fix 的 range 有重叠的整条丢弃——半套 edit 是坏代码,且 LSP 禁止
+---    重叠 edit(gofumpt 的整块格式 fix 常和 staticcheck 的单点 fix 撞同一段)。
+---两种都带 edit、client 直接 apply、无 resolve。
 ---@param params lsp.CodeActionParams
 ---@return lsp.CodeAction[]
 function M.code_actions(params)
@@ -192,47 +231,94 @@ function M.code_actions(params)
 	if not vim.api.nvim_buf_is_loaded(bufnr) then
 		return {}
 	end
+	local only = params.context and params.context.only or nil
+	local want_quickfix = kind_wanted(only, "quickfix")
+	local want_fixall = kind_wanted(only, M.FIXALL_KIND)
+	if not (want_quickfix or want_fixall) then
+		return {}
+	end
+	local uri = params.textDocument.uri
 	local first, last = params.range.start.line, params.range["end"].line
 	local text = buf_text(bufnr)
 	local starts = line_starts(text)
+
+	-- 新鲜 = 每个 edit 的 range 在当前 buffer 上抠出的文本仍等于 lint 时的 orig。
+	local function is_fresh(fix)
+		for _, edit in ipairs(fix.edits) do
+			if range_text(text, starts, edit.range) ~= edit.orig then
+				return false
+			end
+		end
+		return true
+	end
+
 	local actions = {}
+	local fixall_candidates = {} -- 每条诊断第一个新鲜 fix
 	for _, diag in ipairs(vim.diagnostic.get(bufnr)) do
 		local data = diag.user_data and diag.user_data.golangci
-		if data and diag.lnum <= last and (diag.end_lnum or diag.lnum) >= first then
+		if data then
+			local on_range = diag.lnum <= last and (diag.end_lnum or diag.lnum) >= first
+			local first_fresh
 			for _, fix in ipairs(data.fixes) do
-				local fresh = true
-				for _, edit in ipairs(fix.edits) do
-					if range_text(text, starts, edit.range) ~= edit.orig then
-						fresh = false
+				if is_fresh(fix) then
+					first_fresh = first_fresh or fix
+					if want_quickfix and on_range then
+						actions[#actions + 1] = {
+							title = ("Fix: %s [%s]"):format(
+								fix.message ~= "" and fix.message or diag.message,
+								diag.source or "golangci"
+							),
+							kind = "quickfix",
+							edit = { changes = { [uri] = public_edits(fix.edits) } },
+						}
+					end
+				end
+			end
+			if first_fresh then
+				fixall_candidates[#fixall_candidates + 1] = first_fresh
+			end
+		end
+	end
+
+	if want_fixall and #fixall_candidates > 0 then
+		table.sort(fixall_candidates, function(a, b) return pos_lt(a.edits[1].range.start, b.edits[1].range.start) end)
+		local accepted = {} ---@type lsp.Range[]
+		local merged = {}
+		local n = 0
+		for _, fix in ipairs(fixall_candidates) do
+			local clash = false
+			for _, edit in ipairs(fix.edits) do
+				for _, r in ipairs(accepted) do
+					if ranges_overlap(edit.range, r) then
+						clash = true
 						break
 					end
 				end
-				if fresh then
-					actions[#actions + 1] = {
-						title = ("Fix: %s [%s]"):format(
-							fix.message ~= "" and fix.message or diag.message,
-							diag.source or "golangci"
-						),
-						kind = "quickfix",
-						edit = {
-							changes = {
-								[params.textDocument.uri] = vim.tbl_map(
-									function(e) return { range = e.range, newText = e.newText } end,
-									fix.edits
-								),
-							},
-						},
-					}
+				if clash then
+					break
+				end
+			end
+			if not clash then
+				n = n + 1
+				for _, edit in ipairs(fix.edits) do
+					accepted[#accepted + 1] = edit.range
+					merged[#merged + 1] = { range = edit.range, newText = edit.newText }
 				end
 			end
 		end
+		actions[#actions + 1] = {
+			title = ("Fix all golangci-lint issues (%d)"):format(n),
+			kind = M.FIXALL_KIND,
+			edit = { changes = { [uri] = merged } },
+		}
 	end
 	return actions
 end
 
 ---In-process LSP server(vim.lsp.ClientConfig.cmd 的 function 形式,
----:h vim.lsp.rpc)。只声明 codeActionProvider;positionEncoding=utf-8
----让 client 按 byte 列应用我们的 range。
+---:h vim.lsp.rpc)。只声明 codeActionProvider,kinds 按规范列全(nvim client
+---只按 only 过滤结果、不按 kinds 挑 server,列出是给规范和其它 client 看的);
+---positionEncoding=utf-8 让 client 按 byte 列应用我们的 range。
 ---@param dispatchers vim.lsp.rpc.Dispatchers
 function M.server(dispatchers)
 	local closing = false
@@ -243,7 +329,7 @@ function M.server(dispatchers)
 			if method == "initialize" then
 				callback(nil, {
 					capabilities = {
-						codeActionProvider = true,
+						codeActionProvider = { codeActionKinds = { "quickfix", M.FIXALL_KIND } },
 						positionEncoding = "utf-8",
 					},
 					serverInfo = { name = "golangci_fix" },

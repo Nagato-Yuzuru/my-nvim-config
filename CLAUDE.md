@@ -99,7 +99,10 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   parser in `lua/tools/golangci_fix.lua` stashes fixes in diagnostic
   `user_data`; in-process LSP `lsp/golangci_fix.lua` (enabled via the
   language plane — `plugins/lang/go.lua`) serves them as code actions on
-  the normal `<leader>ca` / `<A-CR>` flow.
+  the normal `<leader>ca` / `<A-CR>` flow, plus a buffer-wide
+  `source.fixAll.golangci` that `<leader>ff` applies before formatting
+  (same shape as ruff's `source.fixAll.ruff`; never `golangci-lint run
+  --fix` — no stdin mode, rewrites sibling files out of band).
 - **Claude Code integration is coder/claudecode.nvim in `none` mode**
   (`lua/plugins/ai/claudecode.lua`): nvim hosts only the WebSocket IDE
   server; the `claude` CLI runs in a tmux pane and attaches via `/ide`.
