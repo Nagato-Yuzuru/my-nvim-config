@@ -124,6 +124,8 @@ local LSP_TOOLS = {
 	-- 优先 mise 管的 buf（项目可钉版本），mason 兜底。verify_cmd：mise shim 在未设
 	-- 版本时 PATH 上存在但 exec 报错，同 rust-analyzer 的 rustup proxy 情形。
 	{ server = "buf_ls", bin = "buf", mason = "buf", verify_cmd = { "buf", "--version" } },
+	-- typos-lsp：跨 ft 拼写检查（见 lsp/typos_lsp.lua）
+	{ server = "typos_lsp", bin = "typos-lsp", mason = "typos-lsp" },
 }
 
 -- Formatter / Linter binary → Mason 包映射
