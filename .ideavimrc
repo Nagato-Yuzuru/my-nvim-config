@@ -57,12 +57,12 @@ set vim-paragraph-motion          " { / } skip whitespace-only lines
 " extension because nothing else claims it, never because of load order.
 "
 " FORBIDDEN: targets.vim. It registers n/l seek variants for every object,
-" claiming the whole an*/in*/al*/il* prefix space. That collides with
-" an/in=indent block (it used to collide with al/il=loop too; loop moved to
-" o in 2026-09 for nvim 0.13's builtin al/il, so only the n half remains).
-" The complete mapping doubles as a targets prefix, so under `set notimeout`
-" a `dan` hangs forever waiting for a second key. Taking targets would mean
-" moving indent block off n, which gives up parity.
+" claiming the whole an*/in*/al*/il* prefix space. Nothing here binds those
+" four (indent block is on I, loop on o), but
+" nvim owns them as builtins: an/in select the parent/child treesitter node
+" (0.12) and al/il the whole buffer / inner line (0.13). With targets they
+" become prefixes in the IDE, so `dan` means a different thing on each side,
+" and under `set notimeout` it hangs forever waiting for a second key.
 " Accepted cost: no I/A modifiers, no n/l seek. anyitem covers separator
 " objects. Unblock condition: IdeaVim ports g:targets_nl so n/l can move
 " elsewhere. Still unsupported at 2.46, and targets has shipped without
@@ -72,8 +72,9 @@ set vim-paragraph-motion          " { / } skip whitespace-only lines
 " binds ai/aI/ii unconditionally with no switch. By the ordering fact above it
 " always shadows conditional, and ownership drifts with init order. Indent
 " blocks go to anyobject's anyindentblock instead: a pure line-indent algorithm
-" that never consults language detection, and just as reliable. Accepted cost:
-" no aI variant, and an excludes the header line above the block. Unblock
+" that never consults language detection, and just as reliable. It sits on
+" aI/iI, the keys nvim's vim-indent-object uses. Accepted cost: aI takes only
+" the block's own lines, where nvim's aI adds one line above and below. Unblock
 " condition: upstream switches to IfMissing or adds a default-key switch.
 " Neither exists at 2.46. A second route opened up in 2.45, which shipped
 " built-in textobj-user: it declares an indent object on keys you choose,
@@ -109,7 +110,7 @@ set which-key                     " Which-Key
 "
 " Kept: o=loop  i=conditional  k=comment  v=variable
 "       y=list item (targets is forbidden, nothing else offers a separator object)
-"       n=indent block (textobj-indent is forbidden; this one is plain-text, the
+"       I=indent block (textobj-indent is forbidden; this one is plain-text, the
 "         only object that a wrong language guess cannot affect)
 "       C=class. nvim binds aC/iC/]C/[C to the same letter (its ]c/[c is
 "         gitsigns hunk nav, mirroring ]c/[c here), so aC/iC is the parity
@@ -121,13 +122,14 @@ set which-key                     " Which-Key
 " it), and the merged arg|item key (aa and ay cover the two halves).
 "
 " The `let`s must precede the `set`. After changing one, re-init per point 2 of
-" the ordering fact or it will not take effect. o, i and y are moved to match
-" nvim (textobjects.lua: ao/io=@loop, ai/ii=@conditional). Loop is on o, not
-" l, because nvim 0.13 ships builtin al/il (whole buffer / inner line) and the
-" letter must match ]o/[o on both sides. anyindentblock already defaults to n,
-" so it needs no variable.
+" the ordering fact or it will not take effect. o, i, y and I match nvim
+" (textobjects.lua: ao/io=@loop, ai/ii=@conditional, aI/iI=indent).
+" Loop is on o, not l, because nvim 0.13 ships builtin al/il (whole buffer /
+" inner line) and the letter must match ]o/[o on both sides. Indent block is
+" off its default n because nvim's builtin an/in select treesitter nodes.
 let g:anyobject_included = "anyloop,anyconditional,anycomment,anyvariable,anyitem,anyclass,anyindentblock"
 let g:anyobject_map_anyloop = "o"
+let g:anyobject_map_anyindentblock = "I"
 let g:anyobject_map_anyconditional = "i"
 let g:anyobject_map_anyitem = "y"
 let g:anyobject_map_anyclass = "C"
@@ -1037,7 +1039,8 @@ sethandler <A-W> a:ide
 "                  json, yaml and toml all have @assignment through
 "                  treesitter, while AnyObject only recognises code.
 "   ay/iy ]y/[y    anyobject anyitem (list items)
-"   an/in          anyobject anyindentblock (no ]n/[n; only treesitter jumps)
+"   aI/iI          anyobject anyindentblock (parity pair with nvim's
+"                  vim-indent-object; no jump on either side)
 "   aa/ia          argtextobj (arguments)
 "   aq/iq ab/ib    mini-ai (quotes, brackets)
 "   ae/ie          textobj-entire
@@ -1051,3 +1054,5 @@ sethandler <A-W> a:ide
 "                  no jump.
 "   al/il          nvim 0.13 builtins (whole buffer / inner line, :help v_al).
 "                  Nearest IdeaVim analogue is ae/ie from textobj-entire.
+"   an/in ]n/[n    nvim builtins (treesitter node select, Visual-only jumps,
+"   ]N/[N          :help v_an). The IDE equivalent is <A-w>/<A-W> above.

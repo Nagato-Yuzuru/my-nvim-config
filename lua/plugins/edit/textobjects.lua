@@ -9,7 +9,8 @@ return {
 		-- ai/ii 必然覆盖在后。
 		--
 		-- 归属结论：ai/ii = 条件语句；缩进对象只剩 aI/iI（上游 README：iI ≡ ii，
-		-- 主力键无损失；aI = 块 + 上下各一行，比原 ai 多吃一行）。
+		-- 主力键无损失；aI = 块 + 上下各一行，比原 ai 多吃一行）。IdeaVim 侧
+		-- anyindentblock 也映射到 aI/iI，是 parity 对。
 		--
 		-- 不能删它换成内建 an/in（0.12 的 treesitter 节点对象）：Helm 模板 ft=yaml，
 		-- 但 {{ }} 不是合法 YAML，parser 会把整棵树塌成一个 ERROR 节点，treesitter
