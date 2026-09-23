@@ -94,7 +94,7 @@ set easymotion                    " AceJump + IdeaVim-EasyMotion
 set which-key                     " Which-Key
 " === AnyObject shrink (28333) ===
 " Keep only the seven objects the built-ins have no equivalent for. Everything
-" else moved to the built-in extensions above. The key-ownership table at the
+" else belongs to the built-in extensions above. The key-ownership table at the
 " end of the "Syntax-aware" section lists who owns what.
 "
 " Why shrink it (read from v3.1.4's TSLanguageUtils source): AnyObject guesses
@@ -170,27 +170,27 @@ onoremap , <Nop>
 " moves to <C-S-A>. <C-x> itself becomes a <Nop> prefix and waits for a second
 " key, up to timeoutlen 5000.
 "
-" The whole C-x layer moved here from the IDE keymap ("Emacs Custom") in
-" 2026-07, leaving zero C-x shortcuts on the IDE side. One C-x chord anywhere
-" in the IDE keymap is enough to put the first keystroke into the IDE's
-" chord-pending state, and the shell in the Terminal tool window then never
-" receives C-x at all. Two concrete breakages that caused: emacs in the
-" terminal fired CloseAllEditors on C-x C-c, which destroys editor state, and
-" zsh lost C-x C-e (edit-command-line). With the layer in IdeaVim, C-x applies
+" Rule: the whole C-x layer lives here, never in the IDE keymap ("Emacs
+" Custom") — zero C-x shortcuts on the IDE side. Reason: one C-x chord
+" anywhere in the IDE keymap is enough to put the first keystroke into the
+" IDE's chord-pending state, so the shell in the Terminal tool window never
+" receives C-x at all — emacs in the terminal would get CloseAllEditors on
+" C-x C-c instead of its own binding, destroying editor state, and zsh would
+" lose C-x C-e (edit-command-line). With the layer in IdeaVim, C-x applies
 " only inside the editor and the terminal keeps the whole key.
 " Accepted cost: the C-x layer does not work inside tool windows. Esc or
 " Ctrl+Esc returns to the editor in one step. There are no insert-mode chords,
 " matching nvim, where the <C-x> mappings are normal-mode only.
 " Note: IntelliJ IDEA's "Emacs Custom.xml" is the canonical copy. Every other
 " JetBrains product carries a byte-for-byte copy of it, distributed by `cp`
-" after editing IDEA's since 2026-07, so clearing C-x holds product-wide.
-" Edit only IDEA's keymap, then copy.
+" after editing IDEA's, so clearing C-x holds product-wide. Edit only IDEA's
+" keymap, then copy.
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
 " close family, mirroring lua/plugins/ui/bufferline.lua. k is the emacs
-" kill-buffer spelling, O is Others/Only. The digit keys are all retired:
-" 0/C-0/1/2/3 addressed panes, which now belong to <C-w>, and Ctrl-digit also
-" depends on the CSI-u protocol in a terminal.
+" kill-buffer spelling, O is Others/Only. No digit keys: pane addressing
+" belongs to <C-w>, and Ctrl-digit also depends on the CSI-u protocol in a
+" terminal.
 nmap <C-x>k <Action>(CloseContent)
 nmap <C-x>O <Action>(CloseAllEditorsButActive)
 nmap <C-x>[ <Action>(CloseAllToTheLeft)
@@ -222,10 +222,10 @@ nmap <C-x><C-f> <Action>(GotoFile)
 " dirty concept), <C-x>d pick-and-close (no picker), the <C-x>t/T/<Tab>/X/R
 " tabpage layer (JetBrains has no tabpages), <C-x>,/. move buffer, <C-x>`
 " terminal, <C-x>m minimap.
-" Stock emacs chords dropped during the migration because vim already covers
-" them: C-x h (ggVG or Cmd-A), C-x x (visual o), C-x ` (]d, F2 kept), C-x C-s
-" (:w, and autosave), C-x Tab indent (the > operator), C-x C-c (dangerous, see
-" above), C-x C-o (rare, use the menu).
+" Stock emacs chords stay unbound because vim already covers them: C-x h
+" (ggVG or Cmd-A), C-x x (visual o), C-x ` (]d, F2 kept), C-x C-s (:w, and
+" autosave), C-x Tab indent (the > operator), C-x C-c (dangerous, see above),
+" C-x C-o (rare, use the menu).
 
 
 " -- Tab management asymmetry
@@ -265,7 +265,7 @@ nmap <C-x><C-f> <Action>(GotoFile)
 " <C-h>/<C-l> also chain Diff.FocusOppositePane. Diff panes are embedded
 " editors rather than windows, so <C-w>h/l cannot reach them. nvim needs no
 " counterpart because diffview panes there are real windows.
-" Measured 2026-08-21: inside a diff, bare <C-h>/<C-l> toggle panes and never
+" Measured: inside a diff, bare <C-h>/<C-l> toggle panes and never
 " leave the tab. Leave with <C-w>hjkl, whose second key takes no user mapping
 " and so bypasses the chain.
 " Toggle semantics: FocusOppositePane is the only pane action, direction is
@@ -288,13 +288,13 @@ nmap <C-l> <C-w>l<Action>(Diff.FocusOppositePane)
 " -- Window lifecycle: vim-native <C-w> is the single grammar on both sides.
 " vim-engine implements <C-w>{h,j,k,l,s,v,c,q,o,w} natively (verified against
 " vim-engine action/window sources), so split/close/only/cycle need no mapping
-" here or on the nvim side. <C-x> stays a workspace-layer prefix (tab/buffer);
-" the emacs-style C-x 2/3 split chords are retired on BOTH sides. nvim's
-" <C-x>2/3 are deleted (lua/core/keymaps.lua), and the IDE-keymap C-x split
-" chords are stripped from "Emacs Custom" (SplitHorizontally / SplitVertically /
-" UnsplitAll / NextSplitter inherited from stock Emacs, plus the custom
-" C-x C-2, C-x C-3, C-x alt-o). Ctrl-digit second keystrokes were untypable in
-" terminals anyway, which is what forced the two sides apart.
+" here or on the nvim side. <C-x> stays a workspace-layer prefix (tab/buffer).
+" No emacs-style C-x 2/3 split chords on either side: nvim binds none
+" (lua/core/keymaps.lua), and the IDE keymap's "Emacs Custom" carries none of
+" stock Emacs's SplitHorizontally / SplitVertically / UnsplitAll / NextSplitter,
+" nor the custom C-x C-2, C-x C-3, C-x alt-o — don't re-add them. Ctrl-digit
+" second keystrokes are untypable in terminals, which is why neither side
+" binds them.
 "
 " Gap-filling maps for <C-w> subcommands vim-engine does NOT implement:
 "   <C-w>L / <C-w>J  move split right/down, mirroring nvim's wincmd L/J, which
@@ -546,7 +546,7 @@ nmap <leader>vk <Action>(TogglePresentationAssistantAction)
 "        muscle memory still works on the nvim side.
 "        Picker form lives at <leader>sm. That whole <leader>s* namespace is
 "        nvim-only, since the IDE uses Search Everywhere instead. It runs on
-"        the snacks picker; the old telescope hard-dep worry is retired.
+"        the snacks picker.
 "   vk → :Screenkey toggle          (lua/plugins/ui/screenkey.lua)
 "        Both sides put the keys you press on screen, for demos and recorded
 "        tutorials. Accepted difference in what they show: Presentation
@@ -582,7 +582,7 @@ nmap <leader>vk <Action>(TogglePresentationAssistantAction)
 "     language. Dispatched by filetype (see the augroup) because (a) IdeaVim's
 "     vimscript can't read &filetype/% and (b) <buffer>-local maps are unsupported
 "     Instead we re-assert GLOBAL maps on BufEnter. Needs IdeaVim >= 2.33.0 (autocmd,
-"     2026-04 / VIM-1693).
+"     VIM-1693).
 "
 " Cross-editor asymmetry (IdeaVim-only on purpose): Neovim has no <leader>g* MENU,
 " but it does generate code, just through other surfaces, chiefly <leader>ca =
@@ -627,7 +627,7 @@ map <leader>gu <Action>(Unwrap)
 "   gJ/gj type/struct-from-JSON. Go-only concepts, no cross-language meaning.
 " Only Go + JS/TS expose standalone generator action IDs; everywhere else the
 " concept key falls back to the generic Generate popup (set in the `BufEnter *`
-" reset). IDs re-verified 2026-08-21: Go against the plugin's own
+" reset). IDs re-verified: Go against the plugin's own
 " GoBundle.properties (`action.GoGenerate*Action.text`), JS against
 " intellij-community's actionsUsagesV3.csv. Harvest current IDs with
 " `:actionlist <pattern>`. The Go plugin is closed source, so the running IDE
@@ -638,13 +638,11 @@ map <leader>gu <Action>(Unwrap)
 " comment operator that swallows the next keystroke. Never delete a concept key
 " without deleting its reset line too.
 "
-" Sourcing facts. These were open questions when the tier was written, and all
-" three are now settled against IdeaVim 2.46 sources, don't re-derive them:
+" Sourcing facts, settled against IdeaVim 2.46 sources — don't re-derive them:
 "   1) A pattern is ONE glob, never a comma list. AutoCmdPattern.toRegex emits a
 "      literal `,` outside `{}`, so `*.js,*.ts` compiles to a regex demanding a
-"      comma in the filename and matches nothing. The JS/TS branch below was
-"      dead from the day it was written. Brace alternation is the documented
-"      multi-extension form.
+"      comma in the filename and matches nothing. Brace alternation is the
+"      documented multi-extension form.
 "   2) BufEnter fires on every buffer switch, including returning to an
 "      already-open tab, so a concept key cannot stay on the previous file's
 "      generator. FileType is not needed.
@@ -719,9 +717,7 @@ let g:WhichKeyDesc_generate_unwrap      = "<leader>gu Unwrap"
 
 " 5)  Git. <localleader>g*, mirroring gitsigns and git-conflict
 "     (lua/plugins/git/). Every action ID here was read out of the open-source
-"     VcsActions.xml and intellij.vcs.git.backend.xml. Since the move to
-"     all-in-IDEA the source is directly readable, so the old "closed-source
-"     GoLand, cannot verify" caveat no longer applies.
+"     VcsActions.xml and intellij.vcs.git.backend.xml.
 "
 " ]c/[c already live in the Bracket-prefix section. In a normal editor they pop
 " the gutter toolbar, matching nvim's gs.nav_hunk preview; in a diff viewer
@@ -963,7 +959,7 @@ map [F [M
 nmap ]c <Action>(VcsShowNextChangeMarker)<Action>(NextDiff)
 nmap [c <Action>(VcsShowPrevChangeMarker)<Action>(PreviousDiff)
 
-" Known gaps in the diff viewer (2026-08-21, not diagnosed and not being chased
+" Known gaps in the diff viewer (not diagnosed and not being chased
 " because the situation is rare): the PSI-backed keys ]f/[f, ]F/[F, af/if/aF
 " stop working, and ]d/[d depend on inspections, which do not run in a diff.
 
@@ -979,7 +975,7 @@ nmap [c <Action>(VcsShowPrevChangeMarker)<Action>(PreviousDiff)
 " af/if come from functextobj (nvim binds af/if to @function.outer/inner).
 " Intended side effect: its IfMissing test is hasMapTo(<Plug>), so it stops
 " binding the am/aM/im defaults once these exist.
-" Known mismatch, measured 2026-07 and accepted for now: functextobj's inner
+" Known mismatch, accepted for now: functextobj's inner
 " means "between the braces of the function body", which selects differently
 " from nvim's @function.inner in Python. Use vin there to select a body. The
 " built-in extensions iterate quickly, so retest after upgrades; if upstream
@@ -992,7 +988,7 @@ xmap if <Plug>(textobj-function-im)
 " counterpart, so it sits on the uppercase key and costs no parity key.
 omap aF <Plug>(textobj-function-aM)
 xmap aF <Plug>(textobj-function-aM)
-" iu is CamelCaseMotion's inner sub-word, keeping anyobject's old u key. There
+" iu is CamelCaseMotion's inner sub-word. There
 " is no au, because the plugin offers inner only.
 " The <Plug> names follow two different schemes, so do not mix them: the
 " w/b/e/ge motions are <Plug>CamelCaseMotion_w, while text objects use the
@@ -1030,7 +1026,7 @@ sethandler <A-W> a:ide
 "                  and the letter must match the jump on both sides)
 "   ak/ik ]k/[k    anyobject anycomment (no nvim counterpart, IdeaVim-only)
 "   av/iv ]v/[v    anyobject anyvariable. av/iv have parity: nvim binds them to
-"                  @assignment.outer and .rhs. Measured 2026-07 on
+"                  @assignment.outer and .rhs. Measured on
 "                  `let rc: Rc<String> = Rc::new("hello".into());`, where both
 "                  sides select the whole statement for av and
 "                  `Rc::new("hello".into())` for iv.
