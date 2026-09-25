@@ -42,9 +42,10 @@ return {
 			{ "<C-x>o", "<cmd>BufferLinePick<CR>", desc = "Pick buffer" },
 			-- close 家族（镜像 .ideavimrc 的 C-x 节）：k = emacs kill-buffer 正统，
 			-- 大写 K = 同动词加力度（丢弃未保存）；d = 点选删除，与 <C-x>o 点选
-			-- 跳转成对；O = Others/Only。数字键已全族退役：0 的 emacs 助记是
-			-- delete-window（窗格归 <C-w>），<C-0> 依赖 CSI-u 扩展键协议，协议
-			-- 缺失时塌成裸 0，"关其它"会误触发成"关当前"。
+			-- 跳转成对；O = Others/Only；A = All（批量动作同 O 用大写）。整族只
+			-- 删 buffer、不动窗格布局——关窗格是 <C-w>o/c。数字键已全族退役：
+			-- 0 的 emacs 助记是 delete-window（窗格归 <C-w>），<C-0> 依赖 CSI-u
+			-- 扩展键协议，协议缺失时塌成裸 0，"关其它"会误触发成"关当前"。
 			{
 				"<C-x>k",
 				function() require("mini.bufremove").delete(0, false) end,
@@ -57,6 +58,19 @@ return {
 			},
 			{ "<C-x>d", "<cmd>BufferLinePickClose<CR>", desc = "Pick & close buffer" },
 			{ "<C-x>O", "<cmd>BufferLineCloseOthers<CR>", desc = "Close other buffers" },
+			{
+				"<C-x>A",
+				-- bufferline 无 CloseAll 命令；逐个走 bufremove，脏 buffer 各自 confirm（默认 No）
+				function()
+					local bufremove = require("mini.bufremove")
+					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+						if vim.bo[buf].buflisted then
+							bufremove.delete(buf, false)
+						end
+					end
+				end,
+				desc = "Close all buffers",
+			},
 			{ "<C-x>,", "<cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },
 			{ "<C-x>.", "<cmd>BufferLineMoveNext<CR>", desc = "Move buffer right" },
 			{ "<C-x>[", "<cmd>BufferLineCloseLeft<CR>", desc = "Close buffers to the left" },

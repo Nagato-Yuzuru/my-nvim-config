@@ -188,11 +188,12 @@ onoremap , <Nop>
 nnoremap <C-S-A> <C-x>
 noremap <C-x> <Nop>
 " close family, mirroring lua/plugins/ui/bufferline.lua. k is the emacs
-" kill-buffer spelling, O is Others/Only. No digit keys: pane addressing
+" kill-buffer spelling, O is Others/Only, A is All. No digit keys: pane addressing
 " belongs to <C-w>, and Ctrl-digit also depends on the CSI-u protocol in a
 " terminal.
 nmap <C-x>k <Action>(CloseContent)
 nmap <C-x>O <Action>(CloseAllEditorsButActive)
+nmap <C-x>A <Action>(CloseAllEditors)
 nmap <C-x>[ <Action>(CloseAllToTheLeft)
 nmap <C-x>] <Action>(CloseAllToTheRight)
 " buffer and file navigation. n/p mirror nvim's BufferLineCycle. o mirrors
