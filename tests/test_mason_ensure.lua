@@ -23,6 +23,8 @@ local function setup_sandbox(exit_code)
 		script(root .. "/mason/bin/buf", 0)
 		vim.env.XDG_CACHE_HOME = root .. "/cache"
 		vim.env.MASON = root .. "/mason"
+		-- 环境里带 NO_AUTO_INSTALL=1 时 ensure_tools 会短路、用例空转
+		vim.env.NO_AUTO_INSTALL = nil
 		-- /bin 留给 #!/bin/sh；伪 PATH 上只有 buf，其余 LSP_TOOLS 条目都走"缺失"分支
 		vim.env.PATH = root .. "/path:/bin:" .. root .. "/mason/bin"
 		_G.installed = {}

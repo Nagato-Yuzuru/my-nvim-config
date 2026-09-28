@@ -81,7 +81,7 @@ The layout is self-describing — see `ls`. The non-obvious bits:
   **install plane** — which LSP/formatter/linter binaries Mason manages
   (nvim-lint pulls its base table via getter; conform owns its runtime
   formatter map — install intent and runtime policy are separate facts). DAP installs separately via `mason-registry` from
-  `lua/core/dap.lua` (not `mason-nvim-dap`). Both skip under `CI=true` /
+  `lua/core/dap.lua` (not `mason-nvim-dap`). Both skip under
   `NO_AUTO_INSTALL=1` — init.lua's firenvim branch relies on that env
   contract.
 - **Picker is Snacks.nvim** (no Telescope for picking). telescope.nvim

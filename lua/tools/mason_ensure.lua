@@ -56,7 +56,7 @@ end
 ---@param list string[] tool names to ensure
 ---@param tool_map table<string, LspTool|MasonTool> name → spec
 local function ensure_tools(list, tool_map)
-	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
+	if vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
 	local install_if_missing = require("tools.mason_install").install_if_missing

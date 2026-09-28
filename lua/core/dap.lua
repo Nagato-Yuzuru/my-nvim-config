@@ -166,7 +166,7 @@ end
 -- mason/bin` 追加到 PATH，所以 mason 先前装过的二进制也会在这一步命中。
 ---@param pkgs DapMasonPkg[]
 function M.ensure_mason(pkgs)
-	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
+	if vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
 	local install_if_missing = require("tools.mason_install").install_if_missing

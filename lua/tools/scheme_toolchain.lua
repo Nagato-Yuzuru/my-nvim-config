@@ -10,7 +10,7 @@
 -- 模块**只**做检测和提示，不安装。
 --
 -- 触发：plugins/lang/scheme.lua 里的 FileType 自动命令调一次 check_for_ft(ft)。
--- 同一 filetype 一次 session 只 notify 一次。CI / NO_AUTO_INSTALL 时短路。
+-- 同一 filetype 一次 session 只 notify 一次。NO_AUTO_INSTALL 时短路。
 --
 -- 探测分两类：
 --   1. PATH 二进制（guile / steel / schemat 等）→ vim.fn.executable
@@ -148,7 +148,7 @@ local notified = {}
 
 ---@param ft string
 function M.check_for_ft(ft)
-	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
+	if vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
 	if notified[ft] then

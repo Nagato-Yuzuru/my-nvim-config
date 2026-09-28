@@ -15,7 +15,7 @@
 --   * lang_registry 的 probe 调 is_installed()——二进制不在就不 enable promql_ls，
 --     避免 client 起来又 "quit with exit code 1"。
 --   * 打开 promql buffer 时 check_for_ft("promql") notify 一次安装命令。
--- CI / NO_AUTO_INSTALL 时短路。
+-- NO_AUTO_INSTALL 时短路。
 
 local M = {}
 
@@ -40,7 +40,7 @@ local notified = false
 -- 打开 promql buffer 时提示缺失的 LSP 后端（同一 session 只提示一次）。
 ---@param ft string
 function M.check_for_ft(ft)
-	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
+	if vim.env.NO_AUTO_INSTALL == "1" then
 		return
 	end
 	if ft ~= "promql" or notified then

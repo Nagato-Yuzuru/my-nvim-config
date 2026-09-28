@@ -3,9 +3,9 @@
 -- LSP 侧（tools/mason_ensure.lua 的 ensure_tools）与 DAP 侧（core/dap.lua 的
 -- ensure_mason）共用这份"缺失即装"逻辑（单一真相）。
 --
--- 责任边界：**不**在此处理 CI=true / NO_AUTO_INSTALL=1 跳过，也**不**做 PATH
--- 存在性探测——这两件事各 caller 语义不同（LSP 侧在 ensure_tools 里跳 CI 并用
--- has_exec/probe_ok 探 PATH；DAP 侧在 ensure_mason 里跳 CI 并按 adapter bin 探
+-- 责任边界：**不**在此处理 NO_AUTO_INSTALL=1 跳过，也**不**做 PATH
+-- 存在性探测——这两件事各 caller 语义不同（LSP 侧在 ensure_tools 里跳过并用
+-- has_exec/probe_ok 探 PATH；DAP 侧在 ensure_mason 里跳过并按 adapter bin 探
 -- PATH），留在各自 caller。此处只认"包名 → 装/不装"这一层。
 local M = {}
 
