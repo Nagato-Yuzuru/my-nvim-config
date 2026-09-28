@@ -4,7 +4,10 @@ return {
 		"williamboman/mason.nvim",
 		build = ":MasonUpdate",
 		config = function()
-			require("mason").setup()
+			-- append：运行时解析也 PATH 优先（默认 prepend 会让兜底装过的副本永久
+			-- 遮蔽 mise/rustup 版本）。verify_cmd 识破的坏条目由覆盖目录单独路由回 mason。
+			require("mason").setup({ PATH = "append" })
+			require("tools.mason_ensure").setup_path()
 
 			-- LSP 自动安装在 core/lsp.lua 的 setup() 里集中调度（和 capabilities
 			-- 注入按显式顺序跑，不受 VeryLazy autocmd 注册顺序影响）。这里只负责

@@ -7,7 +7,7 @@
 ---@field bin string PATH-probe binary name; if executable() == 1 the mason install is skipped
 ---@field mason string mason-registry package name
 ---@field external_owner? string when set, vim.lsp.enable will NOT auto-start this server (a non-vim plugin owns its lifecycle)
----@field verify_cmd? string[] optional liveness probe (e.g. `--version`); if it exits non-zero the bin is treated as missing and mason fallback kicks in. Needed for rustup proxies that exist on PATH but fail at exec when the matching toolchain component isn't installed.
+---@field verify_cmd? string[] optional liveness probe (e.g. `--version`); if it exits non-zero the bin is treated as missing: mason installs it and the bin name is routed to the mason copy via an override dir at the front of PATH. Needed for rustup proxies that exist on PATH but fail at exec when the matching toolchain component isn't installed.
 
 ---@class MasonTool
 ---@field bin string PATH-probe binary name
@@ -29,9 +29,32 @@ local function probe_ok(cmd)
 	return handle:wait(2000).code == 0
 end
 
+-- 覆盖目录：只放 verify_cmd 探测失败的 bin → mason/bin/<bin> 软链，排在 PATH 最前。
+-- mason 是 append，没有这层的话兜底装的副本会被坏掉的 PATH 条目遮蔽。
+-- 软链跨 session 保留，启动早期（VeryLazy 前）打开的 buffer 沿用上次的路由。
+local OVERRIDE_DIR = vim.fs.joinpath(vim.fn.stdpath("cache"), "mason-override")
+
+-- 探测前先撤掉该 bin 的覆盖，让 probe 看到真实 PATH；失败才重新链到 mason。
+---@param t LspTool|MasonTool
+---@return boolean present
+local function probe_and_route(t)
+	local link = vim.fs.joinpath(OVERRIDE_DIR, t.bin)
+	os.remove(link)
+	if not has_exec(t.bin) then
+		return false
+	end
+	if not t.verify_cmd or probe_ok(t.verify_cmd) then
+		return true
+	end
+	-- bin 在 PATH 但 probe 失败（rustup proxy 缺 component / mise 空 shim）→ 路由到 mason
+	vim.fn.mkdir(OVERRIDE_DIR, "p")
+	vim.uv.fs_symlink(vim.fs.joinpath(vim.env.MASON, "bin", t.bin), link)
+	return false
+end
+
 -- 根据 "name → {bin, mason}" 映射，缺失时自动安装
 ---@param list string[] tool names to ensure
----@param tool_map table<string, MasonTool> name → spec
+---@param tool_map table<string, LspTool|MasonTool> name → spec
 local function ensure_tools(list, tool_map)
 	if vim.env.CI == "true" or vim.env.NO_AUTO_INSTALL == "1" then
 		return
@@ -39,15 +62,8 @@ local function ensure_tools(list, tool_map)
 	local install_if_missing = require("tools.mason_install").install_if_missing
 	for _, name in ipairs(list) do
 		local t = tool_map[name]
-		if t then
-			local present = has_exec(t.bin)
-			if present and t.verify_cmd and not probe_ok(t.verify_cmd) then
-				-- bin on PATH but probe fails (typical: rustup proxy without component) → fall through to mason
-				present = false
-			end
-			if not present then
-				install_if_missing(t.mason)
-			end
+		if t and not probe_and_route(t) then
+			install_if_missing(t.mason)
 		end
 	end
 end
@@ -204,6 +220,14 @@ local LINTERS_BY_FT = {
 }
 
 local M = {}
+
+-- 把覆盖目录放到 PATH 最前（mason setup 之后调用；幂等）
+function M.setup_path()
+	local sep = vim.fn.has("win32") == 1 and ";" or ":"
+	if not vim.tbl_contains(vim.split(vim.env.PATH or "", sep, { plain = true }), OVERRIDE_DIR) then
+		vim.env.PATH = OVERRIDE_DIR .. sep .. (vim.env.PATH or "")
+	end
+end
 
 -- 安装缺失的 LSP servers（VeryLazy 时调用）
 function M.ensure_lsp()
