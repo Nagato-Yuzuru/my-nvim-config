@@ -77,6 +77,13 @@ return {
 		},
 		right = {
 			{ ft = "aerial", title = "Aerial", size = { width = 0.25 } },
+			-- 侧边文档面板（tools/docs_panel.lua）：ft 是 markdown，靠 buffer 标记区分
+			{
+				ft = "markdown",
+				title = "Docs",
+				size = { width = 0.3 },
+				filter = function(buf) return vim.b[buf].docs_panel == true end,
+			},
 			-- dap-ui 的 4 个 right element（scopes / breakpoints / stacks / watches）
 			-- 不进来——见上面顶部注释里"dap-ui"那条。
 		},

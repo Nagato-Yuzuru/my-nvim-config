@@ -351,6 +351,9 @@ nmap <Plug>(wres)= <C-w>=<Plug>(wres)
 
 " -- LSP hover / signature help: both sides use community defaults
 " normal K          → Quick Documentation  (IdeaVim native)
+" <C-q> in the popup → pin it to the Documentation tool window (IDE native:
+"                     QuickJavaDoc pressed again). nvim mirrors it in
+"                     lua/tools/docs_panel.lua (right-side panel)
 " insert <C-k>      → ParameterInfo         (IDE, not intercepted by IdeaVim;
 "                                            bind in IDE Keymap if the default
 "                                            Cmd/Ctrl+P has been overridden)

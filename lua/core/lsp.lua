@@ -108,6 +108,7 @@ end
 -- 默认 hover popup 没挂 LspAttach，K 会回落到 keywordprg（:help，见
 -- core/options.lua），popup 里按 K 跳出一个 no-help 提示并不直觉。更符合
 -- 直觉的是"再按一次 K 关掉 popup"。
+-- hover popup 里另绑 <C-q> 固定到侧边文档面板（tools/docs_panel.lua）。
 local function patch_hover_close()
 	local orig = vim.lsp.util.open_floating_preview
 	vim.lsp.util.open_floating_preview = function(contents, syntax, opts, ...)
@@ -118,6 +119,13 @@ local function patch_hover_close()
 					vim.api.nvim_win_close(winid, true)
 				end
 			end, { buffer = bufnr, silent = true, desc = "Close hover popup" })
+			if opts and opts.focus_id == "textDocument/hover" then
+				vim.keymap.set("n", "<C-q>", function()
+					if winid and vim.api.nvim_win_is_valid(winid) then
+						require("tools.docs_panel").pin(winid)
+					end
+				end, { buffer = bufnr, silent = true, desc = "Pin docs to side panel" })
+			end
 		end
 		return bufnr, winid
 	end
@@ -189,6 +197,13 @@ local function setup_lsp_attach_keymaps()
 			-- FileType 时先跑，会把 Neovim 0.11 的默认覆盖掉。LspAttach 在 FileType
 			-- 之后触发，这里显式 set 就能盖回来。
 			map("n", "K", vim.lsp.buf.hover, "LSP: Hover")
+			-- hover 浮窗可见时 <C-q> 固定到侧边面板，否则仍是原生块选（同 <C-v>）
+			map(
+				"n",
+				"<C-q>",
+				function() require("tools.docs_panel").pin_or_fallback() end,
+				"LSP: Pin docs to side panel"
+			)
 			-- racket-langserver 对手动触发（Invoked）返回 null——只有 blink 在输入
 			-- 触发字符（space / ) / ]）时的 auto-trigger 有签名提示。
 			-- #lang sicp 完全没有签名提示：server 不支持该方言的 signatureHelp。
@@ -321,6 +336,8 @@ end
 function M.setup()
 	register_lsp_verylazy_hooks()
 	patch_hover_close()
+	-- follow：固定后随光标刷新；false = 静态快照。运行时 :DocsPanelFollow 切换
+	require("tools.docs_panel").setup({ follow = false })
 	patch_workspace_edit()
 	enable_servers()
 	setup_lsp_attach_keymaps()
