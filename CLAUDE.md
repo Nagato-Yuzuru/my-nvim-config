@@ -1,14 +1,12 @@
 # CLAUDE.md
 
-Personal Neovim config: lazy.nvim, all-Lua, Neovim 0.11+ (native
+Personal Neovim config: lazy.nvim, all-Lua, Neovim 0.12+ (native
 `vim.lsp.enable()` + top-level `lsp/`).
 
-> CLAUDE.md holds only what a code comment can't:
-> (1) cross-file constraints, (2) entry-point facts you need before
-> deciding which file to open, (3) forbidding rules / retired designs
-> with no code home. Per-construct rationale lives next to the construct
-> — when a bullet below names a file, the full story is in that file's
-> header comment; don't duplicate it here.
+> CLAUDE.md holds only what a code comment can't: cross-file
+> constraints, entry-point facts needed before choosing which file to
+> open, and forbidding rules / retired designs with no code home. When a
+> bullet names a file, the full story is in that file's header comment.
 
 ## Core Principle: Cross-editor Parity
 
@@ -20,10 +18,10 @@ this repo affects every JetBrains IDE on the machine.
 When changing a keymap / plugin / workflow on one side, **mirror it on
 the other** if an IDE Action equivalent exists; if not, leave a comment
 on the side that lacks it explaining why. Asymmetries are allowed when
-Neovim has genuinely more capability (Flash Treesitter, multi-list
-bookmarks) — document them as a comment block in the relevant
-`.ideavimrc` section so both sides share the same source of truth for
-what's bound where.
+Neovim has genuinely more capability — document them as a comment block
+in the relevant `.ideavimrc` section, which is the source of truth for
+what's bound where. Re-check the map below before merging any
+keymap/plugin change.
 
 ### Parity map (.ideavimrc section ↔ nvim file)
 
@@ -31,159 +29,99 @@ what's bound where.
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |
 | Leader + clipboard + `J`/`K` visual move + `<C-x>` handling | `lua/core/keymaps.lua`                                             |
 | easymotion `<leader><leader>*`                              | `lua/plugins/edit/motion.lua` (flash.nvim)                         |
-| `set peekaboo` (`"` / `@` / `<C-r>` register preview)       | `lua/plugins/edit/registers.lua` (junegunn/vim-peekaboo)           |
-| `set quickscope` + `g:qs_highlight_on_keys` (lazy f/F/t/T hints) | `lua/plugins/edit/eyeliner.lua` (jinh0/eyeliner.nvim, `highlight_on_key=true`) — owns f/F/t/T; flash `modes.char` disabled to avoid shadowing |
+| `set peekaboo`                                              | `lua/plugins/edit/registers.lua` (vim-peekaboo)                    |
+| `set quickscope` (f/F/t/T hints)                            | `lua/plugins/edit/eyeliner.lua` — owns f/F/t/T; flash char mode is off |
 | multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
-| Syntax text objects + bracket motions (`af/if`, `aC/iC`, `ai/ii`, `ao/io`, `aI/iI`, `av/iv`, `]f/[f`, `]C/[C`, …; one letter per kind across object and jump) — "Syntax-aware navigation & editing" section | `lua/plugins/edit/textobjects.lua` (nvim-treesitter-textobjects). IdeaVim side = built-ins + a shrunken AnyObject; **`set targets` and `set textobj-indent` are forbidden as of IdeaVim 2.46** (key-space / forced-mapping conflicts; the `.ideavimrc` `FORBIDDEN:` notes state the unblock conditions — recheck on upgrade, don't treat as permanent). Key-ownership table, forbidding rationale, and the extension-init ordering facts live in the `.ideavimrc` sections — read them, don't re-derive |
-| Refactor `<leader>r*`                                       | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` (treesitter extract) + inc-rename for `<leader>rn` |
-| Core navigation `g*` (`gd`/`gD`/`gi`/`gr`)                  | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/trouble.lua` (`gr`) |
-| Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua` (goto-preview)                       |
-| Generate `<leader>G` + `<leader>g{o,i,d}` + concept keys `<leader>g{c,G,S,A,m,J,j}` (IdeaVim-only) | Neovim has no Generate menu — the same generators live on the code-action surface, `<leader>ca` in `lua/core/lsp.lua`. Not an asymmetry to close: GoLand serves getter/setter as an intention too, so `<leader>ca` is the shared surface (and the escape hatch when a concept key is silent). The concept keys are dispatched per-filetype by an `autocmd BufEnter` augroup; its three sourcing facts (one glob per pattern, BufEnter fires on every switch, disabled actions are silent) are settled in the `.ideavimrc` §4 comment — read it, don't re-derive |
-| Surround / Unwrap `<leader>g{t,T,u}`                        | `lua/plugins/edit/wrap.lua`（三键位 + deleft.vim spec）; engine/templates in `lua/tools/wrap.lua` |
-| Navigation extras `<leader>n*` (no `g*` equivalent), plus `<leader>n{h,j,k,l}` walker hydra (nvim-only) | LSP keymaps in `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (bindings; treewalker plugin spec is `lua/plugins/edit/treewalker.lua`) |
-| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua` (bulk), plus `<leader>sr` `edit/rip-substitute.lua`, `<leader>sR` `edit/grug-far.lua`, `<leader>sm` `edit/marks.lua` |
-| Views `<leader>v*`                                          | Spread across `lua/plugins/{ui,git,runtime,edit}/` — `grep '<leader>v'` |
-| Git `<localleader>g*` + `]c/[c` hunk nav, `<leader>v{D,H}` diff/history | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`. IdeaVim side mirrors per-key (`,gp/,gb/,gr/,gd/,gx`); nvim-only: `,gs` hunk-stage toggle, `,gB` gutter-base switch, in-buffer conflict ops (`co/ct/cb/c0`, `]x/[x`) — IDE handles those in gutter toolbar / merge dialog. Asymmetry notes live in the `.ideavimrc` Git section |
+| "Syntax-aware navigation & editing" (text objects + `]`/`[` bracket motions) | `lua/plugins/edit/textobjects.lua`. `set targets` / `set textobj-indent` are forbidden as of IdeaVim 2.46 — the `.ideavimrc` `FORBIDDEN:` notes carry the unblock conditions; recheck on IdeaVim upgrade |
+| Refactor `<leader>r*`                                       | `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` + `lua/plugins/lsp/inc-rename.lua` |
+| Core navigation `g*`                                        | `lua/core/lsp.lua` (`LspAttach`); `gr` is `lua/plugins/ui/trouble.lua` |
+| Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua`                                      |
+| Generate `<leader>G` + `<leader>g*` concept keys (IdeaVim-only) | `<leader>ca` in `lua/core/lsp.lua` — the code-action surface is the shared equivalent, not a gap to close. The `.ideavimrc` §4 comment settles the per-filetype `BufEnter` dispatch facts |
+| Surround / Unwrap `<leader>g{t,T,u}`                        | `lua/plugins/edit/wrap.lua`; engine in `lua/tools/wrap.lua`        |
+| Navigation extras `<leader>n*`                              | `lua/core/lsp.lua` + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (`<leader>n{h,j,k,l}` walker, nvim-only) |
+| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua` + a few `lua/plugins/edit/*` — `grep '<leader>s'` |
+| Views `<leader>v*`                                          | spread across `lua/plugins/` — `grep '<leader>v'`                  |
+| Git `<localleader>g*`, `]c/[c`, `<leader>v{D,H}`            | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`; asymmetry notes in the `.ideavimrc` Git section |
 | Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
-| Shell filter `!` (§9 — IdeaVim has it natively, nothing mapped) | `lua/plugins/edit/bang.lua` (Nagato-Yuzuru/bang.nvim, our own plugin; `g!`/`g!!`/`v_g!` are a nvim-only superset of `!`) |
+| Shell filter `!` (IdeaVim native)                           | `lua/plugins/edit/bang.lua` (our own bang.nvim; `g!` family is nvim-only) |
 | Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
-| Debug `<leader>D` / `<leader>d*` / `<leader>vd` (static), `<localleader>*` (session-scoped), 停点 sticky 步进 hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua`        |
+| Debug `<leader>d*` / `<leader>D` / `<leader>vd`, session `<localleader>*`, stop-time step hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua` |
 | Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
 | Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
-| Markdown `<localleader>m*` (nvim-only — IDE has built-in editor+preview split) | `lua/plugins/lang/markdown.lua` (render-markdown toggles + live-preview `,mb` browser preview) |
-| AI / Claude Code `<leader>a*` (nvim-only — IDE uses the official Claude Code plugin's tool window) | `lua/plugins/ai/claudecode.lua` (coder/claudecode.nvim, `none` mode + tmux `/ide`) |
-| Terminal asymmetry 注释块（`<C-x>\`` toggle + `<C-]>` 逃生舱，nvim-only — JetBrains 终端非 IdeaVim 辖区） | `lua/plugins/ui/toggleterm.lua`（裸 shell 设计）+ `lua/plugins/ui/flatten.lua`（防套娃） |
+| Markdown `<localleader>m*` (nvim-only)                      | `lua/plugins/lang/markdown.lua`                                    |
+| AI `<leader>a*` (nvim-only — IDE has the official Claude Code plugin) | `lua/plugins/ai/claudecode.lua`                          |
+| Terminal asymmetry block (nvim-only)                        | `lua/plugins/ui/toggleterm.lua` + `lua/plugins/ui/flatten.lua`     |
 
 ## Architecture (entry-point facts)
 
-The layout is self-describing — see `ls`. The non-obvious bits:
-
 - **Native LSP only** — never `lspconfig[server].setup()`. Per-server
-  configs go in `lsp/<server>.lua`; enablement in `lua/core/lsp.lua` is
-  a merge of two declarative inventories — mason-backed servers from
-  `LSP_TOOLS`, probed/in-process servers from the language plane (next
-  bullet). No hand-written probe branches anywhere.
-- **Language plane vs install plane**: `lua/tools/mason_ensure.lua` is
-  the hand-written install SSOT ("what does Mason manage", one place);
-  language *behavior* facts — ft detection, PATH/toolchain-probed LSP
-  enablement, in-process servers — are registered top-level by
-  `plugins/lang/<x>.lua` via `lua/tools/lang_registry.lua` (re-register
-  = replacement, so lazy spec reloads converge). **Add a language**: ≤3
-  lines in the central install tables + one `plugins/treesitter.lua`
-  line + one `plugins/lang/<x>.lua` (+ `lsp/<server>.lua` if needed).
-- **DAP per-adapter** (mirrors `lsp/`): **add a debugger by dropping a
-  file in `dap/<adapter>.lua`** (wired by `lua/core/dap.lua`) — never
-  grow `lua/plugins/runtime/dap.lua`.
-- **LSP keymaps live in `LspAttach`** (in `lua/core/lsp.lua`), not in
-  `core/keymaps.lua` — so they're scoped to clients that actually
-  attached. `gr` is owned by `lua/plugins/ui/trouble.lua`.
-- **Mason auto-install**: `lua/tools/mason_ensure.lua` is SSOT for the
-  **install plane** — which LSP/formatter/linter binaries Mason manages
-  (nvim-lint pulls its base table via getter; conform owns its runtime
-  formatter map — install intent and runtime policy are separate facts). DAP installs separately via `mason-registry` from
-  `lua/core/dap.lua` (not `mason-nvim-dap`). Both skip under
-  `NO_AUTO_INSTALL=1` — init.lua's firenvim branch relies on that env
-  contract.
-- **Picker is Snacks.nvim** (no Telescope for picking). telescope.nvim
-  is present only as gitignore.nvim's multi-select dependency
-  (`lua/plugins/git/gitignore.lua`) — don't add new telescope consumers.
-- **Go IDEA-style auto-import** (bare `Builder`→`strings.Builder`+import)
-  is **go-deep.nvim**, not gopls (golang/go#58291). Cross-file wiring:
-  plugin + `vim.g.go_deep` SSOT in `lua/plugins/completion/go_deep.lua`;
-  blink source/provider registered in
-  `lua/plugins/completion/blink.lua`. **Tracks `master` (unpinned)** —
-  re-review on `:Lazy update`. Neovim-only — GoLand has it natively.
-- **golangci-lint quickfixes are custom-wired** (upstream's nvim-lint
-  adapter drops `SuggestedFixes` — it is **never required**; the linter
-  is self-owned in `lua/plugins/lint/nvim-lint.lua`). Cross-file flow:
-  parser in `lua/tools/golangci_fix.lua` stashes fixes in diagnostic
-  `user_data`; in-process LSP `lsp/golangci_fix.lua` (enabled via the
-  language plane — `plugins/lang/go.lua`) serves them as code actions on
-  the normal `<leader>ca` / `<A-CR>` flow, plus a buffer-wide
-  `source.fixAll.golangci` that `<leader>ff` applies before formatting
-  (same shape as ruff's `source.fixAll.ruff`; never `golangci-lint run
-  --fix` — no stdin mode, rewrites sibling files out of band).
-- **Claude Code integration is coder/claudecode.nvim in `none` mode**
-  (`lua/plugins/ai/claudecode.lua`): nvim hosts only the WebSocket IDE
-  server; the `claude` CLI runs in a tmux pane and attaches via `/ide`.
-  Protocol is reverse-engineered upstream → **pinned by `commit`**,
-  re-review on `:Lazy update` (same policy as go-deep.nvim). Neovim-only
-  — JetBrains has the official plugin.
-- **Plugin domains are bisection units**: each domain under
-  `lua/plugins/` is imported separately in `init.lua`, so any one can be
-  commented out to isolate breakage. Two exceptions:
-  `plugins/treesitter.lua` is a single file, and `plugins/schemas/` is
-  not in the lazy spec at all — `init.lua` requires
-  `plugins.schemas.picker` directly at the end, which lazily requires
-  `cloud_native_schema` on `:SchemaSelect`.
-- **`after/queries/<lang>/textobjects.scm` extends the upstream text-object
-  queries** (`; extends` header — union, not replace). It exists because the
-  three structured-data formats ship disjoint capture sets: yaml has
-  `@assignment`, toml has `@parameter`, json has neither. Keys are bound in
-  `lua/plugins/edit/textobjects.lua`; a new language file there means the
-  same keys keep the same meaning, so add captures rather than keys.
+  configs go in `lsp/<server>.lua`. No hand-written enablement/probe
+  branches: `lua/core/lsp.lua` enables the union of two declarative
+  inventories (next bullet).
+- **Install plane vs language plane.** `lua/tools/mason_ensure.lua` is
+  the SSOT for which LSP/formatter/linter binaries Mason manages.
+  Language *behavior* — ft detection, PATH-probed LSP enablement,
+  in-process servers — is registered top-level by `plugins/lang/<x>.lua`
+  via `lua/tools/lang_registry.lua`. **Add a language**: a few lines in
+  the `mason_ensure` tables + one `plugins/treesitter.lua` line + one
+  `plugins/lang/<x>.lua` (+ `lsp/<server>.lua` if needed).
+- **Add a debugger** by dropping `dap/<adapter>.lua` (wired by
+  `lua/core/dap.lua`, which also installs adapters via `mason-registry`)
+  — keep `lua/plugins/runtime/dap.lua` for keymaps/UI only.
+- **Auto-install contract**: both installers skip under
+  `NO_AUTO_INSTALL=1`; init.lua's firenvim branch depends on it.
+- **LSP keymaps live in `LspAttach`** (`lua/core/lsp.lua`), not
+  `core/keymaps.lua`.
+- **Picker is Snacks.nvim.** telescope.nvim exists only as
+  gitignore.nvim's dependency — new pickers go through Snacks.
+- **Commit-pinned / branch-tracking plugins to re-review on
+  `:Lazy update`**: go-deep.nvim (`lua/plugins/completion/go_deep.lua`,
+  tracks `master`; its blink provider lives in `blink.lua`) and
+  claudecode.nvim (`lua/plugins/ai/claudecode.lua`, pinned `commit`,
+  reverse-engineered protocol).
+- **golangci-lint quickfixes are custom-wired**: parser
+  `lua/tools/golangci_fix.lua` → in-process LSP `lsp/golangci_fix.lua`
+  (enabled from `plugins/lang/go.lua`) → code actions + a
+  `source.fixAll.golangci` that `<leader>ff` applies. The linter is
+  self-owned in `lua/plugins/lint/nvim-lint.lua`; fixes go through that
+  code-action path, never `golangci-lint run --fix` (no stdin mode,
+  rewrites sibling files).
+- **Treesitter query overrides** live in `queries/<lang>/` and
+  `after/queries/<lang>/`, with a `; extends` header (union with
+  upstream). Text-object keys keep one meaning across languages: extend
+  a language by adding captures, not keys.
+- `plugins/schemas/` is outside the lazy spec — `init.lua` requires
+  `plugins.schemas.picker` directly.
 
 ## Forbidding rules / retired designs
 
-These constrain code that *isn't there*; comments have nowhere to live.
-
-- **`<leader>n{d,D,i,u}` are retired.** Don't re-introduce them as
-  aliases for `g*`. `<leader>n*` only survives for jumps with **no**
-  `g*` counterpart: `<leader>nb` supertypes; IdeaVim-only `<leader>nt`
-  GotoTest / `<leader>nf` FindInPath; `<leader>ns` structure popup.
+- **`<leader>n{d,D,i,u}` are retired** — `g*` owns those jumps.
+  `<leader>n*` holds only jumps with no `g*` counterpart.
 - **`<leader>nt` (GotoTest) is IdeaVim-only.** Neotest is a runner, not
-  a navigator — don't invent a heuristic. Use `<leader>tt` or language
-  tooling (`:GoAlt`).
-- **`<C-x>` is a vim-layer chord prefix on both sides.** Both sides
-  remap Vim's default decrement to `<C-S-A>`. nvim hosts its chords in
-  `lua/core/keymaps.lua` + bufferline; the IDEA side hosts them as
-  `.ideavimrc` nmap/imap. The IntelliJ IDE keymap ("Emacs Custom") must
-  keep **zero** `C-x` shortcuts: any IDE-keymap `C-x` chord captures the
-  first keystroke IDE-wide and steals the whole `C-x` prefix from the
-  Terminal tool window's shell (emacs `C-x C-c`, zsh `C-x C-e`). New
-  `<C-x>*` bindings go into `.ideavimrc`, never into the IDE keymap.
-  (IntelliJ IDEA's "Emacs Custom.xml" is the canonical copy; the other
-  JetBrains products carry verbatim copies of it — edit IDEA's, then
-  `cp` to the rest.)
-- **DAP keymaps split into static `<leader>d*` and session-only
-  `<localleader>*`** (= `,`). Static binds at startup; session binds
-  attach/detach via `dap.listeners.on_session` (see
-  `lua/plugins/runtime/dap.lua`). The `actions` local there is SSOT —
-  don't duplicate-bind those actions under `<leader>d*`. F-keys
-  intentionally unused (leader/localleader stays in Vim grammar, works
-  across keyboard layouts). One sanctioned alias surface: the stop-time
-  step hydra (`lua/tools/debug_hydra.lua`, auto-enter on
-  `event_stopped`) exposes the repeat-heavy stepping subset as bare
-  keys — session-scoped like `,*`, still nothing new in the static
-  layer; keep its heads in sync with `actions`.
-- **JS/TS testing & debugging are retired (2026-08-20).** No neotest
-  adapter, no `dap/js-debug.lua`: JS test frameworks are fragmented
-  (jest/vitest/node:test/bun), so any single adapter guesses wrong for most
-  projects, and the domain is handled in JetBrains. Don't re-add per-framework
-  adapters; if node debugging is ever needed, restore `dap/js-debug.lua` from
-  git history (self-contained file).
-- **Mechanized parity checking is retired (2026-08-15).** A CI-enforced
-  keymap presence diff was built (`feat/parity-check`, never merged) and
-  rejected: asymmetry is the *norm* here — the exception allowlist
-  (~139 entries) outgrew the aligned surface (~110 keys), and every
-  deliberate nvim-only key would pay an allowlist tax. The real rule
-  ("mirror only when an IDE Action equivalent exists") is judgment, not
-  an invariant; `.ideavimrc` is a single file, so manual alignment at
-  review time is cheap. Keep the prose parity map + review discipline;
-  don't re-propose presence diffs or intent-pairing ledgers.
+  a navigator — use `<leader>tt` or language tooling (`:GoAlt`).
+- **`<C-x>` is a vim-layer chord prefix on both sides** (decrement
+  moves to `<C-S-A>`). New `<C-x>*` bindings go into `.ideavimrc`; the
+  IntelliJ IDE keymap ("Emacs Custom") keeps **zero** `C-x` shortcuts,
+  since any IDE-keymap `C-x` chord steals the prefix from the Terminal
+  tool window's shell. IDEA's "Emacs Custom.xml" is canonical; other
+  JetBrains products carry verbatim `cp`s of it.
+- **DAP keymaps: static `<leader>d*` vs session-only `<localleader>*`.**
+  The `actions` local in `lua/plugins/runtime/dap.lua` is SSOT — bind
+  each action once. F-keys stay unused. The stop-time step hydra
+  (`lua/tools/debug_hydra.lua`) is the one sanctioned alias surface;
+  keep its heads in sync with `actions`.
+- **JS/TS testing & debugging are retired (2026-08-20)**: no neotest
+  adapter, no `dap/js-debug.lua` — JS test frameworks are too
+  fragmented for one adapter, and JetBrains covers the domain. If node
+  debugging is ever needed, restore `dap/js-debug.lua` from git history.
+- **Mechanized parity checking is retired (2026-08-15)**: a CI keymap
+  presence diff was tried and rejected — asymmetry is the norm, so its
+  allowlist outgrew the aligned surface. Parity stays a review-time
+  judgment; keep the prose map.
 
 ## Conventions
 
-- **Tests (mini.test)**: self-written logic (`lua/tools/*`, `core/lsp`
-  repair) has child-process specs in `tests/test_*.lua`. Run:
-  `nvim --headless --noplugin -u tests/minimal_init.lua -c "lua MiniTest.run()"`
-  (same command as CI; `tests/minimal_init.lua` self-bootstraps `.deps/`,
-  pins follow lazy-lock.json). Gate is CI only
-  (`.github/workflows/test.yml`, which also runs `stylua --check` and
-  `selene`) — no local hooks, by design. selene is deliberately NOT wired
-  into nvim-lint (lua_ls already lints live; see selene.toml).
-- Non-plugin config in `lua/core/` only.
-- Prefer `opts` over `config` functions.
-- Lazy-load with `event` / `ft` / `cmd` / `keys`.
+- Self-written logic (`lua/tools/*` and the like) ships with a mini.test
+  spec in `tests/`.
+- Non-plugin config goes in `lua/core/`; reusable logic in `lua/tools/`.
 - Always set `desc` on keymaps — which-key relies on it.
-- **Before merging any keymap/plugin change, re-check the parity map.**
