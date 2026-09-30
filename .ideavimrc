@@ -1028,7 +1028,9 @@ sethandler <A-W> a:ide
 "   ai/ii ]i/[i    anyobject anyconditional
 "   ao/io ]o/[o    anyobject anyloop (o, not l: nvim 0.13 has builtin al/il,
 "                  and the letter must match the jump on both sides)
-"   ak/ik ]k/[k    anyobject anycomment (no nvim counterpart, IdeaVim-only)
+"   ak/ik ]k/[k    anyobject anycomment (parity pair; nvim binds the same four
+"                  to @comment.outer/.inner. Both sides are per-comment-node:
+"                  a run of // lines is N objects, not one block)
 "   av/iv ]v/[v    anyobject anyvariable. av/iv have parity: nvim binds them to
 "                  @assignment.outer and .rhs. Measured on
 "                  `let rc: Rc<String> = Rc::new("hello".into());`, where both

@@ -44,7 +44,8 @@ return {
 		-- `civ` 改 `msg = "hi " .. name` 的右边，`cav` 改整条。
 		--
 		-- @assignment.lhs（只要键）故意不绑：改键名多数时候是 ciw，等真出现第二
-		-- 个具体用例再补 ak/ik。json 的 query 里 lhs 已经备好了。
+		-- 个具体用例再补（k 已归 comment，届时另选字母）。json 的 query 里 lhs
+		-- 已经备好了。
 		--
 		-- Letter invariant: a kind uses ONE letter across `a?`/`i?`/`]?`/`[?`, so
 		-- `vaC` and `]C` are the same muscle. Two letters are off the obvious
@@ -58,6 +59,14 @@ return {
 		--               IdeaVim side follows via g:anyobject_map_anyloop.
 		-- `n`/`N` are also taken: builtin treesitter node objects/jumps
 		-- (`an`/`in`, `]n`/`[n`, `]N`/`[N` — `:help v_an`).
+		--
+		-- k = comment, mirroring IdeaVim's anycomment (`ak/ik ]k/[k`); `c` was
+		-- never available (see C above). One node = one object: a run of `--`
+		-- lines is N objects, same as JetBrains' per-line PsiComment, so `dak`
+		-- on a TODO line deletes that line's comment, not the whole block.
+		-- `ik` (text after the marker) only exists where the upstream query
+		-- ships @comment.inner (lua/python/yaml/… — not go/c/rust); elsewhere
+		-- it aborts via select_or_abort, use `ak`.
 		local selections = {
 			["af"] = "@function.outer",
 			["if"] = "@function.inner",
@@ -71,6 +80,8 @@ return {
 			["io"] = "@loop.inner",
 			["av"] = "@assignment.outer",
 			["iv"] = "@assignment.rhs",
+			["ak"] = "@comment.outer",
+			["ik"] = "@comment.inner",
 		}
 		for key, query in pairs(selections) do
 			map({ "x", "o" }, key, ts_select.select_or_abort(select.select_textobject, query), "TS: " .. query)
@@ -80,8 +91,8 @@ return {
 		--
 		-- Convention: `]<lowercase>` = jump to next START of that text-object;
 		-- `[<lowercase>` = previous start. NO end-variant bindings (no `]F`/`]L`
-		-- /etc.) — uniform across all five kinds (function/loop/class/conditional
-		-- /argument). `]f` (next function start) is the better "skip past
+		-- /etc.) — uniform across all six kinds (function/loop/class/conditional
+		-- /argument/comment). `]f` (next function start) is the better "skip past
 		-- current" key anyway, and end positioning without an operation is rare
 		-- (use `vaf`/`daf` text-objects for ops; use matchup `%` to cycle within
 		-- a block).
@@ -105,6 +116,8 @@ return {
 			["[C"] = { move.goto_previous_start, "@class.outer", "Prev class" },
 			["]i"] = { move.goto_next_start, "@conditional.outer", "Next conditional" },
 			["[i"] = { move.goto_previous_start, "@conditional.outer", "Prev conditional" },
+			["]k"] = { move.goto_next_start, "@comment.outer", "Next comment" },
+			["[k"] = { move.goto_previous_start, "@comment.outer", "Prev comment" },
 		}
 		for key, spec in pairs(moves) do
 			map({ "n", "x", "o" }, key, function() spec[1](spec[2]) end, "TS: " .. spec[3])
