@@ -62,12 +62,8 @@ keymap/plugin change.
   the SSOT for which LSP/formatter/linter binaries Mason manages.
   Language *behavior* — ft detection, PATH-probed LSP enablement,
   in-process servers — is registered top-level by `plugins/lang/<x>.lua`
-  via `lua/tools/lang_registry.lua`. **Add a language**: a few lines in
-  the `mason_ensure` tables + one `plugins/treesitter.lua` line + one
-  `plugins/lang/<x>.lua` (+ `lsp/<server>.lua` if needed).
-- **Add a debugger** by dropping `dap/<adapter>.lua` (wired by
-  `lua/core/dap.lua`, which also installs adapters via `mason-registry`)
-  — keep `lua/plugins/runtime/dap.lua` for keymaps/UI only.
+  via `lua/tools/lang_registry.lua`. Adding or changing a language:
+  see "Language toolchain changes" below.
 - **Auto-install contract**: both installers skip under
   `NO_AUTO_INSTALL=1`; init.lua's firenvim branch depends on it.
 - **LSP keymaps live in `LspAttach`** (`lua/core/lsp.lua`), not
@@ -92,6 +88,31 @@ keymap/plugin change.
   a language by adding captures, not keys.
 - `plugins/schemas/` is outside the lazy spec — `init.lua` requires
   `plugins.schemas.picker` directly.
+
+## Language toolchain changes
+
+Adding or changing a language touches several files; walk every row
+and touch the ones that apply:
+
+| Concern | Where |
+| --- | --- |
+| Mason-installable LSP | `LSP_TOOLS` in `lua/tools/mason_ensure.lua` + `lsp/<server>.lua` |
+| Mason-installable non-LSP tool | `TOOL_MAP` + `TOOL_INSTALLS_BY_FT` (install intent, whoever runs it — formatter, or an LSP's backend like bashls → shellcheck) or `LINTERS_BY_FT` (nvim-lint runs it; installed too) |
+| Which formatter runs | `lua/plugins/format/conform.lua` |
+| Linter wiring, path/content-gated linters | `lua/plugins/lint/nvim-lint.lua` |
+| Non-Mason tool (mise / rustup / system / `go install`) | probe-gated `lsp` entry in `plugins/lang/<x>.lua`; missing binaries get a notify-the-command advisor (`lua/tools/<x>_toolchain.lua`) — global installs stay manual |
+| ft detection | `plugins/lang/<x>.lua` via `lang_registry` |
+| Parser | `plugins/treesitter.lua` |
+| Debugger | `dap/<adapter>.lua` (wired and mason-installed by `lua/core/dap.lua`); `lua/plugins/runtime/dap.lua` holds keymaps/UI only |
+
+**Install tier.** A language is either *daily* (toolchain installed at
+startup) or *on-demand* (installed on first open of its ft, LSP
+re-attached automatically). New languages are on-demand; tier
+membership is the user's call — promote a language by adding its fts
+to `DAILY_FTS`. An LSP's tier derives from its `filetypes`, so an
+`external_owner` entry declares `filetypes` itself. The daily-tier case
+in `tests/test_mason_ensure.lua` asserts concrete package names — update
+it when the daily set changes.
 
 ## Forbidding rules / retired designs
 

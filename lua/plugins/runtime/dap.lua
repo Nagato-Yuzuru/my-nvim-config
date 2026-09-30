@@ -2,7 +2,7 @@
 --
 -- ► Per-adapter 配置在顶层 `dap/<adapter>.lua`（镜像 `lsp/<server>.lua`），
 --   由 `lua/core/dap.lua` 加载。新增 adapter = 在 `dap/` 下放一个文件，**不要**
---   在这里堆（CLAUDE.md "Architecture" 段同此约束）。
+--   在这里堆（CLAUDE.md "Language toolchain changes" 段同此约束）。
 --
 -- ► 安装走 mason-registry 直连（core.dap.ensure_mason），不依赖 mason-nvim-dap。
 --
