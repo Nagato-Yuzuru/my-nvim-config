@@ -5,7 +5,7 @@
 --
 -- 加载契约：本模块通过 init.lua 在 lazy.setup() **之后** require 并调
 -- M.setup()。所有 LSP 相关、需等 VeryLazy 时机的工作（caps 注入 / mason 装
--- 缺失 LSP / 默认键清理）集中由 register_lsp_verylazy_hooks 注册的同一个
+-- 日常档工具链 / 默认键清理）集中由 register_lsp_verylazy_hooks 注册的同一个
 -- callback 按顺序跑。
 
 local M = {}
@@ -85,7 +85,7 @@ local function clear_default_lsp_keymaps()
 end
 
 -- VeryLazy hook：LSP 相关、需等 lazy 把基础插件装好才能跑的工作（caps 注入 /
--- mason 装缺失 LSP / 清理默认键）集中在这一个 callback 里，顺序见下方数字注释。
+-- mason 装日常档 / 清理默认键）集中在这一个 callback 里，顺序见下方数字注释。
 local function register_lsp_verylazy_hooks()
 	vim.api.nvim_create_autocmd("User", {
 		pattern = "VeryLazy",
@@ -94,9 +94,9 @@ local function register_lsp_verylazy_hooks()
 			-- 1. 全局 capabilities（VeryLazy 时 blink.cmp 已加载）
 			vim.lsp.config("*", { capabilities = M.make_capabilities() })
 
-			-- 2. Mason 自动安装缺失的 LSP server（不阻塞启动；mason 在此前由
-			--    plugins/lsp/core.lua 的 eager-loaded spec 完成 require + setup）
-			require("tools.mason_ensure").ensure_lsp()
+			-- 2. Mason 装齐日常档工具链（不阻塞启动；mason 在此前由 plugins/lsp/core.lua
+			--    的 eager-loaded spec 完成 require + setup；按需档归 FileType 触发）
+			require("tools.mason_ensure").ensure_daily()
 
 			-- 3. 关掉内核默认 gr*/gO 键（详见 clear_default_lsp_keymaps）
 			clear_default_lsp_keymaps()

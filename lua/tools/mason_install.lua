@@ -7,10 +7,14 @@
 -- 存在性探测——这两件事各 caller 语义不同（LSP 侧在 ensure_tools 里跳过并用
 -- has_exec/probe_ok 探 PATH；DAP 侧在 ensure_mason 里跳过并按 adapter bin 探
 -- PATH），留在各自 caller。此处只认"包名 → 装/不装"这一层。
+--
+-- on_installed：装成功后（主循环里）回调；已在装的包挂到那次安装的成功事件上，
+-- 已装好的包不回调（caller 探测到缺失却已装，说明 bin 不在 PATH，回调也救不了）。
 local M = {}
 
 ---@param name string mason-registry 包名
-function M.install_if_missing(name)
+---@param on_installed? fun()
+function M.install_if_missing(name, on_installed)
 	local ok, mr = pcall(require, "mason-registry")
 	if not ok then
 		return
@@ -25,10 +29,17 @@ function M.install_if_missing(name)
 	-- pkg:install() 内部 assert(not is_installing())，autocmd（BufNewFile +
 	-- FileType）短时间二次触发会撞上正在装的同一个包，这里手动短路。
 	if pkg.is_installing and pkg:is_installing() then
+		if on_installed then
+			pkg:once("install:success", vim.schedule_wrap(on_installed))
+		end
 		return
 	end
 	vim.notify(("Installing %s via Mason…"):format(name), vim.log.levels.INFO)
-	pkg:install()
+	pkg:install({}, function(success)
+		if success and on_installed then
+			vim.schedule(on_installed)
+		end
+	end)
 end
 
 return M
