@@ -1,5 +1,6 @@
 # Git hooks via prek (drop-in pre-commit replacement). 工具链由 mise 管理：
-# mise 装 prek/stylua/taplo；本文件只编排，不自带工具环境。
+# mise 装 prek/stylua/taplo/oxfmt；本文件只编排，不自带工具环境。
+# CI 侧由 .github/workflows/autofix.yml 跑同一份配置，修复经 autofix.ci 回推。
 #   一次性安装钩子: mise run setup-hooks   （= prek install）
 #   手动全跑:       prek run --all-files
 #   暂存区增量:     prek run
@@ -32,3 +33,8 @@ repos:
         language: system
         entry: mise exec -- taplo fmt
         types: [toml]
+      - id: oxfmt
+        name: oxfmt (JSON/YAML/Markdown format)
+        language: system
+        entry: mise exec -- oxfmt
+        types_or: [json, yaml, markdown]

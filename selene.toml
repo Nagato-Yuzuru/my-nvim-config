@@ -1,4 +1,4 @@
-# selene（lua linter）配置。门禁在 CI 的 lint job（与 test/format 同一
+# selene（lua linter）配置。门禁在 CI 的 lint job（与 minitest 同一
 # workflow）；编辑器内不重复接 nvim-lint——lua_ls 已实时报未用变量等，
 # 再挂一份是双倍噪音。本地按需：selene .
 std = "vim"

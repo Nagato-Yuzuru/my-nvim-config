@@ -1,0 +1,32 @@
+# 格式修复：跑与本地 prek 钩子同一份 .pre-commit-config.yaml，工具版本由
+# mise.toml 钉死。有 diff 时 autofix.ci（GitHub App）把修复以新 commit 推回
+# PR 分支 / main。workflow 名必须是 "autofix.ci"——App 按此名识别。
+name: autofix.ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+
+      # 修复型钩子改了文件时 prek 退出码非 0；此步只负责产出 diff，不判定成败。
+      - name: Apply fixers
+        run: prek run --all-files || true
+
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
+
+      # 在已修复的工作树上复跑：只剩无法自动修的检查失败（check-yaml、
+      # check-merge-conflict、detect-private-key 等）会让 job 变红。
+      - name: Verify remaining checks
+        run: prek run --all-files

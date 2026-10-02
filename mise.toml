@@ -1,7 +1,10 @@
+# 钉精确版本：本地 prek 钩子与 CI 的 autofix.ci workflow 共用这一份工具链，
+# "latest" 会让两边各自漂移、格式结果不一致。升级时改这里，两边同步生效。
 [tools]
-prek = "latest"
-stylua = "latest"
-taplo = "latest"
+prek = "0.5.3"
+stylua = "2.5.2"
+taplo = "0.10.0"
+oxfmt = "0.70.0"
 
 [tasks.setup-hooks]
 description = "Install prek-managed git hooks (run once after clone)"
