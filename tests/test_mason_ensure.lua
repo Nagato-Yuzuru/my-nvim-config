@@ -97,7 +97,16 @@ T["daily tier installs daily-language toolchains only"] = function()
 	local got = installed()
 	-- typos-lsp：filetypes 为 nil（挂所有 ft）→ 必然日常
 	-- shellcheck：LSP 后端（bashls 调用），经 TOOL_INSTALLS_BY_FT 计入安装
-	for _, pkg in ipairs({ "lua-language-server", "gopls", "ty", "typos-lsp", "jq-lsp", "stylua", "golangci-lint", "shellcheck" }) do
+	for _, pkg in ipairs({
+		"lua-language-server",
+		"gopls",
+		"ty",
+		"typos-lsp",
+		"jq-lsp",
+		"stylua",
+		"golangci-lint",
+		"shellcheck",
+	}) do
 		eq(vim.tbl_contains(got, pkg), true)
 	end
 	for _, pkg in ipairs({ "zls", "clangd", "rust-analyzer", "tinymist", "typstyle", "buf" }) do

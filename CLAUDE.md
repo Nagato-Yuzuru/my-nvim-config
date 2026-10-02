@@ -25,32 +25,32 @@ keymap/plugin change.
 
 ### Parity map (.ideavimrc section ↔ nvim file)
 
-| `.ideavimrc` section                                        | Neovim counterpart                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| Leader + clipboard + `J`/`K` visual move + `<C-x>` handling | `lua/core/keymaps.lua`                                             |
-| easymotion `<leader><leader>*`                              | `lua/plugins/edit/motion.lua` (flash.nvim)                         |
-| `set peekaboo`                                              | `lua/plugins/edit/registers.lua` (vim-peekaboo)                    |
-| `set quickscope` (f/F/t/T hints)                            | `lua/plugins/edit/eyeliner.lua` — owns f/F/t/T; flash char mode is off |
-| multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                        | `lua/plugins/edit/multi.lua`                                       |
-| "Syntax-aware navigation & editing" (text objects + `]`/`[` bracket motions) | `lua/plugins/edit/textobjects.lua`. `set targets` / `set textobj-indent` are forbidden as of IdeaVim 2.46 — the `.ideavimrc` `FORBIDDEN:` notes carry the unblock conditions; recheck on IdeaVim upgrade |
-| Refactor `<leader>r*`                                       | `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` + `lua/plugins/lsp/inc-rename.lua` |
-| Core navigation `g*`                                        | `lua/core/lsp.lua` (`LspAttach`); `gr` is `lua/plugins/ui/trouble.lua` |
-| Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)     | `lua/plugins/lsp/preview.lua`                                      |
-| Generate `<leader>G` + `<leader>g*` concept keys (IdeaVim-only) | `<leader>ca` in `lua/core/lsp.lua` — the code-action surface is the shared equivalent, not a gap to close. The `.ideavimrc` §4 comment settles the per-filetype `BufEnter` dispatch facts |
-| Surround / Unwrap `<leader>g{t,T,u}`                        | `lua/plugins/edit/wrap.lua`; engine in `lua/tools/wrap.lua`        |
-| Navigation extras `<leader>n*`                              | `lua/core/lsp.lua` + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (`<leader>n{h,j,k,l}` walker, nvim-only) |
-| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere) | `lua/plugins/ui/snacks.lua` + a few `lua/plugins/edit/*` — `grep '<leader>s'` |
-| Views `<leader>v*`                                          | spread across `lua/plugins/` — `grep '<leader>v'`                  |
-| Git `<localleader>g*`, `]c/[c`, `<leader>v{D,H}`            | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`; asymmetry notes in the `.ideavimrc` Git section |
-| Reformat `<leader>f*`                                       | `lua/plugins/format/conform.lua`                                   |
-| Shell filter `!` (IdeaVim native)                           | `lua/plugins/edit/bang.lua` (our own bang.nvim; `g!` family is nvim-only) |
-| Mark / bookmark `<leader>m*`, `<leader>M`                   | `lua/plugins/edit/marks.lua`                                       |
-| Debug `<leader>d*` / `<leader>D` / `<leader>vd`, session `<localleader>*`, stop-time step hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua` |
-| Run / Task `<leader>vr`, `<leader>o*` (nvim-only)           | `lua/plugins/runtime/overseer.lua`                                 |
-| Test `<leader>t*` (nvim-only)                               | `lua/plugins/runtime/neotest.lua`                                  |
-| Markdown `<localleader>m*` (nvim-only)                      | `lua/plugins/lang/markdown.lua`                                    |
-| AI `<leader>a*` (nvim-only — IDE has the official Claude Code plugin) | `lua/plugins/ai/claudecode.lua`                          |
-| Terminal asymmetry block (nvim-only)                        | `lua/plugins/ui/toggleterm.lua` + `lua/plugins/ui/flatten.lua`     |
+| `.ideavimrc` section                                                                                        | Neovim counterpart                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Leader + clipboard + `J`/`K` visual move + `<C-x>` handling                                                 | `lua/core/keymaps.lua`                                                                                                                                                                                   |
+| easymotion `<leader><leader>*`                                                                              | `lua/plugins/edit/motion.lua` (flash.nvim)                                                                                                                                                               |
+| `set peekaboo`                                                                                              | `lua/plugins/edit/registers.lua` (vim-peekaboo)                                                                                                                                                          |
+| `set quickscope` (f/F/t/T hints)                                                                            | `lua/plugins/edit/eyeliner.lua` — owns f/F/t/T; flash char mode is off                                                                                                                                   |
+| multi-cursor `<A-n>`/`<A-p>`/`<A-x>`                                                                        | `lua/plugins/edit/multi.lua`                                                                                                                                                                             |
+| "Syntax-aware navigation & editing" (text objects + `]`/`[` bracket motions)                                | `lua/plugins/edit/textobjects.lua`. `set targets` / `set textobj-indent` are forbidden as of IdeaVim 2.46 — the `.ideavimrc` `FORBIDDEN:` notes carry the unblock conditions; recheck on IdeaVim upgrade |
+| Refactor `<leader>r*`                                                                                       | `lua/core/lsp.lua` (`LspAttach`) + `lua/plugins/edit/refactoring.lua` + `lua/plugins/lsp/inc-rename.lua`                                                                                                 |
+| Core navigation `g*`                                                                                        | `lua/core/lsp.lua` (`LspAttach`); `gr` is `lua/plugins/ui/trouble.lua`                                                                                                                                   |
+| Preview `gp*` (nvim-only — IDE uses `⌥Space` Quick Def)                                                     | `lua/plugins/lsp/preview.lua`                                                                                                                                                                            |
+| Generate `<leader>G` + `<leader>g*` concept keys (IdeaVim-only)                                             | `<leader>ca` in `lua/core/lsp.lua` — the code-action surface is the shared equivalent, not a gap to close. The `.ideavimrc` §4 comment settles the per-filetype `BufEnter` dispatch facts                |
+| Surround / Unwrap `<leader>g{t,T,u}`                                                                        | `lua/plugins/edit/wrap.lua`; engine in `lua/tools/wrap.lua`                                                                                                                                              |
+| Navigation extras `<leader>n*`                                                                              | `lua/core/lsp.lua` + `lua/plugins/ui/aerial.lua` + `lua/plugins/ui/hydra.lua` (`<leader>n{h,j,k,l}` walker, nvim-only)                                                                                   |
+| Search `<leader>s*` (nvim-only — IDE uses Search Everywhere)                                                | `lua/plugins/ui/snacks.lua` + a few `lua/plugins/edit/*` — `grep '<leader>s'`                                                                                                                            |
+| Views `<leader>v*`                                                                                          | spread across `lua/plugins/` — `grep '<leader>v'`                                                                                                                                                        |
+| Git `<localleader>g*`, `]c/[c`, `<leader>v{D,H}`                                                            | `lua/plugins/git/{gitsigns,diffview,conflict}.lua`; asymmetry notes in the `.ideavimrc` Git section                                                                                                      |
+| Reformat `<leader>f*`                                                                                       | `lua/plugins/format/conform.lua`                                                                                                                                                                         |
+| Shell filter `!` (IdeaVim native)                                                                           | `lua/plugins/edit/bang.lua` (our own bang.nvim; `g!` family is nvim-only)                                                                                                                                |
+| Mark / bookmark `<leader>m*`, `<leader>M`                                                                   | `lua/plugins/edit/marks.lua`                                                                                                                                                                             |
+| Debug `<leader>d*` / `<leader>D` / `<leader>vd`, session `<localleader>*`, stop-time step hydra (nvim-only) | `lua/plugins/runtime/dap.lua` + `lua/tools/debug_hydra.lua`                                                                                                                                              |
+| Run / Task `<leader>vr`, `<leader>o*` (nvim-only)                                                           | `lua/plugins/runtime/overseer.lua`                                                                                                                                                                       |
+| Test `<leader>t*` (nvim-only)                                                                               | `lua/plugins/runtime/neotest.lua`                                                                                                                                                                        |
+| Markdown `<localleader>m*` (nvim-only)                                                                      | `lua/plugins/lang/markdown.lua`                                                                                                                                                                          |
+| AI `<leader>a*` (nvim-only — IDE has the official Claude Code plugin)                                       | `lua/plugins/ai/claudecode.lua`                                                                                                                                                                          |
+| Terminal asymmetry block (nvim-only)                                                                        | `lua/plugins/ui/toggleterm.lua` + `lua/plugins/ui/flatten.lua`                                                                                                                                           |
 
 ## Architecture (entry-point facts)
 
@@ -60,7 +60,7 @@ keymap/plugin change.
   inventories (next bullet).
 - **Install plane vs language plane.** `lua/tools/mason_ensure.lua` is
   the SSOT for which LSP/formatter/linter binaries Mason manages.
-  Language *behavior* — ft detection, PATH-probed LSP enablement,
+  Language _behavior_ — ft detection, PATH-probed LSP enablement,
   in-process servers — is registered top-level by `plugins/lang/<x>.lua`
   via `lua/tools/lang_registry.lua`. Adding or changing a language:
   see "Language toolchain changes" below.
@@ -94,19 +94,19 @@ keymap/plugin change.
 Adding or changing a language touches several files; walk every row
 and touch the ones that apply:
 
-| Concern | Where |
-| --- | --- |
-| Mason-installable LSP | `LSP_TOOLS` in `lua/tools/mason_ensure.lua` + `lsp/<server>.lua` |
-| Mason-installable non-LSP tool | `TOOL_MAP` + `TOOL_INSTALLS_BY_FT` (install intent, whoever runs it — formatter, or an LSP's backend like bashls → shellcheck) or `LINTERS_BY_FT` (nvim-lint runs it; installed too) |
-| Which formatter runs | `lua/plugins/format/conform.lua` |
-| Linter wiring, path/content-gated linters | `lua/plugins/lint/nvim-lint.lua` |
-| Non-Mason tool (mise / rustup / system / `go install`) | probe-gated `lsp` entry in `plugins/lang/<x>.lua`; missing binaries get a notify-the-command advisor (`lua/tools/<x>_toolchain.lua`) — global installs stay manual |
-| ft detection | `plugins/lang/<x>.lua` via `lang_registry` |
-| Parser | `plugins/treesitter.lua` |
-| Debugger | `dap/<adapter>.lua` (wired and mason-installed by `lua/core/dap.lua`); `lua/plugins/runtime/dap.lua` holds keymaps/UI only |
+| Concern                                                | Where                                                                                                                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mason-installable LSP                                  | `LSP_TOOLS` in `lua/tools/mason_ensure.lua` + `lsp/<server>.lua`                                                                                                                     |
+| Mason-installable non-LSP tool                         | `TOOL_MAP` + `TOOL_INSTALLS_BY_FT` (install intent, whoever runs it — formatter, or an LSP's backend like bashls → shellcheck) or `LINTERS_BY_FT` (nvim-lint runs it; installed too) |
+| Which formatter runs                                   | `lua/plugins/format/conform.lua`                                                                                                                                                     |
+| Linter wiring, path/content-gated linters              | `lua/plugins/lint/nvim-lint.lua`                                                                                                                                                     |
+| Non-Mason tool (mise / rustup / system / `go install`) | probe-gated `lsp` entry in `plugins/lang/<x>.lua`; missing binaries get a notify-the-command advisor (`lua/tools/<x>_toolchain.lua`) — global installs stay manual                   |
+| ft detection                                           | `plugins/lang/<x>.lua` via `lang_registry`                                                                                                                                           |
+| Parser                                                 | `plugins/treesitter.lua`                                                                                                                                                             |
+| Debugger                                               | `dap/<adapter>.lua` (wired and mason-installed by `lua/core/dap.lua`); `lua/plugins/runtime/dap.lua` holds keymaps/UI only                                                           |
 
-**Install tier.** A language is either *daily* (toolchain installed at
-startup) or *on-demand* (installed on first open of its ft, LSP
+**Install tier.** A language is either _daily_ (toolchain installed at
+startup) or _on-demand_ (installed on first open of its ft, LSP
 re-attached automatically). New languages are on-demand; tier
 membership is the user's call — promote a language by adding its fts
 to `DAILY_FTS`. An LSP's tier derives from its `filetypes`, so an

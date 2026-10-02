@@ -268,7 +268,12 @@ local function lsp_filetypes(t)
 	end
 	local config = vim.lsp.config[t.server]
 	if not config then
-		error(("mason_ensure: no lsp/%s.lua for %q; declare `filetypes` on its LSP_TOOLS entry"):format(t.server, t.server))
+		error(
+			("mason_ensure: no lsp/%s.lua for %q; declare `filetypes` on its LSP_TOOLS entry"):format(
+				t.server,
+				t.server
+			)
+		)
 	end
 	return config.filetypes
 end
