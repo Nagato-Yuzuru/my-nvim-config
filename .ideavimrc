@@ -137,7 +137,7 @@ set anyobject
 " anyclass brings ]C/[C (jump between classes in the buffer) back with it,
 " which happens to match nvim's ]C/[C=@class.outer. They fail in files whose
 " language AnyObject guesses wrong; use Cmd-Up or the Structure panel there.
-set peekaboo                      " Vim Peekaboo (25776). " / @ / <C-r> preview registers
+set peekaboo                      " Vim Peekaboo (25776). Previews registers on quote / @ / <C-r>
 " Lazy mode: no highlight until you press f/F/t/T, which then marks the best
 " jump target on the current line. Mirrors highlight_on_key = true in nvim's
 " eyeliner.nvim (lua/plugins/edit/eyeliner.lua).
