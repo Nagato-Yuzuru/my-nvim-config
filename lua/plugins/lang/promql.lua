@@ -8,7 +8,7 @@ registry.register("promql", {
 	-- 独立 .promql 文件（少见——yaml 规则里的 PromQL 走注入）：给 promql LSP +
 	-- treesitter parser 一个可挂载的 ft。
 	ft = { extension = { promql = "promql" } },
-	-- 缺失时不挂、不刷 client-quit（同 scheme/swift/tsc）；装好后重启一次 nvim 生效。
+	-- 缺失时不挂、不刷 client-quit（同 scheme/swift）；装好后重启一次 nvim 生效。
 	lsp = { promql_ls = { probe = function() return require("tools.promql_toolchain").is_installed() end } },
 })
 

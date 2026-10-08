@@ -3,8 +3,9 @@
 -- 与 denols 互斥：Deno 项目跳过（deno lint 内置）。
 --
 -- 类型感知 lint 自动开：PATH（或项目 node_modules/.bin）上有 tsgolint 且 .oxlintrc.json
--- 含 "typescript" 时，before_init 注入 typeAware=true。tsgolint 复用你已装的 tsgo 类型
--- 检查器，但**无 mason 包**——需手动装（untracked，故不进 mason_ensure）；没装就静默按
+-- 含 "typescript" 时，before_init 注入 typeAware=true。tsgolint 自带 typescript-go 类型
+-- 检查器（编进自身二进制，不用 lsp/tsc.lua 的 tsc），但**无 mason 包**——按项目装 npm
+-- 包 oxlint-tsgolint（untracked，故不进 mason_ensure）；没装就静默按
 -- AST-only 规则跑，此处的自动探测让它一旦上 PATH 就即时生效、无需改配置。
 local DENO_MARKERS = { "deno.json", "deno.jsonc", "deno.lock" }
 local OXLINT_MARKERS = { ".oxlintrc.json", ".oxlintrc.jsonc", "oxlint.config.ts", "package.json" }

@@ -89,7 +89,7 @@ end
 --   filetypes     : external_owner 条目必填——没有 lsp/<server>.lua 可读，而安装
 --                   分档（DAILY_FTS）要靠 filetypes 推出。
 --
--- 注意：非 mason 的 LSP（scheme 三件套 / sourcekit / tsc / promql_ls / 进程内
+-- 注意：非 mason 的 LSP（scheme 三件套 / sourcekit / promql_ls / 进程内
 -- golangci_fix）不在本表——它们由语言域经 tools/lang_registry 声明探测式 enable
 --（见 plugins/lang/<x>.lua），安装提示归各自工具链模块。
 ---@type LspTool[]
@@ -116,8 +116,8 @@ local LSP_TOOLS = {
 	{ server = "dockerls", bin = "docker-langserver", mason = "dockerfile-language-server" },
 	{ server = "just_ls", bin = "just-lsp", mason = "just-lsp" },
 	{ server = "denols", bin = "deno", mason = "deno" },
-	-- 注意：原生 TS LSP（tsc，见 lsp/tsc.lua）**不在此表**——它由 mise 管的 tsc /
-	-- 项目本地二进制提供，无 Mason 稳定包，由语言域 plugins/lang/typescript.lua 探测 enable。
+	-- 原生 TS LSP（TypeScript 7，`tsc --lsp`，见 lsp/tsc.lua）：PATH 上的 tsc（mise）优先，mason 兜底。
+	{ server = "tsc", bin = "tsc", mason = "tsc" },
 	-- oxlint --lsp：oxc linter，取代 eslint-lsp（见 lsp/oxlint.lua）。诊断 + oxc.fixAll。
 	{ server = "oxlint", bin = "oxlint", mason = "oxlint" },
 	{ server = "helm_ls", bin = "helm_ls", mason = "helm-ls" },
