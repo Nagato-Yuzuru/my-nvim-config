@@ -9,4 +9,6 @@ return {
 			organizeImports = true,
 		},
 	},
+	-- :PyVersion 的 session 级版本覆盖，见 tools/python_version.lua。
+	before_init = function(params, config) require("tools.python_version").ruff_before_init(params, config) end,
 }

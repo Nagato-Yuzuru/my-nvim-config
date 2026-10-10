@@ -5,4 +5,7 @@ return {
 	-- 无名 scratch python buffer 也做类型检查、落到 cwd 当 root，见该文件的
 	-- UNNAMED_CWD={ty=true}——这里手写 root_dir 是死代码，故不写。
 	root_markers = { "pyproject.toml", "ty.toml", ".git" },
+	-- 空表不能省：:PyVersion 的 before_init 原地写它，见 tools/python_version.lua。
+	settings = {},
+	before_init = function(params, config) require("tools.python_version").ty_before_init(params, config) end,
 }
