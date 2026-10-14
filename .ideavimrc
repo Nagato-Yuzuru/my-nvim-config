@@ -480,19 +480,19 @@ map <leader>rM <Action>(Move)
 "   gr  virtual replace mode (use R for normal replace)
 "   gD  search word in current file (use * / # instead)
 " gd is already IdeaVim default (GotoDeclaration); declared here for symmetry.
+" gb = Goto Super (types and methods). GotoSuperMethod dispatches per
+" language; GotoSuperClass is Java/Kotlin-only and does nothing in Go.
 nmap gd <Action>(GotoDeclaration)
 nmap gD <Action>(GotoTypeDeclaration)
 nmap gi <Action>(GotoImplementation)
+nmap gb <Action>(GotoSuperMethod)
 nmap gr <Action>(FindUsages)
 
 
 " <leader>n*, extras that have no standard g* default:
-"   nb  → supertypes / GotoSuperClass
 "   nt  → GotoTest
 "   nf  → FindInPath (search, not jump)
 "   ns  → structure popup (transient; persistent sidebar at <leader>vs)
-" GotoSuperMethod intentionally unbound: LSP's typeHierarchy only covers
-" class-level, not method-level. Keep parity with the Neovim side.
 "
 " Asymmetry, Neovim only:
 "   <leader>n{h,j,k,l} → treewalker.nvim AST walker (sticky hydra)
@@ -500,7 +500,6 @@ nmap gr <Action>(FindUsages)
 "   No JetBrains equivalent. The IDE has Move Statement Up/Down (Cmd+Shift+Up/Down)
 "   for swap but no AST sibling/parent walk. Not bound here; reserve
 "   <leader>n{h,j,k,l} on the IDE side for possible future use.
-map <leader>nb <Action>(GotoSuperClass)
 map <leader>nt <Action>(GotoTest)
 map <leader>nf <Action>(FindInPath)
 

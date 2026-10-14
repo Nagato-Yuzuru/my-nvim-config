@@ -106,7 +106,7 @@ return {
 		-- ── Treewalker ─────────────────────────────────────────────────────
 		-- body = `<leader>n`，复用既有 "Navigation extras" 命名空间。
 		-- `invoke_on_body = false`（默认）让单按 `<leader>n` 不进 hydra：
-		--   <leader>nb / ns / nt / nf  → fall through 到既有单发动作
+		--   <leader>ns / nt / nf  → fall through 到既有单发动作
 		--   <leader>nh / nj / nk / nl  → head 命中，walker 移动 + 进 hydra
 		-- 进入后裸 h/j/k/l 继续走，任何非 head 键 red 语义干净退出。
 		--

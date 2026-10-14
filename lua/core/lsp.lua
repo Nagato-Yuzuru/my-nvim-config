@@ -211,11 +211,14 @@ local function setup_lsp_attach_keymaps()
 			-- Navigation: g* follows community defaults (mirrors .ideavimrc §Navigation).
 			-- gd: Goto Definition    | gD: Goto Type Definition
 			-- gi: Goto Implementation | gr: References (Trouble UI, see ui/trouble.lua)
+			-- gb: Goto Super (base)
 			-- Note: gD overrides vim.lsp.buf.declaration — declaration is rarely
 			--       distinct from definition for our stack; type-def is more useful.
 			map("n", "gd", vim.lsp.buf.definition, "Goto Definition")
 			map("n", "gD", vim.lsp.buf.type_definition, "Goto Type Definition")
-			map("n", "gi", vim.lsp.buf.implementation, "Goto Implementation")
+			-- gi / gb 的方向拆分见 tools/hierarchy_nav.lua
+			map("n", "gi", function() require("tools.hierarchy_nav").implementation() end, "Goto Implementation")
+			map("n", "gb", function() require("tools.hierarchy_nav").super() end, "Goto Super (base)")
 			-- Refactor 命名空间。原则："LSP 能做的优先 LSP；LSP 无键级粒度时 refactoring.nvim 补"。
 			--   refactoring.nvim → <leader>r{m,v,f}（treesitter，extract 三连）
 			--   LSP code action  → <leader>r{e,r,s,M} + <leader>R + <leader>ca
@@ -293,14 +296,6 @@ local function setup_lsp_attach_keymaps()
 			-- (Shift+F10 等)，不通过 IdeaVim mapping。这是 CLAUDE.md 允许的"genuinely
 			-- nvim-only"非对称项。
 			map_if("textDocument/codeLens", "n", "<leader>cl", vim.lsp.codelens.run, "Run Code Lens")
-			-- <leader>n* — extras that have no standard g* counterpart:
-			map_if(
-				"textDocument/prepareTypeHierarchy",
-				"n",
-				"<leader>nb",
-				function() vim.lsp.buf.typehierarchy("supertypes") end,
-				"Goto Base (supertypes)"
-			)
 
 			-- Codelens 刷新：0.13+ 起 vim.lsp.codelens.enable 接管调度（runtime 内部
 			-- 走 nvim_buf_attach + debounced automatic_request，覆盖打开 / 编辑 /

@@ -116,7 +116,8 @@ it when the daily set changes.
 
 ## Forbidding rules / retired designs
 
-- **`<leader>n{d,D,i,u}` are retired** — `g*` owns those jumps.
+- **`<leader>n{b,d,D,i,u}` are retired** — `g*` owns those jumps
+  (super is `gb`).
   `<leader>n*` holds only jumps with no `g*` counterpart.
 - **`<leader>nt` (GotoTest) is IdeaVim-only.** Neotest is a runner, not
   a navigator — use `<leader>tt` or language tooling (`:GoAlt`).
