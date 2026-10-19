@@ -83,16 +83,61 @@ function M.implementation()
 	end)
 end
 
+---Python 的根类隐式继承 object，ty 把它列为 supertype。对每个根类都成立、零信息量，
+---IDEA 的 GotoSuper 也不往 object 跳——滤掉。只认 builtins.pyi 里的 object，别的语言不受影响。
+---@param items lsp.TypeHierarchyItem[]
+---@return lsp.TypeHierarchyItem[]
+function M.drop_implicit_supers(items)
+	return vim.tbl_filter(
+		function(item) return not (item.name == "object" and item.uri:match("/builtins%.pyi$")) end,
+		items
+	)
+end
+
+---自己发 typeHierarchy 请求而不用 vim.lsp.buf.typehierarchy：要过滤结果，且内置 handler
+---单结果也开 quickfix（IDEA 是直接跳）。光标处 prepare 出多个 item 时只取第一个。
+local function type_supers()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local client = vim.lsp.get_clients({ bufnr = bufnr, method = "textDocument/prepareTypeHierarchy" })[1]
+	if not client then
+		vim.notify("No super found: server lacks typeHierarchy", vim.log.levels.INFO)
+		return
+	end
+	local encoding = client.offset_encoding
+	local params = vim.lsp.util.make_position_params(0, encoding)
+	client:request("textDocument/prepareTypeHierarchy", params, function(err, prepared)
+		if err or not prepared or not prepared[1] then
+			vim.notify("No super found", vim.log.levels.INFO)
+			return
+		end
+		client:request("typeHierarchy/supertypes", { item = prepared[1] }, function(err2, result)
+			local supers = M.drop_implicit_supers(not err2 and result or {})
+			local locations = vim.tbl_map(
+				function(item) return { uri = item.uri, range = item.selectionRange } end,
+				supers
+			)
+			if #locations == 0 then
+				vim.notify("No super found", vim.log.levels.INFO)
+			elseif #locations == 1 then
+				vim.lsp.util.show_document(locations[1], encoding, { focus = true })
+			else
+				local items = vim.lsp.util.locations_to_items(locations, encoding)
+				for i, item in ipairs(items) do
+					item.text = supers[i].name
+				end
+				vim.fn.setqflist({}, " ", { title = "Supertypes", items = items })
+				vim.cmd("botright copen")
+			end
+		end, bufnr)
+	end, bufnr)
+end
+
 function M.super()
 	with_kind(function(kind)
 		if kind == "concrete" then
 			return vim.lsp.buf.implementation()
 		end
-		if #vim.lsp.get_clients({ bufnr = 0, method = "textDocument/prepareTypeHierarchy" }) == 0 then
-			vim.notify("No super found: server lacks typeHierarchy", vim.log.levels.INFO)
-			return
-		end
-		vim.lsp.buf.typehierarchy("supertypes")
+		type_supers()
 	end)
 end
 

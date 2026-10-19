@@ -39,4 +39,15 @@ end
 T["函数类型 → nil（gopls 向下找可赋值函数）"] = function() eq(child.lua_get("AT(4, 5)"), vim.NIL) end
 T["类型别名 → nil"] = function() eq(child.lua_get("AT(5, 5)"), vim.NIL) end
 
+T["supertypes 滤掉 builtins.pyi 的隐式 object"] = function()
+	eq(
+		child.lua_get([[vim.tbl_map(function(i) return i.name end, GI.drop_implicit_supers({
+			{ name = "object", uri = "file:///venv/typeshed/stdlib/builtins.pyi" },
+			{ name = "Base", uri = "file:///proj/base.py" },
+			{ name = "object", uri = "file:///proj/mine.py" },
+		}))]]),
+		{ "Base", "object" }
+	)
+end
+
 return T
