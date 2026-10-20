@@ -92,6 +92,8 @@ set CamelCaseMotion               " g:camelcasemotion_key deliberately unset, so
 " --- Marketplace (install the plugin in Settings > Plugins first, or the `set` fails silently) ---
 set easymotion                    " AceJump + IdeaVim-EasyMotion
 set which-key                     " Which-Key
+" List built-ins too (<C-w>, g, z), like which-key.nvim's default presets.
+let g:WhichKey_ShowVimActions = "true"
 " === AnyObject shrink (28333) ===
 " Keep only the seven objects the built-ins have no equivalent for. Everything
 " else belongs to the built-in extensions above. The key-ownership table at the
@@ -312,9 +314,16 @@ nmap <C-l> <C-w>l<Action>(Diff.FocusOppositePane)
 "     time. It lives on <C-w>x instead.
 "   <C-w>x  an approximation. vim exchanges two windows; the action only moves
 "     the editor to the opposite group. Closest semantics available.
+" which-key: built-in <C-w> keys take their labels from vim-engine's command
+" registry (g:WhichKey_ShowVimActions), so only the group name and the user
+" mappings in this section carry a WhichKeyDesc, each next to its nmap.
+let g:WhichKeyDesc_win = "<C-w> Window"
 nmap <C-w>L <Action>(MoveTabRight)
+let g:WhichKeyDesc_win_move_right = "<C-w>L Move editor to new split right"
 nmap <C-w>J <Action>(MoveTabDown)
+let g:WhichKeyDesc_win_move_down = "<C-w>J Move editor to new split below"
 nmap <C-w>x <Action>(MoveEditorToOppositeTabGroup)
+let g:WhichKeyDesc_win_exchange = "<C-w>x Move editor to opposite split"
 " Resize is fully native since 2.39, verified in frontend_commands.json:
 " <C-w>+/- height, <C-w>>/< width, <C-w>= equalise, <C-w>_/| maximise, and
 " :resize / :vertical resize [±n]. The submode below shadows four of those
@@ -334,9 +343,13 @@ nmap <C-w>x <Action>(MoveEditorToOppositeTabGroup)
 " eaten as the range of the `:` command.
 " Entry, where the first keystroke already performs the first adjustment:
 nmap <C-w>> :vertical resize +1<CR><Plug>(wres)
+let g:WhichKeyDesc_win_wider = "<C-w>> Wider (repeatable)"
 nmap <C-w><lt> :vertical resize -1<CR><Plug>(wres)
+let g:WhichKeyDesc_win_narrower = "<C-w><lt> Narrower (repeatable)"
 nmap <C-w>+ :resize +1<CR><Plug>(wres)
+let g:WhichKeyDesc_win_taller = "<C-w>+ Taller (repeatable)"
 nmap <C-w>- :resize -1<CR><Plug>(wres)
+let g:WhichKeyDesc_win_shorter = "<C-w>- Shorter (repeatable)"
 " Inside the submode: bare keys, holdable. = equalises natively and stays in.
 nmap <Plug>(wres)> :vertical resize +1<CR><Plug>(wres)
 nmap <Plug>(wres)<lt> :vertical resize -1<CR><Plug>(wres)
