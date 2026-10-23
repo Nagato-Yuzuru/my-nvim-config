@@ -438,26 +438,43 @@ nmap <leader>, <Action>(RecentFiles)
 " semantics is "open a tool window", which is the Views-namespace contract.
 nmap <leader>ns <Action>(FileStructurePopup)
 
-" Search prefix <leader>s* is nvim-only (lua/plugins/ui/snacks.lua +
-" lua/plugins/edit/rip-substitute.lua + lua/plugins/edit/grug-far.lua):
-"   <leader>ss  workspace symbols     Shift+Shift (Search Everywhere)
-"   <leader>sc  commands / actions    Shift+Shift, "Actions" tab
-"   <leader>sk  keymaps picker        Help > Find Action
-"   <leader>sb  buffer lines fuzzy    Ctrl+F (Find in File) + fuzzy mode
-"   <leader>sB  grep open buffers     Edit > Find > Find in Files (scope: open)
-"   <leader>sw  grep word/selection   Ctrl+Shift+F on cursor word
-"   <leader>s/  search history        the Find toolbar dropdown keeps history
-"   <leader>sr  rip-substitute        Ctrl+R (Replace, current file)
-"   <leader>sR  grug-far              Ctrl+Shift+R (Replace in Path)
-" IdeaVim deliberately doesn't mirror these: Search Everywhere + native Find/
-" Replace already cover the same ground with a single entry point, so
-" duplicating them as leader bindings would just add noise.
+" Search <leader>s*. Mirrors lua/plugins/ui/snacks.lua + the <leader>s keys in
+" lua/plugins/edit/{rip-substitute,grug-far,marks}.lua and
+" lua/plugins/ui/todo-comments.lua. Shift+Shift stays the IDE's catch-all; these
+" keys open the specific tab or dialog directly, so leader muscle memory works
+" on both sides.
+"   ss  workspace symbols     → GotoSymbol
+"   sc  commands              → GotoAction (Find Action)
+"   sk  keymaps               → :map (IdeaVim's own mappings; IDE shortcuts
+"                               show next to each entry in Find Action)
+"   sb  buffer lines          → Find (in-file search bar)
+"   sw  grep word/selection   → FindInPath, which pre-fills the caret word or
+"                               the selection
+"   s/  search history        → :history / (vim-engine's HistoryCommand)
+"   st  TODOs                 → TODO tool window, same as <leader>vt; the IDE has
+"                               no TODO picker, so the filterable panel stands in
+"   sm  bookmarks             → Bookmarks popup, same as <leader>M (speed search
+"                               over the list is its picker form)
+"   sr  rip-substitute        → Replace (current file)
+"   sR  grug-far              → ReplaceInPath
+" Asymmetry: sB (grep open buffers) is nvim-only. Find in Path has an
+" "Open files" scope but no action preselects it; pick the scope in the
+" <leader>/ dialog instead.
 "
-" Note: the nvim side splits replace into two scopes that JetBrains keeps as
-" two shortcuts. <leader>sr (rip-substitute, current buffer, PCRE2 popup over
-" vim's native :s) mirrors Ctrl+R, and <leader>sR (grug-far, workspace-wide,
-" editable result buffer with file-filter/paths/flags) mirrors Ctrl+Shift+R.
-" IDE side has no PCRE2-vs-vim :s split. Ctrl+R supports regex out of the box.
+" The nvim side splits replace into two engines: rip-substitute (PCRE2 popup
+" over vim's native :s) and grug-far (editable result buffer with
+" file-filter/paths/flags). The IDE has no PCRE2-vs-vim :s split, since Replace
+" supports regex out of the box.
+nmap <leader>ss <Action>(GotoSymbol)
+nmap <leader>sc <Action>(GotoAction)
+nmap <leader>sk :map<CR>
+nmap <leader>sb <Action>(Find)
+map  <leader>sw <Action>(FindInPath)
+nmap <leader>s/ :history /<CR>
+nmap <leader>st <Action>(ActivateTODOToolWindow)
+nmap <leader>sm <Action>(Bookmarks)
+map  <leader>sr <Action>(Replace)
+map  <leader>sR <Action>(ReplaceInPath)
 
 
 " Mapping IDE actions: https://jb.gg/abva3t
@@ -551,18 +568,16 @@ nmap <leader>vk <Action>(TogglePresentationAssistantAction)
 "   vd → require'dapui'.toggle      (lua/plugins/runtime/dap.lua)
 "   vt → :TodoTrouble                (lua/plugins/ui/todo-comments.lua)
 "        nvim also exposes a Snacks picker at <leader>st. The mental model is
-"        that Search uses a picker and View uses a panel. IdeaVim has no
-"        <leader>s* namespace, since Search Everywhere replaces it, so only
-"        vt = panel is mirrored.
+"        that Search uses a picker and View uses a panel. The IDE has no TODO
+"        picker, so its <leader>st opens this same panel.
 "   vP → :Trouble diagnostics ...     (lua/plugins/ui/trouble.lua)
 "   vm → :BookmarksTree (alias of <leader>M) for cross-editor parity.
 "        Canonical entry on the nvim side is <leader>M (master-singleton
 "        convention: uppercase single letter = total/master menu, mirrors
 "        <leader>R for refactoring). <leader>vm is an alias so JetBrains
 "        muscle memory still works on the nvim side.
-"        Picker form lives at <leader>sm. That whole <leader>s* namespace is
-"        nvim-only, since the IDE uses Search Everywhere instead. It runs on
-"        the snacks picker.
+"        Picker form lives at <leader>sm (snacks picker on nvim, the Bookmarks
+"        popup on the IDE).
 "   vk → :Screenkey toggle          (lua/plugins/ui/screenkey.lua)
 "        Both sides put the keys you press on screen, for demos and recorded
 "        tutorials. Accepted difference in what they show: Presentation
@@ -899,11 +914,11 @@ nmap <leader>mM <Action>(ToggleBookmarkWithMnemonic)
 nmap <leader>mn <Action>(GotoNextBookmarkInEditor)
 nmap <leader>mN <Action>(GotoPreviousBookmark)
 "
-" Search namespace, nvim-only (the <leader>s* namespace itself is nvim-only
-" because IDE uses Search Everywhere); search by keyword, picker UI:
+" Search namespace; search by keyword, picker UI:
 "   <leader>sm  → :BookmarksGoto      fuzzy picker over bookmarks
 "                                     (snacks backend, set explicitly in
-"                                      lua/plugins/edit/marks.lua)
+"                                      lua/plugins/edit/marks.lua). Bound in
+"                                      the Search block to the Bookmarks popup.
 "
 " nvim-only extras (no precise IdeaVim equivalent; the <leader>M IDE panel
 " covers similar ground interactively):
