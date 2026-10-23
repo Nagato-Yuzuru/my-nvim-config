@@ -438,6 +438,16 @@ nmap <leader>, <Action>(RecentFiles)
 " semantics is "open a tool window", which is the Views-namespace contract.
 nmap <leader>ns <Action>(FileStructurePopup)
 
+" Breadcrumbs. Mirrors lua/plugins/ui/dropbar.lua. <leader>cB (dropbar pick)
+" maps to Jump to Navigation Bar, the IDE's keyboard-driven path/member picker;
+" the breadcrumb bar itself has no keyboard focus action. Turn on "Show
+" Members" in the Navigation Bar settings so it reaches past the file into
+" classes and methods, like dropbar does.
+" Asymmetry: <leader>cb (dropbar select_next_context, browse siblings) is
+" nvim-only. The IDE has no sibling-scope walk; <leader>ns covers the same
+" "where else can I go in this file" need.
+nmap <leader>cB <Action>(ShowNavBar)
+
 " Search <leader>s*. Mirrors lua/plugins/ui/snacks.lua + the <leader>s keys in
 " lua/plugins/edit/{rip-substitute,grug-far,marks}.lua and
 " lua/plugins/ui/todo-comments.lua. Shift+Shift stays the IDE's catch-all; these
