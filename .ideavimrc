@@ -259,12 +259,12 @@ nmap <C-x><C-f> <Action>(GotoFile)
 "             the host so sessions do not nest. In the IDE terminal those
 "             already open in the editor area, so the problem does not exist.
 
-" -- Window / split navigation (mirrors vim-tmux-navigator: lua/plugins/ui/tmux.lua).
+" -- Window / split navigation (mirrors lua/plugins/ui/navigator.lua: vim-tmux-navigator + rex-navigator).
 " IdeaVim implements vim's <C-w>{h,j,k,l} window commands natively. Verified
 " against vim-engine's own generated command registry rather than the docs:
 " WindowLeftAction, WindowDownAction, WindowUpAction, WindowRightAction, mode
 " N. Remapping Ctrl+hjkl onto them covers the "move focus across editor splits"
-" half of what vim-tmux-navigator does on the nvim side. Confirmed in-editor.
+" half of what navigator.lua does on the nvim side. Confirmed in-editor.
 " <C-h>/<C-l> also chain Diff.FocusOppositePane. Diff panes are embedded
 " editors rather than windows, so <C-w>h/l cannot reach them. nvim needs no
 " counterpart because diffview panes there are real windows.

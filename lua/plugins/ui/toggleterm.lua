@@ -11,8 +11,8 @@
 -- 自定义 startinsert autocmd：实测同一次进入会排队 3 个 startinsert，且上游
 -- set_mode 的 vim.schedule 不做当前 buffer 复查（快速切焦点时 insert 会漏进
 -- 普通 buffer——上游缺陷，叠加自定义层只会扩大竞态面，修不掉它）。
--- 窗间导航不需要终端侧 <C-h/j/k/l> tmap：<C-]> 出来后走 ui/tmux.lua 的
--- vim-tmux-navigator 统一导航。嵌套 nvim（git commit / $EDITOR）由
+-- 窗间导航不需要终端侧 <C-h/j/k/l> tmap：<C-]> 出来后走 ui/navigator.lua 的
+-- tmux / Rex 统一导航。嵌套 nvim（git commit / $EDITOR）由
 -- ui/flatten.lua 转发到宿主实例。
 -- nvim-only：JetBrains 终端不归 IdeaVim 管，见 .ideavimrc 的 Terminal
 -- asymmetry 注释块（parity 记录的 SSOT 在那边）。

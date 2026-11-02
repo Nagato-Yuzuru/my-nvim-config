@@ -72,9 +72,10 @@ keymap/plugin change.
   gitignore.nvim's dependency — new pickers go through Snacks.
 - **Commit-pinned / branch-tracking plugins to re-review on
   `:Lazy update`**: go-deep.nvim (`lua/plugins/completion/go_deep.lua`,
-  tracks `master`; its blink provider lives in `blink.lua`) and
+  tracks `master`; its blink provider lives in `blink.lua`),
   claudecode.nvim (`lua/plugins/ai/claudecode.lua`, pinned `commit`,
-  reverse-engineered protocol).
+  reverse-engineered protocol), and rex-navigator.nvim
+  (`lua/plugins/ui/navigator.lua`, pinned `commit`, Rex beta API).
 - **golangci-lint quickfixes are custom-wired**: parser
   `lua/tools/golangci_fix.lua` → in-process LSP `lsp/golangci_fix.lua`
   (enabled from `plugins/lang/go.lua`) → code actions + a
