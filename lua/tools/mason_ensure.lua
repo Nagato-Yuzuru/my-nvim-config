@@ -145,6 +145,7 @@ local LSP_TOOLS = {
 	{ server = "jq_lsp", bin = "jq-lsp", mason = "jq-lsp" },
 	-- awk-language-server（Beaglefoot，npm）：诊断/补全/hover/goto-def。
 	{ server = "awk_ls", bin = "awk-language-server", mason = "awk-language-server" },
+	{ server = "mesonlsp", bin = "mesonlsp", mason = "mesonlsp" },
 	-- buf（bufbuild/buf）：`buf lsp serve`，proto 的 LSP+lint+format 一体（见 lsp/buf_ls.lua）。
 	-- 优先 mise 管的 buf（项目可钉版本），mason 兜底。verify_cmd：mise shim 在未设
 	-- 版本时 PATH 上存在但 exec 报错，同 rust-analyzer 的 rustup proxy 情形。

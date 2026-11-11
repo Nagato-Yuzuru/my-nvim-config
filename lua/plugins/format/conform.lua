@@ -106,6 +106,7 @@ return {
 			--   canonical 一致，.tofu/.tofuvars 的 ft 归并见 plugins/lang/opentofu.lua）；
 			--   rustfmt 跟 rustup component；zigfmt 随 zig；swiftformat 由 mise 提供
 			--  （aqua backend，钉进 mise.toml——Swift 系无可靠预编译包，不走 Mason）；
+			--   meson 随 mise（缺失时 lsp_fallback 到 mesonlsp 内嵌的 formatter）；
 			--   raco_fmt / schemat 装法见下方 formatters 声明与 scheme_toolchain 提示。
 			-- conform 一律从 PATH 找，缺失时静默跳过。
 			local formatters_by_ft = {
@@ -133,6 +134,7 @@ return {
 				typst = { "typstyle" },
 				racket = { "raco_fmt" },
 				scheme = { "schemat" },
+				meson = { "meson" },
 			}
 
 			conform.setup(vim.tbl_deep_extend("force", {

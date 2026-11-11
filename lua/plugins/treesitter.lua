@@ -48,6 +48,7 @@ return {
 					"awk",
 					-- proto：高亮/折叠/文本对象用 grammar；语义高亮由 buf LSP 的 semantic tokens 叠加。
 					"proto",
+					"meson",
 				},
 				auto_install = true,
 			})
